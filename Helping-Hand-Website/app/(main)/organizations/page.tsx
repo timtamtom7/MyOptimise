@@ -1,0 +1,46 @@
+import { fetchSanityOrganizations } from "@/sanity/lib/fetch";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import Image from "next/image";
+import Link from "next/link";
+
+export default async function OrganizationsPage() {
+  const organizations = await fetchSanityOrganizations();
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-semibold">Organizations</h1>
+      <p className="mt-2 text-muted-foreground">
+        Browse partner organizations supporting community food distribution.
+      </p>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-6">
+        {organizations.map((org: any) => (
+          <Link key={org._id} href={`/organizations/${org.slug?.current}`}>
+            <Card className="overflow-hidden h-full">
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="flex-none">
+                  <Image
+                    src={org.logo?.asset?.url || "/images/placeholder.svg"}
+                    alt={org.name}
+                    width={48}
+                    height={48}
+                    className="rounded-md object-contain"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <CardTitle>{org.name}</CardTitle>
+                  <CardDescription>{org.website ?? ""}</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">
+                  {org.description ?? ""}
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,342 @@
+import { sanityFetch } from "@/sanity/lib/live";
+import { client } from "@/sanity/lib/client";
+import { token as previewToken } from "@/sanity/lib/token";
+import { notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { Resend } from "resend";
+import { fetchSanityPendingAccounts } from "@/sanity/lib/fetch";
+import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
+import bcrypt from "bcryptjs";
+
+async function approveEvent(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+  await writeClient.patch(id).set({ status: "approved" }).commit();
+  revalidatePath("/events");
+}
+
+async function completeEvent(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+  await writeClient.patch(id).set({ status: "completed" }).commit();
+  revalidatePath(`/events/${id}`);
+}
+
+async function confirmSignup(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+  await writeClient.patch(id).set({ status: "confirmed" }).commit();
+  revalidatePath("/dashboard");
+}
+
+async function cancelSignup(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+  await writeClient.patch(id).set({ status: "cancelled" }).commit();
+  revalidatePath("/dashboard");
+}
+
+async function approveSponsorship(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+  await writeClient.patch(id).set({ status: "approved" }).commit();
+  revalidatePath("/dashboard/business");
+}
+
+async function completeSponsorship(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+  await writeClient.patch(id).set({ status: "completed" }).commit();
+  revalidatePath("/dashboard/business");
+}
+
+async function setSponsorshipLogo(formData: FormData) {
+  const id = String(formData.get("id") || "");
+  const file = formData.get("logo") as File | null;
+  if (!id || !file) return;
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const asset = await writeClient.assets.upload("image", buffer, {
+    filename: file.name || "business-logo.jpg",
+    contentType: file.type || "image/jpeg",
+  });
+  await writeClient
+    .patch(id)
+    .set({ businessLogo: { _type: "image", asset: { _type: "reference", _ref: asset._id } } })
+    .commit();
+  revalidatePath("/dashboard/business");
+}
+
+export default async function AdminPage(props: { searchParams?: Promise<{ key?: string }> }) {
+  const searchParams = (await props.searchParams) || {};
+  const key = searchParams.key || "";
+  if (process.env.ADMIN_KEY && key !== process.env.ADMIN_KEY) {
+    return notFound();
+  }
+
+  const pendingAccounts = await fetchSanityPendingAccounts();
+  const { data: pendingEvents } = await sanityFetch({
+    query: `*[_type == "event" && status == "pending_review"] | order(date asc){_id, title, date, location, organization->{name}}`,
+  });
+
+  const { data: signups } = await sanityFetch({
+    query: `*[_type == "signup" && status == "received"] | order(createdAt desc){
+      _id, name, email, event->{_id, title, date, location}
+    }`,
+  });
+
+  const { data: completedProofs } = await sanityFetch({
+    query: `*[_type == "signup" && status == "completed"] | order(completedAt desc){
+      _id, name, email, proofImage{asset->{url}}, event->{title, date}
+    }`,
+  });
+
+  const { data: pendingSponsorships } = await sanityFetch({
+    query: `*[_type == "sponsorship" && status == "submitted"] | order(_createdAt desc){
+      _id, businessName, contactEmail, mealsCount, date, location, notes
+    }`,
+  });
+
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <h1 className="text-3xl font-semibold">Admin</h1>
+      <p className="mt-2 text-muted-foreground">Use ?key=... to access. Approve events and manage signups.</p>
+      {!process.env.SANITY_API_WRITE_TOKEN && (
+        <div className="mt-4 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
+          Setup required: missing SANITY_API_WRITE_TOKEN. Admin actions that write to Sanity are disabled.
+        </div>
+      )}
+
+      <div className="mt-6 rounded-md border p-4">
+        <form action={async () => {
+          "use server";
+          if (!process.env.SANITY_API_WRITE_TOKEN) {
+            return;
+          }
+          const email = "tommaso.mauriello747@gmail.com";
+          const password = "Tommaso7258";
+          const existing = await fetchSanityAccountByEmail({ email });
+          if (!existing) {
+            const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN, perspective: "published" });
+            const passwordHash = await bcrypt.hash(password, 10);
+            await writeClient.create({
+              _type: "account",
+              email,
+              name: "Admin",
+              type: "admin",
+              status: "approved",
+              passwordHash,
+            });
+          } else if (existing.type !== "admin" || existing.status !== "approved") {
+            const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN, perspective: "published" });
+            await writeClient.patch(existing._id).set({ type: "admin", status: "approved" }).commit();
+          }
+          revalidatePath("/admin");
+        }}>
+          <button className="rounded-md border px-3 py-2" disabled={!process.env.SANITY_API_WRITE_TOKEN}>Seed Admin Account</button>
+        </form>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold">Accounts Pending Approval</h2>
+        <div className="mt-4 grid gap-4">
+          {(pendingAccounts ?? []).map((a: any) => (
+            <div key={a._id} className="rounded-md border p-4 flex items-center justify-between">
+              <div>
+                <div className="font-medium">{a.name || a.email}</div>
+                <div className="text-sm text-muted-foreground">{a.type}</div>
+              </div>
+              <div className="flex gap-3">
+                <form action={async (fd: FormData) => {
+                  "use server";
+                  const id = String(fd.get("id") || "");
+                  if (!id) return;
+                  const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN || previewToken, perspective: "published" });
+                  const approved = await writeClient.patch(id).set({ status: "approved" }).commit();
+                  const resendKey = process.env.RESEND_API_KEY || "";
+                  if (resendKey) {
+                    const resend = new Resend(resendKey);
+                    try {
+                      const acct = approved as any;
+                      await resend.emails.send({
+                        from: "Helping Hand <notifications@helpinghand.local>",
+                        to: acct.email,
+                        subject: "Your account has been approved",
+                        html: `<p>Your account is approved. You can now sign in.</p>`,
+                      });
+                    } catch {}
+                  }
+                  revalidatePath("/admin");
+                }}>
+                  <input type="hidden" name="id" value={a._id} />
+                  <button className="rounded-md bg-primary px-3 py-2 text-primary-foreground">Approve</button>
+                </form>
+                <form action={async (fd: FormData) => {
+                  "use server";
+                  const id = String(fd.get("id") || "");
+                  if (!id) return;
+                  const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN || previewToken, perspective: "published" });
+                  const denied = await writeClient.patch(id).set({ status: "denied" }).commit();
+                  const resendKey = process.env.RESEND_API_KEY || "";
+                  if (resendKey) {
+                    const resend = new Resend(resendKey);
+                    try {
+                      const acct = denied as any;
+                      await resend.emails.send({
+                        from: "Helping Hand <notifications@helpinghand.local>",
+                        to: acct.email,
+                        subject: "Your account request was denied",
+                        html: `<p>We’re sorry, but your account request was denied.</p>`,
+                      });
+                    } catch {}
+                  }
+                  revalidatePath("/admin");
+                }}>
+                  <input type="hidden" name="id" value={a._id} />
+                  <button className="rounded-md border px-3 py-2">Deny</button>
+                </form>
+              </div>
+            </div>
+          ))}
+          {(pendingAccounts ?? []).length === 0 ? (
+            <div className="text-muted-foreground">No accounts pending approval</div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold">Sponsorships Pending Review</h2>
+        <div className="mt-4 grid gap-4">
+          {(pendingSponsorships ?? []).map((s: any) => (
+            <div key={s._id} className="rounded-md border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{s.businessName}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {s.mealsCount ? `${s.mealsCount} meals` : ""} {s.date ? `• ${new Date(s.date).toLocaleDateString()}` : ""} {s.location ? `• ${s.location}` : ""}
+                  </div>
+                  {s.contactEmail ? <div className="text-xs text-muted-foreground mt-1">{s.contactEmail}</div> : null}
+                </div>
+                <div className="flex gap-3">
+                  <form action={approveSponsorship}>
+                    <input type="hidden" name="id" value={s._id} />
+                    <button className="rounded-md bg-primary px-3 py-2 text-primary-foreground">Approve</button>
+                  </form>
+                  <form action={completeSponsorship}>
+                    <input type="hidden" name="id" value={s._id} />
+                    <button className="rounded-md border px-3 py-2">Mark Completed</button>
+                  </form>
+                </div>
+              </div>
+              {s.notes ? <div className="mt-3 text-sm">{s.notes}</div> : null}
+              <div className="mt-3">
+                <form action={setSponsorshipLogo} className="flex items-center gap-2">
+                  <input type="hidden" name="id" value={s._id} />
+                  <input type="file" name="logo" accept="image/*" className="rounded-md border px-2 py-1" />
+                  <button className="rounded-md border px-3 py-2">Upload Logo</button>
+                </form>
+              </div>
+            </div>
+          ))}
+          {(pendingSponsorships ?? []).length === 0 ? (
+            <div className="text-muted-foreground">No sponsorships pending review</div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold">Events Pending Review</h2>
+        <div className="mt-4 grid gap-4">
+          {(pendingEvents ?? []).map((e: any) => (
+            <div key={e._id} className="rounded-md border p-4 flex items-center justify-between">
+              <div>
+                <div className="font-medium">{e.title}</div>
+                <div className="text-sm text-muted-foreground">
+                  {new Date(e.date).toLocaleString()} • {e.location} • {e.organization?.name ?? ""}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <form action={approveEvent}>
+                  <input type="hidden" name="id" value={e._id} />
+                  <button className="rounded-md bg-primary px-3 py-2 text-primary-foreground">Approve</button>
+                </form>
+                <form action={completeEvent}>
+                  <input type="hidden" name="id" value={e._id} />
+                  <button className="rounded-md border px-3 py-2">Mark Completed</button>
+                </form>
+              </div>
+            </div>
+          ))}
+          {(pendingEvents ?? []).length === 0 ? (
+            <div className="text-muted-foreground">No events pending review</div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold">New Signups</h2>
+        <div className="mt-4 grid gap-4">
+          {(signups ?? []).map((s: any) => (
+            <div key={s._id} className="rounded-md border p-4 flex items-center justify-between">
+              <div>
+                <div className="font-medium">{s.name} — {s.email}</div>
+                <div className="text-sm text-muted-foreground">
+                  {s.event?.title} • {new Date(s.event?.date).toLocaleString()} • {s.event?.location}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <form action={confirmSignup}>
+                  <input type="hidden" name="id" value={s._id} />
+                  <button className="rounded-md bg-primary px-3 py-2 text-primary-foreground">Confirm</button>
+                </form>
+                <form action={cancelSignup}>
+                  <input type="hidden" name="id" value={s._id} />
+                  <button className="rounded-md border px-3 py-2">Cancel</button>
+                </form>
+              </div>
+            </div>
+          ))}
+          {(signups ?? []).length === 0 ? (
+            <div className="text-muted-foreground">No new signups</div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold">Completed Proofs</h2>
+        <div className="mt-4 grid gap-4">
+          {(completedProofs ?? []).map((c: any) => (
+            <div key={c._id} className="rounded-md border p-4">
+              <div className="font-medium">{c.name} — {c.email}</div>
+              <div className="text-sm text-muted-foreground">
+                {c.event?.title} • {new Date(c.event?.date).toLocaleString()}
+              </div>
+              {c.proofImage?.asset?.url && (
+                <div className="mt-2 text-sm">
+                  <a href={c.proofImage.asset.url} target="_blank" rel="noopener noreferrer" className="underline">View proof</a>
+                </div>
+              )}
+            </div>
+          ))}
+          {(completedProofs ?? []).length === 0 ? (
+            <div className="text-muted-foreground">No completed proofs yet</div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}

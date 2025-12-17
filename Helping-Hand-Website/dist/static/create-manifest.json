@@ -1,0 +1,20 @@
+{
+  "version": 3,
+  "createdAt": "2025-12-16T00:27:12.888Z",
+  "workspaces": [
+    {
+      "name": "default",
+      "title": "Schema UI",
+      "basePath": "/studio",
+      "projectId": "po4c7tvj",
+      "dataset": "production",
+      "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><rect width=\"32\" height=\"32\" rx=\"2\" fill=\"#ffb685\"></rect><text x=\"50%\" y=\"50%\" text-anchor=\"middle\" alignment-baseline=\"middle\" fill=\"hsla(24, 100%, 36%, 1)\" style=\"font-family:Inter, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, &quot;Liberation Sans&quot;, Helvetica, Arial, system-ui, sans-serif;font-weight:500;font-size:13px;transform:translateY(1px)\">SU</text></svg>",
+      "mediaLibrary": {
+        "enabled": false
+      },
+      "schema": "da9265e6.create-schema.json",
+      "tools": "3f9407ec.create-tools.json"
+    }
+  ],
+  "studioVersion": "4.21.1"
+}
