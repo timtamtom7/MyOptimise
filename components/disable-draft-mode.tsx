@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 
 import { useDraftModeEnvironment } from "next-sanity/hooks";
+import Link from "next/link";
 
 export function DisableDraftMode() {
   const environment = useDraftModeEnvironment();
@@ -13,9 +14,9 @@ export function DisableDraftMode() {
 
   return (
     <Button asChild>
-      <a href="/api/draft-mode/disable" className="fixed bottom-4 right-4">
+      <Link href="/api/draft-mode/disable" className="fixed bottom-4 right-4">
         Disable Draft Mode
-      </a>
+      </Link>
     </Button>
   );
 }

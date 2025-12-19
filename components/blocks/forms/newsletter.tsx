@@ -77,7 +77,7 @@ export default function FormNewsletter({
         throw new Error(error.message);
       }
     },
-    [form]
+    [form, successMessage]
   );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {

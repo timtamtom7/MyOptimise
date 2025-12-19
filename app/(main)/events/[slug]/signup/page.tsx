@@ -8,6 +8,7 @@ import { t } from "@/lib/i18n";
 import { fetchSanityEventBySlug } from "@/sanity/lib/fetch";
 import { notFound } from "next/navigation";
 import { getLocale } from "@/lib/i18n";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -44,8 +45,8 @@ export default async function SignupPage(props: { params: Promise<{ slug: string
               {t("pendingModalBody", locale)}
             </div>
             <div className="mt-6 flex gap-3">
-              <a href="/" className="rounded-md bg-primary px-4 py-2 text-primary-foreground flex-1 text-center">{t("goHome", locale)}</a>
-              <a href="/events" className="rounded-md border px-4 py-2 flex-1 text-center">{t("browseEvents", locale)}</a>
+              <Link href="/" className="rounded-md bg-primary px-4 py-2 text-primary-foreground flex-1 text-center">{t("goHome", locale)}</Link>
+              <Link href="/events" className="rounded-md border px-4 py-2 flex-1 text-center">{t("browseEvents", locale)}</Link>
             </div>
           </div>
         </>

@@ -36,6 +36,9 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "minimalist-event-sign-up-page",
+    "segmented-button",
+    "Simple Card Stack (Community)"
   ]
 }

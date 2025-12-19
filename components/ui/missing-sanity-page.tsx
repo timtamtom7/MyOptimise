@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default function MissingSanityPage({
   document,
@@ -24,24 +25,18 @@ export default function MissingSanityPage({
           Create it in Sanity Studio or browse available sections below.
         </p>
         <div className="mt-6 flex gap-3 justify-center">
-          <a
+          <Link
             href="/studio"
             className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
           >
             Open Studio
-          </a>
-          <a
-            href="/events"
-            className="rounded-md border px-4 py-2"
-          >
+          </Link>
+          <Link href="/events" className="rounded-md border px-4 py-2">
             View Events
-          </a>
-          <a
-            href="/organizations"
-            className="rounded-md border px-4 py-2"
-          >
+          </Link>
+          <Link href="/organizations" className="rounded-md border px-4 py-2">
             View Organizations
-          </a>
+          </Link>
         </div>
       </div>
     </div>

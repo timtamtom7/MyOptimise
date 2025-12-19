@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { client } from "@/sanity/lib/client";
 import { token as previewToken } from "@/sanity/lib/token";
 
-export async function POST(request: Request, { params }: { params: { slug: string } }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> }
+) {
   try {
+    const { slug } = await context.params;
     const fd = await request.formData();
     const name = String(fd.get("name") || "");
     const email = String(fd.get("email") || "");
@@ -39,7 +43,10 @@ export async function POST(request: Request, { params }: { params: { slug: strin
         </div>`,
       });
     }
-    const url = new URL(`/events/${params.slug}/signup?pending=1`, process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3003");
+    const url = new URL(
+      `/events/${slug}/signup?pending=1`,
+      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3003"
+    );
     return NextResponse.redirect(url, { status: 303 });
   } catch {
     return new NextResponse("Server error", { status: 500 });

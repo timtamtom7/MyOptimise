@@ -3,6 +3,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export default function CredentialsLoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [email, setEmail] = useState("");
@@ -74,7 +75,7 @@ export default function CredentialsLoginForm({ callbackUrl }: { callbackUrl?: st
                   <button onClick={() => setShowErrorModal(false)} className="rounded-md bg-primary px-4 py-2 text-primary-foreground flex-1">
                     Close
                   </button>
-                  <a href="/signup" className="rounded-md border px-4 py-2 flex-1 text-center">Create account</a>
+                  <Link href="/signup" className="rounded-md border px-4 py-2 flex-1 text-center">Create account</Link>
                 </div>
               </div>
             </>

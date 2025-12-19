@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint app components lib sanity",
     "typegen": "rm -rf schema.json && sanity schema extract && sanity typegen generate",
     "typecheck": "tsc --noEmit"
   },

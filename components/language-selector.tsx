@@ -9,16 +9,21 @@ const options = [
 ] as const;
 
 export default function LanguageSelector() {
-  const [lang, setLang] = useState<string>("en");
-  useEffect(() => {
+  const [lang, setLang] = useState<string>(() => {
+    if (typeof document === "undefined") return "en";
     const m = document.cookie.match(/(?:^|; )lang=([^;]+)/);
-    if (m?.[1]) setLang(decodeURIComponent(m[1]));
-  }, []);
+    return m?.[1] ? decodeURIComponent(m[1]) : "en";
+  });
+  const [userSelected, setUserSelected] = useState(false);
   function setLanguage(code: string) {
-    document.cookie = `lang=${encodeURIComponent(code)}; path=/; max-age=${60 * 60 * 24 * 365}`;
     setLang(code);
-    window.location.reload();
+    setUserSelected(true);
   }
+  useEffect(() => {
+    if (!userSelected) return;
+    document.cookie = `lang=${encodeURIComponent(lang)}; path=/; max-age=${60 * 60 * 24 * 365}`;
+    window.location.reload();
+  }, [lang, userSelected]);
   const current = options.find((o) => o.code === lang) || options[0];
   return (
     <DropdownMenu.Root>
@@ -39,4 +44,3 @@ export default function LanguageSelector() {
     </DropdownMenu.Root>
   );
 }
-

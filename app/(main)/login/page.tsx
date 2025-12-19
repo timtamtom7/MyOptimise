@@ -37,8 +37,8 @@ export default async function LoginPage(props: { searchParams?: Promise<{ type?:
               {t("pendingModalBody", locale)}
             </div>
             <div className="mt-6 flex gap-3">
-              <a href="/" className="rounded-md bg-primary px-4 py-2 text-primary-foreground flex-1 text-center">{t("goHome", locale)}</a>
-              <a href="/events" className="rounded-md border px-4 py-2 flex-1 text-center">{t("browseEvents", locale)}</a>
+              <Link href="/" className="rounded-md bg-primary px-4 py-2 text-primary-foreground flex-1 text-center">{t("goHome", locale)}</Link>
+              <Link href="/events" className="rounded-md border px-4 py-2 flex-1 text-center">{t("browseEvents", locale)}</Link>
             </div>
           </div>
         </>
