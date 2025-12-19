@@ -22,6 +22,7 @@ export default defineType({
         list: [
           { title: "Submitted", value: "submitted" },
           { title: "Approved", value: "approved" },
+          { title: "Rejected", value: "rejected" },
           { title: "Completed", value: "completed" },
         ],
         layout: "radio",

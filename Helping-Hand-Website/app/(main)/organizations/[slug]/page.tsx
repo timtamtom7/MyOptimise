@@ -1,18 +1,18 @@
-import { fetchSanityOrganizationBySlug, fetchSanityOrganizations } from "@/sanity/lib/fetch";
+import { fetchSanityOrganizationBySlug, fetchSanityOrganizationsStaticParams } from "@/sanity/lib/fetch";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getLocale } from "@/lib/i18n";
 
 export async function generateStaticParams() {
-  const orgs = await fetchSanityOrganizations();
-  return orgs
-    .filter((o: any) => o.slug?.current)
-    .map((o: any) => ({ slug: o.slug.current }));
+  const orgs = await fetchSanityOrganizationsStaticParams();
+  return orgs.map((o: any) => ({ slug: o.slug?.current }));
 }
 
 export default async function OrganizationPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
-  const org = await fetchSanityOrganizationBySlug({ slug: params.slug });
+  const locale = await getLocale();
+  const org = await fetchSanityOrganizationBySlug({ slug: params.slug, locale });
   if (!org) notFound();
 
   return (

@@ -5,6 +5,7 @@ import {
 } from "@/sanity/lib/fetch";
 import { notFound } from "next/navigation";
 import { generatePageMetadata } from "@/sanity/lib/metadata";
+import { getLocale } from "@/lib/i18n";
 
 export async function generateStaticParams() {
   const pages = await fetchSanityPagesStaticParams();
@@ -18,7 +19,8 @@ export async function generateMetadata(props: {
   params: Promise<{ slug: string }>;
 }) {
   const params = await props.params;
-  const page = await fetchSanityPageBySlug({ slug: params.slug });
+  const locale = await getLocale();
+  const page = await fetchSanityPageBySlug({ slug: params.slug, locale });
 
   if (!page) {
     notFound();
@@ -31,7 +33,8 @@ export default async function Page(props: {
   params: Promise<{ slug: string }>;
 }) {
   const params = await props.params;
-  const page = await fetchSanityPageBySlug({ slug: params.slug });
+  const locale = await getLocale();
+  const page = await fetchSanityPageBySlug({ slug: params.slug, locale });
 
   if (!page) {
     notFound();

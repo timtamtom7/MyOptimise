@@ -11,8 +11,8 @@ export const cta1Query = groq`
     colorVariant,
     sectionWidth,
     stackAlign,
-    tagLine,
-    title,
+    "tagLine": coalesce(tagLine_i18n[$i18nKey], tagLine),
+    "title": coalesce(title_i18n[$i18nKey], title),
     body[]{
       ${bodyQuery}
     },

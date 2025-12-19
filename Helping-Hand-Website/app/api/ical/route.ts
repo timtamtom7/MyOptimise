@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchSanitySignupsByEmail } from "@/sanity/lib/fetch";
+import { cookies } from "next/headers";
 
 function formatDateToICS(dateString: string | null | undefined) {
   if (!dateString) return "";
@@ -20,7 +21,9 @@ export async function GET(request: Request) {
     return new NextResponse("Missing email", { status: 400 });
   }
 
-  const signups = await fetchSanitySignupsByEmail({ email });
+  const c = await (cookies as unknown as () => Promise<any>)();
+  const locale = c?.get?.("lang")?.value || "en";
+  const signups = await fetchSanitySignupsByEmail({ email, locale });
   const now = formatDateToICS(new Date().toISOString());
   const site = process.env.NEXT_PUBLIC_SITE_URL || "https://helpinghand.hk";
 

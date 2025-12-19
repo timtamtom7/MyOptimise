@@ -2,6 +2,7 @@ import { fetchSanityEventBySlug, fetchSanityEventsStaticParams } from "@/sanity/
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon } from "lucide-react";
+import { getLocale, t } from "@/lib/i18n";
 
 export async function generateStaticParams() {
   const items = await fetchSanityEventsStaticParams();
@@ -10,7 +11,8 @@ export async function generateStaticParams() {
 
 export default async function EventPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
-  const event = await fetchSanityEventBySlug({ slug: params.slug });
+  const locale = await getLocale();
+  const event = await fetchSanityEventBySlug({ slug: params.slug, locale });
   if (!event) notFound();
 
   const dt = new Date(event.date);
@@ -22,7 +24,7 @@ export default async function EventPage(props: { params: Promise<{ slug: string 
       <div className="w-full max-w-lg">
         {event.organization?.name ? (
           <div className="flex items-center gap-2 mb-8">
-            <span className="text-[11px] text-muted-foreground uppercase tracking-widest">Hosted by</span>
+            <span className="text-[11px] text-muted-foreground uppercase tracking-widest">{t("hostedBy", locale)}</span>
             <span className="text-[11px] font-medium uppercase tracking-widest">{event.organization.name}</span>
           </div>
         ) : null}
@@ -89,14 +91,14 @@ export default async function EventPage(props: { params: Promise<{ slug: string 
             href={`/events/${params.slug}/signup`}
             className="inline-flex w-full justify-center rounded-md bg-primary px-4 py-2 text-primary-foreground"
           >
-            Volunteer Now
+            {t("volunteerNow", locale)}
           </Link>
         </div>
 
         {typeof event.capacity === "number" ? (
           <footer className="mt-6 text-center">
             <p className="text-[11px] text-muted-foreground tracking-wide">
-              {event.capacity} seats available. First come, first served.
+              {event.capacity} {t("seatsAvailableSuffix", locale)}
             </p>
           </footer>
         ) : null}

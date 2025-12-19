@@ -10,9 +10,9 @@ export const sectionHeaderQuery = groq`
     colorVariant,
     sectionWidth,
     stackAlign,
-    tagLine,
-    title,
-    description,
+    "tagLine": coalesce(tagLine_i18n[$i18nKey], tagLine),
+    "title": coalesce(title_i18n[$i18nKey], title),
+    "description": coalesce(description_i18n[$i18nKey], description),
     link{
       ${linkQuery}
     },

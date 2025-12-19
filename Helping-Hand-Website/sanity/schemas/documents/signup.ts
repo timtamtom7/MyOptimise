@@ -25,6 +25,7 @@ export default defineType({
         list: [
           { title: "Received", value: "received" },
           { title: "Confirmed", value: "confirmed" },
+          { title: "Rejected", value: "rejected" },
           { title: "Cancelled", value: "cancelled" },
           { title: "Completed", value: "completed" },
         ],
@@ -40,10 +41,13 @@ export default defineType({
       readOnly: true,
     }),
     defineField({
-      name: "proofImage",
+      name: "proofMedia",
       title: "Proof of Distribution",
-      type: "image",
-      options: { hotspot: true },
+      type: "array",
+      of: [
+        { type: "image" },
+        { type: "file" },
+      ],
     }),
     defineField({
       name: "consent",

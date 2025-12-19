@@ -45,7 +45,7 @@ export default defineType({
     }),
     defineField({
       name: "copyright",
-      type: "block-content",
+      type: "text",
       description: "The copyright text to display in the footer",
     }),
   ],

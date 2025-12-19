@@ -8,7 +8,5 @@ export const client = createClient({
   apiVersion,
   useCdn,
   perspective: "published",
-  stega: {
-    studioUrl: process.env.NEXT_PUBLIC_SITE_URL + "/studio",
-  },
+  stega: false,
 });

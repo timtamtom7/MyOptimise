@@ -1,10 +1,12 @@
 import { fetchSanityOrganizations } from "@/sanity/lib/fetch";
+import { getLocale } from "@/lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Image from "next/image";
 import Link from "next/link";
 
 export default async function OrganizationsPage() {
-  const organizations = await fetchSanityOrganizations();
+  const locale = await getLocale();
+  const organizations = await fetchSanityOrganizations({ locale });
 
   return (
     <div className="container mx-auto px-4 py-8">

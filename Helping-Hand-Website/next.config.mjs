@@ -10,6 +10,7 @@ const nextConfig = {
       },
     ]
   },
+  serverExternalPackages: ['isomorphic-dompurify', 'jsdom'],
   images: {
     unoptimized: true,
     qualities: [100],

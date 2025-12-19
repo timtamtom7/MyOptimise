@@ -44,12 +44,42 @@ export default defineType({
       type: "string",
     }),
     defineField({
+      name: "tagLine_i18n",
+      title: "Tag Line (Translations)",
+      type: "object",
+      fields: [
+        { name: "en", type: "string", title: "English" },
+        { name: "zh_hk", type: "string", title: "中文（粵語）" },
+        { name: "zh_cn", type: "string", title: "中文（普通话）" },
+      ],
+    }),
+    defineField({
       name: "title",
       type: "string",
     }),
     defineField({
+      name: "title_i18n",
+      title: "Title (Translations)",
+      type: "object",
+      fields: [
+        { name: "en", type: "string", title: "English" },
+        { name: "zh_hk", type: "string", title: "中文（粵語）" },
+        { name: "zh_cn", type: "string", title: "中文（普通话）" },
+      ],
+    }),
+    defineField({
       name: "description",
       type: "text",
+    }),
+    defineField({
+      name: "description_i18n",
+      title: "Description (Translations)",
+      type: "object",
+      fields: [
+        { name: "en", type: "text", title: "English" },
+        { name: "zh_hk", type: "text", title: "中文（粵語）" },
+        { name: "zh_cn", type: "text", title: "中文（普通话）" },
+      ],
     }),
   ],
   preview: {

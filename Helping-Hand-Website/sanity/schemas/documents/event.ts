@@ -21,6 +21,17 @@ export default defineType({
     }),
     defineField({ name: "title", type: "string", group: "content", validation: (Rule) => Rule.required() }),
     defineField({
+      name: "title_i18n",
+      title: "Title (Translations)",
+      type: "object",
+      group: "content",
+      fields: [
+        { name: "en", type: "string", title: "English" },
+        { name: "zh_hk", type: "string", title: "中文（粵語）" },
+        { name: "zh_cn", type: "string", title: "中文（普通话）" },
+      ],
+    }),
+    defineField({
       name: "slug",
       type: "slug",
       group: "details",
@@ -28,8 +39,30 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({ name: "description", title: "Description", type: "text", group: "content" }),
+    defineField({
+      name: "description_i18n",
+      title: "Description (Translations)",
+      type: "object",
+      group: "content",
+      fields: [
+        { name: "en", type: "text", title: "English" },
+        { name: "zh_hk", type: "text", title: "中文（粵語）" },
+        { name: "zh_cn", type: "text", title: "中文（普通话）" },
+      ],
+    }),
     defineField({ name: "date", title: "Date", type: "datetime", group: "details", validation: (Rule) => Rule.required() }),
     defineField({ name: "location", title: "Location", type: "string", group: "details" }),
+    defineField({
+      name: "location_i18n",
+      title: "Location (Translations)",
+      type: "object",
+      group: "details",
+      fields: [
+        { name: "en", type: "string", title: "English" },
+        { name: "zh_hk", type: "string", title: "中文（粵語）" },
+        { name: "zh_cn", type: "string", title: "中文（普通话）" },
+      ],
+    }),
     defineField({ name: "capacity", title: "Capacity", type: "number", group: "details" }),
     defineField({
       name: "category",

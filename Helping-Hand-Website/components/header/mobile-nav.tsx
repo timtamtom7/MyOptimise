@@ -14,6 +14,7 @@ import Logo from "@/components/logo";
 import { useState } from "react";
 import { AlignRight, CalendarDays, Building2, HandHeart } from "lucide-react";
 import { SETTINGS_QUERYResult, NAVIGATION_QUERYResult } from "@/sanity.types";
+import SignOutButton from "@/components/auth/signout-button";
 
 type SanityLink = NonNullable<NAVIGATION_QUERYResult[0]["links"]>[number];
 
@@ -21,10 +22,12 @@ export default function MobileNav({
   navigation,
   settings,
   isAdmin = false,
+  isLoggedIn = false,
 }: {
   navigation: NAVIGATION_QUERYResult;
   settings: SETTINGS_QUERYResult;
   isAdmin?: boolean;
+  isLoggedIn?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -76,16 +79,21 @@ export default function MobileNav({
         </div>
         <div className="container border-t pt-6">
           {isAdmin ? (
-            <Link
-              onClick={() => setOpen(false)}
-              href="/studio"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "lg" }),
-                "w-full justify-center"
-              )}
-            >
-              Go to Content Management Studio
-            </Link>
+            <div className="grid gap-3">
+              <Link
+                onClick={() => setOpen(false)}
+                href="/studio"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "w-full justify-center"
+                )}
+              >
+                Go to Content Management Studio
+              </Link>
+              <SignOutButton variant="outline" size="lg" triggerClassName="w-full justify-center" />
+            </div>
+          ) : isLoggedIn ? (
+            <SignOutButton variant="outline" size="lg" triggerClassName="w-full justify-center" />
           ) : (
             <div className="grid gap-3">
               <Link

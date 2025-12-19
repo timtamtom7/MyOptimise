@@ -11,7 +11,16 @@ export default defineType({
       name: "links",
       title: "Links",
       type: "array",
-      of: [{ type: "link" }],
+      of: [
+        {
+          type: "object",
+          fields: [
+            { name: "title", type: "string", title: "Title" },
+            { name: "href", type: "url", title: "URL" },
+            { name: "isExternal", type: "boolean", title: "Open in new tab", initialValue: false },
+          ],
+        },
+      ],
     }),
   ],
   preview: {

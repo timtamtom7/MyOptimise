@@ -3,10 +3,10 @@ import { groq } from "next-sanity";
 export const EVENTS_QUERY = groq`
   *[_type == "event" && status == "approved" && date >= now()] | order(date asc) {
     _id,
-    title,
+    "title": coalesce(title_i18n[$i18nKey], title),
     slug,
     date,
-    location,
+    "location": coalesce(location_i18n[$i18nKey], location),
     capacity,
     category,
     image{
@@ -14,7 +14,7 @@ export const EVENTS_QUERY = groq`
     },
     organization->{
       _id,
-      name,
+      "name": coalesce(name_i18n[$i18nKey], name),
       slug
     }
   }
@@ -23,11 +23,11 @@ export const EVENTS_QUERY = groq`
 export const EVENT_QUERY = groq`
   *[_type == "event" && slug.current == $slug][0]{
     _id,
-    title,
+    "title": coalesce(title_i18n[$i18nKey], title),
     slug,
-    description,
+    "description": coalesce(description_i18n[$i18nKey], description),
     date,
-    location,
+    "location": coalesce(location_i18n[$i18nKey], location),
     capacity,
     category,
     status,
@@ -36,9 +36,9 @@ export const EVENT_QUERY = groq`
     },
     organization->{
       _id,
-      name,
+      "name": coalesce(name_i18n[$i18nKey], name),
       slug,
-      description,
+      "description": coalesce(description_i18n[$i18nKey], description),
       website,
       contactEmail
     }

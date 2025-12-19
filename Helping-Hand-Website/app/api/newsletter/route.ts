@@ -1,13 +1,16 @@
 import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resendKey = process.env.RESEND_API_KEY || "";
+const resend = resendKey ? new Resend(resendKey) : null;
 
 export const POST = async (request: Request) => {
   const { email } = await request.json();
 
   // Create contact
   try {
-    resend.contacts.create({
+    if (!resend) {
+      return Response.json({ error: "Newsletter disabled" }, { status: 400 });
+    }
+    await resend.contacts.create({
       email,
       unsubscribed: false,
       audienceId: process.env.RESEND_AUDIENCE_ID!,

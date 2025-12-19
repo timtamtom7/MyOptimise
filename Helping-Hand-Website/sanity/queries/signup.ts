@@ -10,16 +10,19 @@ export const SIGNUPS_BY_EMAIL_QUERY = groq`
     createdAt,
     completedAt,
     consent,
-    proofImage{
+    proofMedia[]{
+      _type,
       asset->{url}
     },
     event->{
       _id,
-      title,
+      "title": coalesce(title_i18n[$i18nKey], title),
       slug,
       date,
-      location,
-      organization->{name}
+      "location": coalesce(location_i18n[$i18nKey], location),
+      organization->{
+        "name": coalesce(name_i18n[$i18nKey], name)
+      }
     }
   }
 `;
@@ -31,16 +34,19 @@ export const SIGNUP_BY_ID_QUERY = groq`
     email,
     status,
     consent,
-    proofImage{
+    proofMedia[]{
+      _type,
       asset->{url}
     },
     event->{
       _id,
-      title,
+      "title": coalesce(title_i18n[$i18nKey], title),
       slug,
       date,
-      location,
-      organization->{name}
+      "location": coalesce(location_i18n[$i18nKey], location),
+      organization->{
+        "name": coalesce(name_i18n[$i18nKey], name)
+      }
     }
   }
 `;

@@ -6,12 +6,17 @@ import { ModeToggle } from "@/components/menu-toggle";
 import { fetchSanitySettings, fetchSanityNavigation } from "@/sanity/lib/fetch";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import SignOutButton from "@/components/auth/signout-button";
+import LanguageSelector from "@/components/language-selector";
+import { t, getLocale } from "@/lib/i18n";
 
 export default async function Header() {
   const settings = await fetchSanitySettings();
   const navigation = await fetchSanityNavigation();
   const session = await getServerSession(authOptions);
   const isAdmin = Boolean((session as any)?.isAdmin);
+  const isLoggedIn = Boolean(session);
+  const locale = await getLocale();
   return (
     <header className="sticky top-0 w-full border-border/40 bg-background/95 z-50">
       <div className="container flex items-center justify-between h-14">
@@ -19,20 +24,26 @@ export default async function Header() {
           <Logo settings={settings} />
         </Link>
         <div className="hidden xl:flex gap-7 items-center justify-between">
-          <DesktopNav navigation={navigation} />
+          {!isLoggedIn && <DesktopNav navigation={navigation} />}
           <div className="flex items-center gap-3">
             <ModeToggle />
+            <LanguageSelector />
             {isAdmin ? (
-              <Link href="/studio" className="rounded-md border px-3 py-2">
-                Go to Content Management Studio
-              </Link>
+              <>
+                <Link href="/studio" className="rounded-md border px-3 py-2">
+                  Studio
+                </Link>
+                <SignOutButton variant="outline" size="lg" />
+              </>
+            ) : isLoggedIn ? (
+              <SignOutButton variant="outline" size="lg" />
             ) : (
               <>
                 <Link href="/login" className="rounded-md border px-3 py-2">
-                  Sign In
+                  {t("signInTitle", locale)}
                 </Link>
                 <Link href="/signup" className="rounded-md bg-primary px-3 py-2 text-primary-foreground">
-                  Sign Up
+                  {t("signUpTitle", locale)}
                 </Link>
               </>
             )}
@@ -40,7 +51,8 @@ export default async function Header() {
         </div>
         <div className="flex items-center xl:hidden">
           <ModeToggle />
-          <MobileNav navigation={navigation} settings={settings} isAdmin={isAdmin} />
+          <LanguageSelector />
+          {!isLoggedIn && <MobileNav navigation={navigation} settings={settings} isAdmin={isAdmin} isLoggedIn={isLoggedIn} />}
         </div>
       </div>
     </header>

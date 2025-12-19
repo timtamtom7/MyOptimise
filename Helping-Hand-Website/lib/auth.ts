@@ -51,7 +51,7 @@ export const authOptions: NextAuthOptions = {
         if (email) {
           const existing = await fetchSanityAccountByEmail({ email });
           if (!existing) {
-            const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+            const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
             if (writeToken) {
               const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
               try {
@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
           }
           const adminList = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
           if (adminList.includes(email.toLowerCase())) {
-            const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+            const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
             if (writeToken) {
               const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
               try {
@@ -85,6 +85,10 @@ export const authOptions: NextAuthOptions = {
                 }
               } catch {}
             }
+          }
+          const acct = existing ?? (await fetchSanityAccountByEmail({ email }));
+          if (!acct || acct.status !== "approved") {
+            return "/login?pending=1";
           }
         }
       }

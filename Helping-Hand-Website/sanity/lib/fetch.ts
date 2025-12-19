@@ -28,15 +28,18 @@ import {
 import { SIGNUPS_BY_EMAIL_QUERY, SIGNUP_BY_ID_QUERY } from "@/sanity/queries/signup";
 import { SPONSORSHIPS_BY_EMAIL_QUERY } from "../queries/sponsorship";
 import { ACCOUNT_BY_EMAIL_QUERY, PENDING_ACCOUNTS_QUERY } from "../queries/account";
+import { client } from "@/sanity/lib/client";
 
 export const fetchSanityPageBySlug = async ({
   slug,
+  locale,
 }: {
   slug: string;
+  locale: string;
 }): Promise<PAGE_QUERYResult> => {
   const { data } = await sanityFetch({
     query: PAGE_QUERY,
-    params: { slug },
+    params: { slug, i18nKey: mapLocaleToI18nKey(locale) },
   });
 
   return data;
@@ -102,21 +105,35 @@ export const fetchSanitySettings = async (): Promise<SETTINGS_QUERYResult> => {
   return data;
 };
 
-export const fetchSanityEvents = async (): Promise<any> => {
+function mapLocaleToI18nKey(locale: string): string {
+  switch (locale) {
+    case "zh-HK":
+      return "zh_hk";
+    case "zh-CN":
+      return "zh_cn";
+    default:
+      return "en";
+  }
+}
+
+export const fetchSanityEvents = async ({ locale }: { locale: string }): Promise<any> => {
   const { data } = await sanityFetch({
     query: EVENTS_QUERY,
+    params: { i18nKey: mapLocaleToI18nKey(locale) },
   });
   return data;
 };
 
 export const fetchSanityEventBySlug = async ({
   slug,
+  locale,
 }: {
   slug: string;
+  locale: string;
 }): Promise<any> => {
   const { data } = await sanityFetch({
     query: EVENT_QUERY,
-    params: { slug },
+    params: { slug, i18nKey: mapLocaleToI18nKey(locale) },
   });
   return data;
 };
@@ -132,22 +149,32 @@ export const fetchSanityEventsStaticParams = async (): Promise<
   return data;
 };
 
-export const fetchSanityOrganizations = async (): Promise<any> => {
+export const fetchSanityOrganizations = async ({ locale }: { locale: string }): Promise<any> => {
   const { data } = await sanityFetch({
     query: ORGANIZATIONS_QUERY,
+    params: { i18nKey: mapLocaleToI18nKey(locale) },
     perspective: "published",
   });
   return data;
 };
 
+export const fetchSanityOrganizationsStaticParams = async (): Promise<
+  { slug?: { current?: string } }[]
+> => {
+  const data = await client.fetch(`*[_type == "organization" && defined(slug)]{slug}`);
+  return data;
+};
+
 export const fetchSanityOrganizationBySlug = async ({
   slug,
+  locale,
 }: {
   slug: string;
+  locale: string;
 }): Promise<any> => {
   const { data } = await sanityFetch({
     query: ORGANIZATION_QUERY,
-    params: { slug },
+    params: { slug, i18nKey: mapLocaleToI18nKey(locale) },
     perspective: "published",
   });
   return data;
@@ -155,24 +182,28 @@ export const fetchSanityOrganizationBySlug = async ({
 
 export const fetchSanitySignupById = async ({
   id,
+  locale,
 }: {
   id: string;
+  locale: string;
 }): Promise<any> => {
   const { data } = await sanityFetch({
     query: SIGNUP_BY_ID_QUERY,
-    params: { id },
+    params: { id, i18nKey: mapLocaleToI18nKey(locale) },
   });
   return data;
 };
 
 export const fetchSanitySignupsByEmail = async ({
   email,
+  locale,
 }: {
   email: string;
+  locale: string;
 }): Promise<any[]> => {
   const { data } = await sanityFetch({
     query: SIGNUPS_BY_EMAIL_QUERY,
-    params: { email },
+    params: { email, i18nKey: mapLocaleToI18nKey(locale) },
   });
   return data;
 };

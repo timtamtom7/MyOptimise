@@ -32,6 +32,24 @@ async function confirmSignup(formData: FormData) {
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
   await writeClient.patch(id).set({ status: "confirmed" }).commit();
+  try {
+    const resendKey = process.env.RESEND_API_KEY || "";
+    if (resendKey) {
+      const resend = new Resend(resendKey);
+      const signup = await writeClient.fetch(`*[_type == "signup" && _id == $id][0]{email, name, event->{title, date, location}}`, { id });
+      if (signup?.email) {
+        await resend.emails.send({
+          from: "Helping Hand <notifications@helpinghand.local>",
+          to: signup.email,
+          subject: "Your volunteer registration is approved",
+          html: `<div style="font-family:system-ui,sans-serif">
+            <p>Your registration is confirmed for ${signup?.event?.title ?? "the event"}.</p>
+            <p>${new Date(signup?.event?.date).toLocaleString()} • ${signup?.event?.location ?? ""}</p>
+          </div>`,
+        });
+      }
+    }
+  } catch {}
   revalidatePath("/dashboard");
 }
 
@@ -41,6 +59,23 @@ async function cancelSignup(formData: FormData) {
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
   await writeClient.patch(id).set({ status: "cancelled" }).commit();
+  try {
+    const resendKey = process.env.RESEND_API_KEY || "";
+    if (resendKey) {
+      const resend = new Resend(resendKey);
+      const signup = await writeClient.fetch(`*[_type == "signup" && _id == $id][0]{email, name, event->{title}}`, { id });
+      if (signup?.email) {
+        await resend.emails.send({
+          from: "Helping Hand <notifications@helpinghand.local>",
+          to: signup.email,
+          subject: "Your volunteer registration was cancelled",
+          html: `<div style="font-family:system-ui,sans-serif">
+            <p>Your registration for ${signup?.event?.title ?? "the event"} was cancelled.</p>
+          </div>`,
+        });
+      }
+    }
+  } catch {}
   revalidatePath("/dashboard");
 }
 
@@ -101,7 +136,7 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
 
   const { data: completedProofs } = await sanityFetch({
     query: `*[_type == "signup" && status == "completed"] | order(completedAt desc){
-      _id, name, email, proofImage{asset->{url}}, event->{title, date}
+      _id, name, email, proofMedia[]{asset->{url}, _type}, event->{title, date}
     }`,
   });
 
@@ -148,6 +183,66 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
           revalidatePath("/admin");
         }}>
           <button className="rounded-md border px-3 py-2" disabled={!process.env.SANITY_API_WRITE_TOKEN}>Seed Admin Account</button>
+        </form>
+      </div>
+
+      <div className="mt-6 rounded-md border p-4">
+        <form action={async () => {
+          "use server";
+          if (!process.env.SANITY_API_WRITE_TOKEN) {
+            return;
+          }
+          const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN, perspective: "published" });
+          const orgSlug = "helping-hand-hk";
+          const existing = await writeClient.fetch(`*[_type == "organization" && slug.current == $slug][0]{_id}`, { slug: orgSlug });
+          if (!existing?._id) {
+            await writeClient.create({
+              _type: "organization",
+              name: "Helping Hand HK",
+              slug: { _type: "slug", current: orgSlug },
+              description: "Community partner organization in Hong Kong.",
+              website: "https://example.org",
+            });
+          }
+          revalidatePath("/organizations");
+        }}>
+          <button className="rounded-md border px-3 py-2" disabled={!process.env.SANITY_API_WRITE_TOKEN}>Seed Sample Organization</button>
+        </form>
+      </div>
+
+      <div className="mt-6 rounded-md border p-4">
+        <form action={async () => {
+          "use server";
+          if (!process.env.SANITY_API_WRITE_TOKEN) {
+            return;
+          }
+          const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN, perspective: "published" });
+          const orgSlug = "helping-hand-hk";
+          const org = await writeClient.fetch(`*[_type == "organization" && slug.current == $slug][0]{_id}`, { slug: orgSlug });
+          if (!org?._id) {
+            return;
+          }
+          const eventSlug = "community-meal-distribution";
+          const existing = await writeClient.fetch(`*[_type == "event" && slug.current == $slug][0]{_id}`, { slug: eventSlug });
+          if (!existing?._id) {
+            const date = new Date();
+            date.setDate(date.getDate() + 7);
+            await writeClient.create({
+              _type: "event",
+              title: "Community Meal Distribution",
+              slug: { _type: "slug", current: eventSlug },
+              description: "Volunteer to distribute meals to the community.",
+              date: date.toISOString(),
+              location: "Mong Kok, Hong Kong",
+              capacity: 50,
+              category: "food",
+              organization: { _type: "reference", _ref: org._id },
+              status: "approved",
+            });
+          }
+          revalidatePath("/events");
+        }}>
+          <button className="rounded-md border px-3 py-2" disabled={!process.env.SANITY_API_WRITE_TOKEN}>Seed Sample Event</button>
         </form>
       </div>
 
@@ -325,11 +420,15 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
               <div className="text-sm text-muted-foreground">
                 {c.event?.title} • {new Date(c.event?.date).toLocaleString()}
               </div>
-              {c.proofImage?.asset?.url && (
-                <div className="mt-2 text-sm">
-                  <a href={c.proofImage.asset.url} target="_blank" rel="noopener noreferrer" className="underline">View proof</a>
+              {(c.proofMedia ?? []).length > 0 ? (
+                <div className="mt-2 grid gap-2">
+                  {(c.proofMedia ?? []).map((m: any, idx: number) => (
+                    <a key={idx} href={m?.asset?.url} target="_blank" rel="noopener noreferrer" className="underline text-sm">
+                      View {m?._type === "image" ? "image" : "file"} {idx + 1}
+                    </a>
+                  ))}
                 </div>
-              )}
+              ) : null}
             </div>
           ))}
           {(completedProofs ?? []).length === 0 ? (
