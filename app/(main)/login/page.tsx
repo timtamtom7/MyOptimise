@@ -26,9 +26,12 @@ export default async function LoginPage(props: { searchParams?: Promise<{ type?:
   }
   const locale = await getLocale();
   const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const hasWriteToken = Boolean(process.env.SANITY_API_WRITE_TOKEN);
   const errorMessage =
-    error === "missing_token" || (error === "AccessDenied" && !process.env.SANITY_API_WRITE_TOKEN)
-      ? "Setup required: missing Sanity write token. Configure SANITY_API_WRITE_TOKEN to accept account requests."
+    error === "missing_token" || (error === "AccessDenied" && !hasWriteToken)
+      ? hasWriteToken
+        ? "This deployment should have SANITY_API_WRITE_TOKEN, but sign-in reported it missing. You’re likely hitting a different Vercel environment/deployment than you expect."
+        : "Setup required: missing Sanity write token. Configure SANITY_API_WRITE_TOKEN to accept account requests."
       : error === "permissions"
         ? "Account write failed. Check Sanity API token permissions and dataset configuration."
       : error === "Configuration"
