@@ -37,9 +37,10 @@ export default async function IndexPage() {
       fetchSanityOrganizations({ locale }),
     ]);
     return (
-      <div className="container mx-auto px-4 py-12">
-        <div className={hasRightColumn ? "grid grid-cols-1 md:grid-cols-2 gap-8 items-start" : "items-start"}>
-          <div className={leftColClass}>
+      <div className="min-h-screen bg-background bg-[radial-gradient(900px_circle_at_top_left,rgba(244,114,182,0.20),transparent_60%)] dark:bg-none">
+        <div className="container mx-auto px-4 pt-20 pb-24 md:pt-24 md:pb-28">
+          <div className={hasRightColumn ? "grid grid-cols-1 md:grid-cols-2 gap-8 items-start" : "items-start"}>
+            <div className={leftColClass}>
           {session ? (
             <h1 className="text-4xl md:text-5xl font-semibold">
               {(() => {
@@ -120,7 +121,7 @@ export default async function IndexPage() {
             </div>
           )}
           </div>
-          <div className="md:pl-4">
+            <div className="md:pl-4">
             {account?.type === "business" && (
               <div className="max-w-md md:max-w-none">
                 <h2 className="text-xl font-semibold">{t("sponsorDistribution", locale)}</h2>
@@ -151,9 +152,9 @@ export default async function IndexPage() {
               </div>
             )}
           </div>
-        </div>
+          </div>
 
-        <div className="mt-12">
+          <div className="mt-16 md:mt-20">
           <h2 className="text-xl font-semibold">{t("upcomingEvents", locale)}</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
             {(events ?? []).slice(0, 3).map((event: any) => (
@@ -198,9 +199,9 @@ export default async function IndexPage() {
               <div className="text-muted-foreground">{t("noUpcomingRegistrations", locale)}</div>
             ) : null}
           </div>
-        </div>
+          </div>
 
-        <div className="mt-12">
+          <div className="mt-16 md:mt-20">
           <h2 className="text-xl font-semibold">{t("partnerOrganizations", locale)}</h2>
           <div className="grid gap-4 md:grid-cols-3 mt-4">
             {(orgs ?? []).slice(0, 6).map((org: any) => (
@@ -225,9 +226,9 @@ export default async function IndexPage() {
               </Link>
             ))}
           </div>
-        </div>
+          </div>
 
-        <div className="mt-12">
+          <div className="mt-16 md:mt-20">
           <h2 className="text-xl font-semibold">{t("distributionAreas", locale)}</h2>
           <p className="mt-2 text-muted-foreground">
             {t("areasIntro", locale)}
@@ -241,12 +242,17 @@ export default async function IndexPage() {
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7377.502155977221!2d114.1659703!3d22.2820534!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x340400fd6b2a5c13%3A0x7f22a7b4c19e4b9!2sCentral%2C%20Hong%20Kong!5e0!3m2!1sen!2sus!4v1700000000000"
             />
           </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  return <Blocks blocks={page?.blocks ?? []} />;
+  return (
+    <div className="min-h-screen bg-background bg-[radial-gradient(900px_circle_at_top_left,rgba(244,114,182,0.20),transparent_60%)] dark:bg-none">
+      <Blocks blocks={page?.blocks ?? []} />
+    </div>
+  );
 }
 
 async function submitSponsorship(formData: FormData) {
