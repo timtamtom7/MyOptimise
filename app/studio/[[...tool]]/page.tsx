@@ -7,13 +7,13 @@
  * https://github.com/sanity-io/next-sanity
  */
 
-import { NextStudio } from 'next-sanity/studio'
-import config from '../../../sanity.config'
+import StudioClient from "./studio-client";
 
-export const dynamic = 'force-static'
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-export { metadata, viewport } from 'next-sanity/studio'
+export { metadata, viewport } from "next-sanity/studio";
 
 export default function StudioPage() {
-  return <NextStudio config={config} />
+  return <StudioClient />
 }

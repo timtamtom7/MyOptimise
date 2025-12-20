@@ -25,6 +25,21 @@ export default async function LoginPage(props: { searchParams?: Promise<{ type?:
     }
   }
   const locale = await getLocale();
+  const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const errorMessage =
+    error === "missing_token"
+      ? "Setup required: missing Sanity write token. Sign in with Google or configure SANITY_API_WRITE_TOKEN."
+      : error === "Configuration"
+        ? "Google sign-in isn’t configured for production. In Vercel (Production env), set NEXTAUTH_URL, NEXTAUTH_SECRET, GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET, then redeploy."
+        : error === "OAuthCallback"
+          ? "Google sign-in callback failed. Double-check the Google OAuth redirect URI matches this domain exactly."
+          : error === "OAuthSignin"
+            ? "Google sign-in couldn’t start. Double-check Google OAuth client settings for this domain."
+            : error === "AccessDenied"
+              ? "Sign-in was denied. If you cancelled the Google prompt, try again."
+              : error
+                ? `Sign-in failed (${error}).`
+                : "";
   return (
     <div className="container mx-auto px-4 py-12 max-w-xl">
       {pending && (
@@ -48,11 +63,9 @@ export default async function LoginPage(props: { searchParams?: Promise<{ type?:
           ? t("signInBusinessDesc", locale)
           : t("signInIndividualDesc", locale)}
       </p>
-      {error && (
+      {errorMessage && (
         <div className="mt-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
-          {error === "missing_token"
-            ? "Setup required: missing Sanity write token. Sign in with Google or configure SANITY_API_WRITE_TOKEN."
-            : "Sign in failed due to server permissions. Try Google or contact support."}
+          {errorMessage}
         </div>
       )}
       {pending && (
@@ -61,10 +74,16 @@ export default async function LoginPage(props: { searchParams?: Promise<{ type?:
         </div>
       )}
       <div className="mt-4">
-        <GoogleSignInButton
-          callbackUrl={next || "/"}
-          label={t("continueWithGoogle", locale)}
-        />
+        {googleEnabled ? (
+          <GoogleSignInButton
+            callbackUrl={next || "/"}
+            label={t("continueWithGoogle", locale)}
+          />
+        ) : (
+          <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            Google sign-in isn’t configured for this deployment.
+          </div>
+        )}
       </div>
       <div className="mt-8">
         <h2 className="text-lg font-medium">Or use email and password</h2>
