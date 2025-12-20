@@ -1,12 +1,39 @@
 import { sanityFetch } from "@/sanity/lib/live";
 import { client } from "@/sanity/lib/client";
 import { token as previewToken } from "@/sanity/lib/token";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { fetchSanityPendingAccounts } from "@/sanity/lib/fetch";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import bcrypt from "bcryptjs";
+
+async function sendResendEmailWithFallback({
+  resend,
+  from,
+  to,
+  subject,
+  html,
+}: {
+  resend: Resend;
+  from: string;
+  to: string | string[];
+  subject: string;
+  html: string;
+}) {
+  try {
+    await resend.emails.send({ from, to, subject, html });
+    return;
+  } catch {
+    if (from.toLowerCase().includes("onboarding@resend.dev")) throw new Error("resend_send_failed");
+    await resend.emails.send({
+      from: "Helping Hand <onboarding@resend.dev>",
+      to,
+      subject,
+      html,
+    });
+  }
+}
 
 async function approveEvent(formData: FormData) {
   const id = String(formData.get("id") || "");
@@ -35,11 +62,13 @@ async function confirmSignup(formData: FormData) {
   try {
     const resendKey = process.env.RESEND_API_KEY || "";
     if (resendKey) {
+      const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
       const resend = new Resend(resendKey);
       const signup = await writeClient.fetch(`*[_type == "signup" && _id == $id][0]{email, name, event->{title, date, location}}`, { id });
       if (signup?.email) {
-        await resend.emails.send({
-          from: "Helping Hand <no-reply@helpinghand.hk>",
+        await sendResendEmailWithFallback({
+          resend,
+          from: resendFrom,
           to: signup.email,
           subject: "Your volunteer registration is approved",
           html: `<div style="font-family:system-ui,sans-serif">
@@ -62,11 +91,13 @@ async function cancelSignup(formData: FormData) {
   try {
     const resendKey = process.env.RESEND_API_KEY || "";
     if (resendKey) {
+      const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
       const resend = new Resend(resendKey);
       const signup = await writeClient.fetch(`*[_type == "signup" && _id == $id][0]{email, name, event->{title}}`, { id });
       if (signup?.email) {
-        await resend.emails.send({
-          from: "Helping Hand <no-reply@helpinghand.hk>",
+        await sendResendEmailWithFallback({
+          resend,
+          from: resendFrom,
           to: signup.email,
           subject: "Your volunteer registration was cancelled",
           html: `<div style="font-family:system-ui,sans-serif">
@@ -116,9 +147,13 @@ async function setSponsorshipLogo(formData: FormData) {
   revalidatePath("/dashboard/business");
 }
 
-export default async function AdminPage(props: { searchParams?: Promise<{ key?: string }> }) {
+export default async function AdminPage(props: {
+  searchParams?: Promise<{ key?: string; emailTest?: string; emailTestMessage?: string }>
+}) {
   const searchParams = (await props.searchParams) || {};
   const key = searchParams.key || "";
+  const emailTest = searchParams.emailTest || "";
+  const emailTestMessage = searchParams.emailTestMessage || "";
   if (process.env.ADMIN_KEY && key !== process.env.ADMIN_KEY) {
     return notFound();
   }
@@ -155,6 +190,16 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
           Setup required: missing SANITY_API_WRITE_TOKEN. Admin actions that write to Sanity are disabled.
         </div>
       )}
+      {!process.env.RESEND_API_KEY && (
+        <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
+          Email notifications are disabled: missing RESEND_API_KEY.
+        </div>
+      )}
+      {emailTest ? (
+        <div className="mt-4 rounded-md border px-3 py-2 text-sm">
+          {emailTest === "sent" ? "Test email sent." : "Test email failed."} {emailTestMessage ? `(${emailTestMessage})` : ""}
+        </div>
+      ) : null}
 
       <div className="mt-6 rounded-md border p-4">
         <form action={async () => {
@@ -183,6 +228,52 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
           revalidatePath("/admin");
         }}>
           <button className="rounded-md border px-3 py-2" disabled={!process.env.SANITY_API_WRITE_TOKEN}>Seed Admin Account</button>
+        </form>
+      </div>
+
+      <div className="mt-6 rounded-md border p-4">
+        <h2 className="text-lg font-semibold">Email Test</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Sends a single test message using the configured email provider.
+        </p>
+        <form
+          className="mt-4 flex flex-col gap-3 max-w-lg"
+          action={async (fd: FormData) => {
+            "use server";
+            const to = String(fd.get("to") || "");
+            const keyParam = process.env.ADMIN_KEY ? `?key=${encodeURIComponent(key)}` : "";
+            if (!process.env.RESEND_API_KEY) {
+              redirect(`/admin${keyParam}${keyParam ? "&" : "?"}emailTest=failed&emailTestMessage=missing_resend_key`);
+            }
+            if (!to) {
+              redirect(`/admin${keyParam}${keyParam ? "&" : "?"}emailTest=failed&emailTestMessage=missing_to`);
+            }
+            try {
+              const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
+              const resend = new Resend(process.env.RESEND_API_KEY);
+              await sendResendEmailWithFallback({
+                resend,
+                from: resendFrom,
+                to,
+                subject: "Helping Hand test email",
+                html: `<p>If you received this, email sending is working.</p>`,
+              });
+              redirect(`/admin${keyParam}${keyParam ? "&" : "?"}emailTest=sent`);
+            } catch {
+              redirect(`/admin${keyParam}${keyParam ? "&" : "?"}emailTest=failed&emailTestMessage=send_failed`);
+            }
+          }}
+        >
+          <input
+            name="to"
+            type="email"
+            placeholder="To email address"
+            defaultValue={(process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean)[0] || ""}
+            className="rounded-md border px-3 py-2"
+          />
+          <button className="rounded-md border px-3 py-2" disabled={!process.env.RESEND_API_KEY}>
+            Send Test Email
+          </button>
         </form>
       </div>
 
@@ -265,19 +356,22 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
                   const approved = await writeClient.patch(id).set({ status: "approved" }).commit();
                   const resendKey = process.env.RESEND_API_KEY || "";
                   if (resendKey) {
+                    const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
                     const resend = new Resend(resendKey);
                     try {
                       const acct = approved as any;
-                      await resend.emails.send({
-                        from: "Helping Hand <no-reply@helpinghand.hk>",
+                      await sendResendEmailWithFallback({
+                        resend,
+                        from: resendFrom,
                         to: acct.email,
                         subject: "Your account has been approved",
                         html: `<p>Your account is approved. You can now sign in.</p>`,
                       });
                       const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
                       if (adminEmails.length) {
-                        await resend.emails.send({
-                          from: "Helping Hand <no-reply@helpinghand.hk>",
+                        await sendResendEmailWithFallback({
+                          resend,
+                          from: resendFrom,
                           to: adminEmails,
                           subject: "Account approved",
                           html: `<p>Approved account: ${acct.email}</p><p>Sanity ID: ${acct._id}</p>`,
@@ -299,19 +393,22 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
                   const denied = await writeClient.patch(id).set({ status: "denied" }).commit();
                   const resendKey = process.env.RESEND_API_KEY || "";
                   if (resendKey) {
+                    const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
                     const resend = new Resend(resendKey);
                     try {
                       const acct = denied as any;
-                      await resend.emails.send({
-                        from: "Helping Hand <no-reply@helpinghand.hk>",
+                      await sendResendEmailWithFallback({
+                        resend,
+                        from: resendFrom,
                         to: acct.email,
                         subject: "Your account request was denied",
                         html: `<p>We’re sorry, but your account request was denied.</p>`,
                       });
                       const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
                       if (adminEmails.length) {
-                        await resend.emails.send({
-                          from: "Helping Hand <no-reply@helpinghand.hk>",
+                        await sendResendEmailWithFallback({
+                          resend,
+                          from: resendFrom,
                           to: adminEmails,
                           subject: "Account denied",
                           html: `<p>Denied account: ${acct.email}</p><p>Sanity ID: ${acct._id}</p>`,

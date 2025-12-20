@@ -8,11 +8,39 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
+async function sendResendEmailWithFallback({
+  resend,
+  from,
+  to,
+  subject,
+  html,
+}: {
+  resend: Resend;
+  from: string;
+  to: string | string[];
+  subject: string;
+  html: string;
+}) {
+  try {
+    await resend.emails.send({ from, to, subject, html });
+    return;
+  } catch {
+    if (from.toLowerCase().includes("onboarding@resend.dev")) throw new Error("resend_send_failed");
+    await resend.emails.send({
+      from: "Helping Hand <onboarding@resend.dev>",
+      to,
+      subject,
+      html,
+    });
+  }
+}
+
 export default async function DashboardPage(props: { searchParams?: Promise<{ email?: string }> }) {
   const session = await safeGetServerSession();
   const searchParams = (await props.searchParams) || {};
   const email = (session as any)?.user?.email || searchParams.email || "";
   const locale = await getLocale();
+  const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
 
   const signups = email ? await fetchSanitySignupsByEmail({ email, locale }) : [];
 
@@ -101,8 +129,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ em
                     <form action={async () => {
                       if (!process.env.RESEND_API_KEY) return;
                       const resend = new Resend(process.env.RESEND_API_KEY);
-                      await resend.emails.send({
-                        from: "Helping Hand <no-reply@helpinghand.hk>",
+                      await sendResendEmailWithFallback({
+                        resend,
+                        from: resendFrom,
                         to: s.email,
                         subject: "Reminder: Upcoming distribution",
                         html: `<div style="font-family:system-ui,sans-serif">
@@ -120,8 +149,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ em
                     <form action={async () => {
                       if (!process.env.RESEND_API_KEY) return;
                       const resend = new Resend(process.env.RESEND_API_KEY);
-                      await resend.emails.send({
-                        from: "Helping Hand <no-reply@helpinghand.hk>",
+                      await sendResendEmailWithFallback({
+                        resend,
+                        from: resendFrom,
                         to: s.email,
                         subject: "Please upload proof of distribution",
                         html: `<div style="font-family:system-ui,sans-serif">

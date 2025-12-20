@@ -5,6 +5,33 @@ import bcrypt from "bcryptjs";
 import { Resend } from "resend";
 import GoogleSignInButton from "@/components/auth/google-signin-button";
 
+async function sendResendEmailWithFallback({
+  resend,
+  from,
+  to,
+  subject,
+  html,
+}: {
+  resend: Resend;
+  from: string;
+  to: string | string[];
+  subject: string;
+  html: string;
+}) {
+  try {
+    await resend.emails.send({ from, to, subject, html });
+    return;
+  } catch {
+    if (from.toLowerCase().includes("onboarding@resend.dev")) throw new Error("resend_send_failed");
+    await resend.emails.send({
+      from: "Helping Hand <onboarding@resend.dev>",
+      to,
+      subject,
+      html,
+    });
+  }
+}
+
 async function createAccount(formData: FormData) {
   "use server";
   const name = String(formData.get("name") || "");
@@ -14,6 +41,7 @@ async function createAccount(formData: FormData) {
   const password = String(formData.get("password") || "");
   if (!email) return;
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
   try {
     if (!writeToken) {
       redirect(`/login?type=${type}&error=missing_token&pending=1`);
@@ -33,16 +61,18 @@ async function createAccount(formData: FormData) {
     if (resendKey) {
       const resend = new Resend(resendKey);
       try {
-        await resend.emails.send({
-          from: "Helping Hand <no-reply@helpinghand.hk>",
+        await sendResendEmailWithFallback({
+          resend,
+          from: resendFrom,
           to: email,
           subject: "Your account is pending approval",
           html: `<p>Thanks for signing up. Your account is pending approval. You'll be notified once approved.</p>`,
         });
         const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
         if (adminEmails.length) {
-          await resend.emails.send({
-            from: "Helping Hand <no-reply@helpinghand.hk>",
+          await sendResendEmailWithFallback({
+            resend,
+            from: resendFrom,
             to: adminEmails,
             subject: "New account pending approval",
             html: `<p>${name || email} requested a ${type} account.</p><p>Sanity ID: ${account._id}</p>`,

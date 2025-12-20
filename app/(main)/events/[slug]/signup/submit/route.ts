@@ -1,6 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { client } from "@/sanity/lib/client";
 import { token as previewToken } from "@/sanity/lib/token";
+import type { Resend } from "resend";
+
+async function sendResendEmailWithFallback({
+  resend,
+  from,
+  to,
+  subject,
+  html,
+}: {
+  resend: Resend;
+  from: string;
+  to: string | string[];
+  subject: string;
+  html: string;
+}) {
+  try {
+    await resend.emails.send({ from, to, subject, html });
+    return;
+  } catch {
+    if (from.toLowerCase().includes("onboarding@resend.dev")) throw new Error("resend_send_failed");
+    await resend.emails.send({
+      from: "Helping Hand <onboarding@resend.dev>",
+      to,
+      subject,
+      html,
+    });
+  }
+}
 
 export async function POST(
   request: NextRequest,
@@ -30,8 +58,10 @@ export async function POST(
     if (process.env.RESEND_API_KEY) {
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: "Helping Hand <no-reply@helpinghand.hk>",
+      const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
+      await sendResendEmailWithFallback({
+        resend,
+        from: resendFrom,
         to: email,
         subject: "Volunteer registration received",
         html: `<div style="font-family:system-ui,sans-serif">

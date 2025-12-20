@@ -9,6 +9,33 @@ import { Resend } from "resend";
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
+async function sendResendEmailWithFallback({
+  resend,
+  from,
+  to,
+  subject,
+  html,
+}: {
+  resend: Resend;
+  from: string;
+  to: string | string[];
+  subject: string;
+  html: string;
+}) {
+  try {
+    await resend.emails.send({ from, to, subject, html });
+    return;
+  } catch {
+    if (from.toLowerCase().includes("onboarding@resend.dev")) throw new Error("resend_send_failed");
+    await resend.emails.send({
+      from: "Helping Hand <onboarding@resend.dev>",
+      to,
+      subject,
+      html,
+    });
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
@@ -100,18 +127,21 @@ export const authOptions: NextAuthOptions = {
 
           const resendKey = process.env.RESEND_API_KEY || "";
           if (resendKey) {
+            const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
             const resend = new Resend(resendKey);
             try {
-              await resend.emails.send({
-                from: "Helping Hand <no-reply@helpinghand.hk>",
+              await sendResendEmailWithFallback({
+                resend,
+                from: resendFrom,
                 to: email,
                 subject: "Your account is pending approval",
                 html: `<p>Thanks for signing up. Your account is pending approval. You'll be notified once approved.</p>`,
               });
               const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
               if (adminEmails.length) {
-                await resend.emails.send({
-                  from: "Helping Hand <no-reply@helpinghand.hk>",
+                await sendResendEmailWithFallback({
+                  resend,
+                  from: resendFrom,
                   to: adminEmails,
                   subject: "New account pending approval",
                   html: `<p>${name || email} requested an individual account.</p><p>Sanity ID: ${(acct as any)._id}</p>`,
