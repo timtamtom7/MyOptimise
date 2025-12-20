@@ -4,7 +4,7 @@ import type { NextAuthOptions } from "next-auth";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import bcrypt from "bcryptjs";
 import { client } from "@/sanity/lib/client";
-import { token as previewToken } from "@/sanity/lib/token";
+import { Resend } from "resend";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -56,48 +56,83 @@ export const authOptions: NextAuthOptions = {
     async signIn({ account, profile, user }) {
       if (account?.provider === "google") {
         const email = String((user as any)?.email || (profile as any)?.email || "");
-        if (email) {
-          const existing = await fetchSanityAccountByEmail({ email });
-          if (!existing) {
-            const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
-            if (writeToken) {
-              const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-              try {
-                await writeClient.create({
-                  _type: "account",
-                  email,
-                  name: (user as any)?.name || "",
-                  type: "individual",
-                  status: "pending",
+        if (!email) return true;
+
+        const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+        const canWrite = Boolean(writeToken);
+        const emailLower = email.toLowerCase();
+        const name = String((user as any)?.name || "");
+        const adminList = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+
+        let acct = await fetchSanityAccountByEmail({ email });
+
+        if (!acct && adminList.includes(emailLower)) {
+          if (!canWrite) return "/login?error=missing_token";
+          const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+          try {
+            acct = await writeClient.create({
+              _type: "account",
+              email,
+              name,
+              type: "admin",
+              status: "approved",
+            });
+          } catch {
+            return "/login?error=permissions";
+          }
+        }
+
+        if (!acct) {
+          if (!canWrite) return "/login?error=missing_token";
+
+          const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+          try {
+            acct = await writeClient.create({
+              _type: "account",
+              email,
+              name,
+              type: "individual",
+              status: "pending",
+            });
+          } catch {
+            return "/login?error=permissions";
+          }
+
+          const resendKey = process.env.RESEND_API_KEY || "";
+          if (resendKey) {
+            const resend = new Resend(resendKey);
+            try {
+              await resend.emails.send({
+                from: "Helping Hand <no-reply@helpinghand.hk>",
+                to: email,
+                subject: "Your account is pending approval",
+                html: `<p>Thanks for signing up. Your account is pending approval. You'll be notified once approved.</p>`,
+              });
+              const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
+              if (adminEmails.length) {
+                await resend.emails.send({
+                  from: "Helping Hand <no-reply@helpinghand.hk>",
+                  to: adminEmails,
+                  subject: "New account pending approval",
+                  html: `<p>${name || email} requested an individual account.</p><p>Sanity ID: ${(acct as any)._id}</p>`,
                 });
-              } catch {}
-            }
+              }
+            } catch {}
           }
-          const adminList = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-          if (adminList.includes(email.toLowerCase())) {
-            const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
-            if (writeToken) {
-              const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-              try {
-                const acct = existing ?? (await fetchSanityAccountByEmail({ email }));
-                if (!acct) {
-                  await writeClient.create({
-                    _type: "account",
-                    email,
-                    name: (user as any)?.name || "",
-                    type: "admin",
-                    status: "approved",
-                  });
-                } else if (acct.type !== "admin" || acct.status !== "approved") {
-                  await writeClient.patch(acct._id).set({ type: "admin", status: "approved" }).commit();
-                }
-              } catch {}
-            }
+        }
+
+        if (acct && adminList.includes(emailLower) && (acct.type !== "admin" || acct.status !== "approved")) {
+          if (!canWrite) return "/login?error=missing_token";
+          const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+          try {
+            acct = await writeClient.patch((acct as any)._id).set({ type: "admin", status: "approved" }).commit();
+          } catch {
+            return "/login?error=permissions";
           }
-          const acct = existing ?? (await fetchSanityAccountByEmail({ email }));
-          if (!acct || acct.status !== "approved") {
-            return "/login?pending=1";
-          }
+        }
+
+        if (!acct || (acct as any).status !== "approved") {
+          return "/login?pending=1";
         }
       }
       return true;

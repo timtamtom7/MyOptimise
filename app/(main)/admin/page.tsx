@@ -39,7 +39,7 @@ async function confirmSignup(formData: FormData) {
       const signup = await writeClient.fetch(`*[_type == "signup" && _id == $id][0]{email, name, event->{title, date, location}}`, { id });
       if (signup?.email) {
         await resend.emails.send({
-          from: "Helping Hand <notifications@helpinghand.local>",
+          from: "Helping Hand <no-reply@helpinghand.hk>",
           to: signup.email,
           subject: "Your volunteer registration is approved",
           html: `<div style="font-family:system-ui,sans-serif">
@@ -66,7 +66,7 @@ async function cancelSignup(formData: FormData) {
       const signup = await writeClient.fetch(`*[_type == "signup" && _id == $id][0]{email, name, event->{title}}`, { id });
       if (signup?.email) {
         await resend.emails.send({
-          from: "Helping Hand <notifications@helpinghand.local>",
+          from: "Helping Hand <no-reply@helpinghand.hk>",
           to: signup.email,
           subject: "Your volunteer registration was cancelled",
           html: `<div style="font-family:system-ui,sans-serif">
@@ -260,7 +260,8 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
                   "use server";
                   const id = String(fd.get("id") || "");
                   if (!id) return;
-                  const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN || previewToken, perspective: "published" });
+                  if (!process.env.SANITY_API_WRITE_TOKEN) return;
+                  const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN, perspective: "published" });
                   const approved = await writeClient.patch(id).set({ status: "approved" }).commit();
                   const resendKey = process.env.RESEND_API_KEY || "";
                   if (resendKey) {
@@ -268,11 +269,20 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
                     try {
                       const acct = approved as any;
                       await resend.emails.send({
-                        from: "Helping Hand <notifications@helpinghand.local>",
+                        from: "Helping Hand <no-reply@helpinghand.hk>",
                         to: acct.email,
                         subject: "Your account has been approved",
                         html: `<p>Your account is approved. You can now sign in.</p>`,
                       });
+                      const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
+                      if (adminEmails.length) {
+                        await resend.emails.send({
+                          from: "Helping Hand <no-reply@helpinghand.hk>",
+                          to: adminEmails,
+                          subject: "Account approved",
+                          html: `<p>Approved account: ${acct.email}</p><p>Sanity ID: ${acct._id}</p>`,
+                        });
+                      }
                     } catch {}
                   }
                   revalidatePath("/admin");
@@ -284,7 +294,8 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
                   "use server";
                   const id = String(fd.get("id") || "");
                   if (!id) return;
-                  const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN || previewToken, perspective: "published" });
+                  if (!process.env.SANITY_API_WRITE_TOKEN) return;
+                  const writeClient = client.withConfig({ token: process.env.SANITY_API_WRITE_TOKEN, perspective: "published" });
                   const denied = await writeClient.patch(id).set({ status: "denied" }).commit();
                   const resendKey = process.env.RESEND_API_KEY || "";
                   if (resendKey) {
@@ -292,11 +303,20 @@ export default async function AdminPage(props: { searchParams?: Promise<{ key?: 
                     try {
                       const acct = denied as any;
                       await resend.emails.send({
-                        from: "Helping Hand <notifications@helpinghand.local>",
+                        from: "Helping Hand <no-reply@helpinghand.hk>",
                         to: acct.email,
                         subject: "Your account request was denied",
                         html: `<p>We’re sorry, but your account request was denied.</p>`,
                       });
+                      const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
+                      if (adminEmails.length) {
+                        await resend.emails.send({
+                          from: "Helping Hand <no-reply@helpinghand.hk>",
+                          to: adminEmails,
+                          subject: "Account denied",
+                          html: `<p>Denied account: ${acct.email}</p><p>Sanity ID: ${acct._id}</p>`,
+                        });
+                      }
                     } catch {}
                   }
                   revalidatePath("/admin");

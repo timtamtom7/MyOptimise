@@ -15,7 +15,7 @@ export default async function LoginPage(props: { searchParams?: Promise<{ type?:
   const pending = sp.pending;
   const error = sp.error;
   const session = await safeGetServerSession();
-  if (session) {
+  if (session && !pending && !error) {
     const email = (session as any)?.user?.email || "";
     const account = email ? await fetchSanityAccountByEmail({ email }) : null;
     if (next) {
@@ -27,13 +27,15 @@ export default async function LoginPage(props: { searchParams?: Promise<{ type?:
   const locale = await getLocale();
   const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   const errorMessage =
-    error === "missing_token"
-      ? "Setup required: missing Sanity write token. Sign in with Google or configure SANITY_API_WRITE_TOKEN."
+    error === "missing_token" || (error === "AccessDenied" && !process.env.SANITY_API_WRITE_TOKEN)
+      ? "Setup required: missing Sanity write token. Configure SANITY_API_WRITE_TOKEN to accept account requests."
+      : error === "permissions"
+        ? "Account write failed. Check Sanity API token permissions and dataset configuration."
       : error === "Configuration"
         ? "Google sign-in isn’t configured for production. In Vercel (Production env), set NEXTAUTH_URL, NEXTAUTH_SECRET, GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET, then redeploy."
         : error === "OAuthCallback"
           ? "Google sign-in callback failed. Double-check the Google OAuth redirect URI matches this domain exactly."
-          : error === "OAuthSignin"
+        : error === "OAuthSignin"
             ? "Google sign-in couldn’t start. Double-check Google OAuth client settings for this domain."
             : error === "AccessDenied"
               ? "Sign-in was denied. If you cancelled the Google prompt, try again."

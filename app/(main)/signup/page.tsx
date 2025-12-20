@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { Resend } from "resend";
 import GoogleSignInButton from "@/components/auth/google-signin-button";
-import { token as previewToken } from "@/sanity/lib/token";
 
 async function createAccount(formData: FormData) {
   "use server";
@@ -35,7 +34,7 @@ async function createAccount(formData: FormData) {
       const resend = new Resend(resendKey);
       try {
         await resend.emails.send({
-          from: "Helping Hand <notifications@helpinghand.local>",
+          from: "Helping Hand <no-reply@helpinghand.hk>",
           to: email,
           subject: "Your account is pending approval",
           html: `<p>Thanks for signing up. Your account is pending approval. You'll be notified once approved.</p>`,
@@ -43,7 +42,7 @@ async function createAccount(formData: FormData) {
         const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
         if (adminEmails.length) {
           await resend.emails.send({
-            from: "Helping Hand <notifications@helpinghand.local>",
+            from: "Helping Hand <no-reply@helpinghand.hk>",
             to: adminEmails,
             subject: "New account pending approval",
             html: `<p>${name || email} requested a ${type} account.</p><p>Sanity ID: ${account._id}</p>`,
