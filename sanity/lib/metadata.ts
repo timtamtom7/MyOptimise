@@ -1,6 +1,9 @@
 import { urlFor } from "@/sanity/lib/image";
 import { PAGE_QUERYResult, POST_QUERYResult } from "@/sanity.types";
 const isProduction = process.env.NEXT_PUBLIC_SITE_ENV === "production";
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+).replace(/\/$/, "");
 
 export function generatePageMetadata({
   page,
@@ -17,7 +20,7 @@ export function generatePageMetadata({
         {
           url: page?.ogImage
             ? urlFor(page?.ogImage).quality(100).url()
-            : `${process.env.NEXT_PUBLIC_SITE_URL}/images/og-image.jpg`,
+            : `${siteUrl}/images/og-image.jpg`,
           width: page?.ogImage?.asset?.metadata?.dimensions?.width || 1200,
           height: page?.ogImage?.asset?.metadata?.dimensions?.height || 630,
         },
@@ -31,8 +34,7 @@ export function generatePageMetadata({
         ? "noindex"
         : "index, follow",
     alternates: {
-      canonical:
-        process.env.NEXT_PUBLIC_SITE_URL + `/${slug === "index" ? "" : slug}`,
+      canonical: siteUrl + `/${slug === "index" ? "" : slug}`,
     },
   };
 }

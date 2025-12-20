@@ -4,11 +4,15 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/next";
 
 const isProduction = process.env.NEXT_PUBLIC_SITE_ENV === "production";
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+).replace(/\/$/, "");
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL!),
+  metadataBase: new URL(siteUrl),
   title: {
     template: "%s | Schema UI Starter",
     default: "Sanity Next.js Website | Schema UI Starter",
@@ -16,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     images: [
       {
-        url: `${process.env.NEXT_PUBLIC_SITE_URL}/images/og-image.jpg`,
+        url: `${siteUrl}/images/og-image.jpg`,
         width: 1200,
         height: 630,
       },
@@ -56,6 +60,7 @@ export default function RootLayout({
           {children}
         </ThemeProvider>
         <Toaster position="top-center" richColors />
+        <Analytics />
       </body>
     </html>
   );

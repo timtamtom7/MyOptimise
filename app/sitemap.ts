@@ -2,6 +2,10 @@ import { MetadataRoute } from "next";
 import { groq } from "next-sanity";
 import { sanityFetch } from "@/sanity/lib/live";
 
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+).replace(/\/$/, "");
+
 async function getPagesSitemap(): Promise<MetadataRoute.Sitemap[]> {
   const pagesQuery = groq`
     *[_type == 'page'] | order(slug.current) {
@@ -18,7 +22,7 @@ async function getPagesSitemap(): Promise<MetadataRoute.Sitemap[]> {
   const { data } = await sanityFetch({
     query: pagesQuery,
     params: {
-      baseUrl: process.env.NEXT_PUBLIC_SITE_URL,
+      baseUrl: siteUrl,
     },
   });
 
@@ -38,7 +42,7 @@ async function getPostsSitemap(): Promise<MetadataRoute.Sitemap[]> {
   const { data } = await sanityFetch({
     query: postsQuery,
     params: {
-      baseUrl: process.env.NEXT_PUBLIC_SITE_URL,
+      baseUrl: siteUrl,
     },
   });
 
