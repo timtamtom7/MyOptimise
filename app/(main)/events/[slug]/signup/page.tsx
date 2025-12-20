@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
 
 import { redirect } from "next/navigation";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
@@ -16,7 +15,7 @@ export default async function SignupPage(props: { params: Promise<{ slug: string
   const params = await props.params;
   const sp = (await props.searchParams) || {};
   const pending = sp.pending;
-  const session = await getServerSession(authOptions);
+  const session = await safeGetServerSession();
   if (!session) {
     redirect(`/choose?next=/events/${params.slug}/signup`);
   }

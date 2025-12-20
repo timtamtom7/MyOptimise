@@ -6,12 +6,12 @@ import bcrypt from "bcryptjs";
 import { client } from "@/sanity/lib/client";
 import { token as previewToken } from "@/sanity/lib/token";
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
     CredentialsProvider({
       name: "Email and Password",
       credentials: {
@@ -38,6 +38,14 @@ export const authOptions: NextAuthOptions = {
         } as any;
       },
     }),
+    ...(googleClientId && googleClientSecret
+      ? [
+          GoogleProvider({
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          }),
+        ]
+      : []),
   ],
   pages: {
     signIn: "/login",
@@ -121,3 +129,12 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+export async function safeGetServerSession() {
+  try {
+    const { getServerSession } = await import("next-auth");
+    return await getServerSession(authOptions);
+  } catch {
+    return null;
+  }
+}

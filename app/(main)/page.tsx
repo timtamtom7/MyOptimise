@@ -6,8 +6,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Image from "next/image";
 import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon } from "lucide-react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
 import { t, getLocale } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +19,7 @@ export async function generateMetadata() {
 }
 
 export default async function IndexPage() {
-  const session = await getServerSession(authOptions);
+  const session = await safeGetServerSession();
   const locale = await getLocale();
   const page = await fetchSanityPageBySlug({ slug: "index", locale });
   const email = (session as any)?.user?.email || "";

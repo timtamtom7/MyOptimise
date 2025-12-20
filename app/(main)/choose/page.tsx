@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { t, getLocale } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function ChoosePage(props: { searchParams?: Promise<{ next?: string }> }) {
-  const session = await getServerSession(authOptions);
+  const session = await safeGetServerSession();
   const sp = (await props.searchParams) || {};
   const next = sp.next || "";
   const locale = await getLocale();

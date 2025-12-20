@@ -4,8 +4,7 @@ import MobileNav from "@/components/header/mobile-nav";
 import DesktopNav from "@/components/header/desktop-nav";
 import { ModeToggle } from "@/components/menu-toggle";
 import { fetchSanitySettings, fetchSanityNavigation } from "@/sanity/lib/fetch";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
 import SignOutButton from "@/components/auth/signout-button";
 import LanguageSelector from "@/components/language-selector";
 import { t, getLocale } from "@/lib/i18n";
@@ -13,7 +12,7 @@ import { t, getLocale } from "@/lib/i18n";
 export default async function Header() {
   const settings = await fetchSanitySettings();
   const navigation = await fetchSanityNavigation();
-  const session = await getServerSession(authOptions);
+  const session = await safeGetServerSession();
   const isAdmin = Boolean((session as any)?.isAdmin);
   const isLoggedIn = Boolean(session);
   const locale = await getLocale();

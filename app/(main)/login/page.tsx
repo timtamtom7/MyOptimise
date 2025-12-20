@@ -2,8 +2,7 @@ import GoogleSignInButton from "@/components/auth/google-signin-button";
 import CredentialsLoginForm from "@/components/auth/credentials-login-form";
 import Link from "next/link";
 import { t, getLocale } from "@/lib/i18n";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 
@@ -15,7 +14,7 @@ export default async function LoginPage(props: { searchParams?: Promise<{ type?:
   const next = sp.next || "/";
   const pending = sp.pending;
   const error = sp.error;
-  const session = await getServerSession(authOptions);
+  const session = await safeGetServerSession();
   if (session) {
     const email = (session as any)?.user?.email || "";
     const account = email ? await fetchSanityAccountByEmail({ email }) : null;

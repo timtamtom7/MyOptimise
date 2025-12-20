@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
 import { client } from "@/sanity/lib/client";
 import { token as previewToken } from "@/sanity/lib/token";
 import { groq } from "next-sanity";
@@ -28,7 +27,7 @@ async function buildI18n(value: string | null | undefined) {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await safeGetServerSession();
   const isAdmin = Boolean((session as any)?.isAdmin);
   if (!isAdmin && process.env.NODE_ENV === "production") {
     return new NextResponse("Forbidden", { status: 403 });

@@ -2,15 +2,14 @@ import { fetchSanitySignupsByEmail, fetchSanityAccountByEmail } from "@/sanity/l
 import Link from "next/link";
 import { Resend } from "resend";
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
 import { t, getLocale } from "@/lib/i18n";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ email?: string }> }) {
-  const session = await getServerSession(authOptions);
+  const session = await safeGetServerSession();
   const searchParams = (await props.searchParams) || {};
   const email = (session as any)?.user?.email || searchParams.email || "";
   const locale = await getLocale();
