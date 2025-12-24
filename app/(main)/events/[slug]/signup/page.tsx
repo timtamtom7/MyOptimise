@@ -8,6 +8,7 @@ import { fetchSanityEventBySlug } from "@/sanity/lib/fetch";
 import { notFound } from "next/navigation";
 import { getLocale } from "@/lib/i18n";
 import Link from "next/link";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -52,10 +53,12 @@ export default async function SignupPage(props: { params: Promise<{ slug: string
       )}
       {event.image?.asset?.url && (
         <div className="relative w-full h-56 md:h-72 lg:h-80 rounded-xl overflow-hidden">
-          <img
+          <Image
             src={event.image.asset.url}
             alt={event.title ?? "Event"}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 1024px) 100vw, 1024px"
+            className="object-cover"
           />
         </div>
       )}
@@ -68,7 +71,7 @@ export default async function SignupPage(props: { params: Promise<{ slug: string
           <p className="mt-6 leading-relaxed">{event.description}</p>
         </div>
         <div className="md:col-span-1">
-          <div className="rounded-xl border p-5 shadow-sm">
+          <div className="rounded-xl border border-secondary/60 bg-secondary/80 p-5 shadow-sm">
             <div className="text-sm text-muted-foreground">{t("organizationLabel", locale)}</div>
             <div className="mt-1 font-medium">{event.organization?.name ?? t("communityPartner", locale)}</div>
             <div className="mt-4 text-sm text-muted-foreground">{t("capacityLabel", locale)}</div>
@@ -76,14 +79,14 @@ export default async function SignupPage(props: { params: Promise<{ slug: string
             <form method="post" action={`/events/${params.slug}/signup/submit`} className="mt-6 grid gap-3">
               <input type="hidden" name="eventId" value={event._id} />
               <input
-                className="rounded-md border px-3 py-2"
+                className="rounded-md border bg-[rgba(255,247,229,0.65)] px-3 py-2"
                 name="name"
                 defaultValue={name}
                 placeholder={t("fullName", locale)}
                 required
               />
               <input
-                className="rounded-md border px-3 py-2"
+                className="rounded-md border bg-[rgba(255,247,229,0.65)] px-3 py-2"
                 name="email"
                 type="email"
                 defaultValue={email}
@@ -91,7 +94,7 @@ export default async function SignupPage(props: { params: Promise<{ slug: string
                 required
               />
               <input
-                className="rounded-md border px-3 py-2"
+                className="rounded-md border bg-[rgba(255,247,229,0.65)] px-3 py-2"
                 name="phone"
                 placeholder={t("phoneOptional", locale)}
               />

@@ -21,10 +21,10 @@ export default async function BusinessDashboardPage(props: { searchParams?: Prom
           defaultValue={email}
           placeholder="Business contact email"
           type="email"
-          className="rounded-md border px-3 py-2 flex-1"
+          className="rounded-md border border-[rgba(70,140,205,0.35)] bg-[rgba(255,247,229,0.65)] px-3 py-2 flex-1"
           required
         />
-        <button className="rounded-md bg-primary px-4 py-2 text-primary-foreground">View</button>
+        <button className="rounded-md bg-[var(--cta-blue)] px-4 py-2 text-[color:var(--cta-blue-border)]">View</button>
       </form>
 
       {email && (
@@ -32,7 +32,7 @@ export default async function BusinessDashboardPage(props: { searchParams?: Prom
           <h2 className="text-xl font-semibold">Sponsorship Requests</h2>
           <div className="mt-4 grid gap-4">
             {sponsorships.map((s: any) => (
-              <div key={s._id} className="rounded-md border p-4">
+              <div key={s._id} className="rounded-md border border-[rgba(70,140,205,0.35)] bg-[rgba(207,232,255,0.35)] p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     {s.businessLogo?.asset?.url && (

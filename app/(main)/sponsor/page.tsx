@@ -1,6 +1,7 @@
 import { client } from "@/sanity/lib/client";
 import { token as previewToken } from "@/sanity/lib/token";
 import { revalidatePath } from "next/cache";
+import { Button } from "@/components/ui/button";
 
 async function submitSponsorship(formData: FormData) {
   "use server";
@@ -45,17 +46,21 @@ async function submitSponsorship(formData: FormData) {
 }
 
 export default async function SponsorPage() {
+  const inputClassName =
+    "w-full rounded-md border border-[rgba(70,140,205,0.45)] bg-[rgba(255,247,229,0.65)] px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(70,140,205,0.35)]";
   return (
-    <div className="container mx-auto px-4 py-12 max-w-xl">
-      <h1 className="text-3xl font-semibold">Sponsor a meal distribution</h1>
-      <p className="mt-2 text-muted-foreground">
-        Share meals for upcoming distributions. We’ll contact you to coordinate details.
-      </p>
-      <form action={submitSponsorship} className="mt-6 grid gap-4">
+    <div className="min-h-screen bg-background bg-[radial-gradient(900px_circle_at_top_right,rgba(59,130,246,0.18),transparent_55%)]">
+      <div className="container mx-auto px-4 py-12 max-w-xl">
+        <div className="rounded-3xl bg-[rgba(207,232,255,0.70)] p-8 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+          <h1 className="text-3xl font-semibold">Sponsor a meal distribution</h1>
+          <p className="mt-2 text-muted-foreground">
+            Share meals for upcoming distributions. We’ll contact you to coordinate details.
+          </p>
+          <form action={submitSponsorship} className="mt-6 grid gap-4">
         <input
           name="businessName"
           placeholder="Business name"
-          className="rounded-md border px-3 py-2"
+          className={inputClassName}
           required
         />
         <div>
@@ -64,43 +69,45 @@ export default async function SponsorPage() {
             name="businessLogo"
             type="file"
             accept="image/*"
-            className="mt-1 block w-full rounded-md border px-3 py-2"
+            className={`mt-1 block ${inputClassName}`}
           />
         </div>
         <input
           name="contactEmail"
           type="email"
           placeholder="Contact email"
-          className="rounded-md border px-3 py-2"
+          className={inputClassName}
         />
         <input
           name="mealsCount"
           type="number"
           min={1}
           placeholder="Meals count"
-          className="rounded-md border px-3 py-2"
+          className={inputClassName}
           required
         />
         <input
           name="date"
           type="date"
-          className="rounded-md border px-3 py-2"
+          className={inputClassName}
         />
         <input
           name="location"
           placeholder="Pickup/Delivery location"
-          className="rounded-md border px-3 py-2"
+          className={inputClassName}
         />
         <textarea
           name="notes"
           placeholder="Notes"
-          className="rounded-md border px-3 py-2"
+          className={inputClassName}
           rows={4}
         />
-        <button className="rounded-md bg-primary px-4 py-2 text-primary-foreground">
+        <Button type="submit" variant="blue-pill" className="w-full h-11 rounded-[33px] text-base font-semibold">
           Send Request
-        </button>
+        </Button>
       </form>
+        </div>
+      </div>
     </div>
   );
 }

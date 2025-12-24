@@ -1,6 +1,8 @@
 "use client";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useEffect, useState } from "react";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const options = [
   { code: "en", label: "English" },
@@ -28,14 +30,21 @@ export default function LanguageSelector() {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button className="rounded-md border px-3 py-2">{current.label}</button>
+        <button
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "border-0 bg-transparent shadow-none hover:bg-muted/40"
+          )}
+        >
+          {current.label}
+        </button>
       </DropdownMenu.Trigger>
-      <DropdownMenu.Content className="rounded-md border bg-background p-1 shadow-md">
+      <DropdownMenu.Content className="rounded-2xl border border-border bg-background p-1 shadow-lg">
         {options.map((o) => (
           <DropdownMenu.Item
             key={o.code}
             onSelect={() => setLanguage(o.code)}
-            className="px-3 py-2 cursor-pointer hover:bg-muted"
+            className="cursor-pointer rounded-xl px-3 py-2 hover:bg-muted/60"
           >
             {o.label}
           </DropdownMenu.Item>

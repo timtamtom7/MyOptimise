@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon } from "lucide-react";
 import { getLocale, t } from "@/lib/i18n";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export async function generateStaticParams() {
   const items = await fetchSanityEventsStaticParams();
@@ -20,88 +23,137 @@ export default async function EventPage(props: { params: Promise<{ slug: string 
   const timeLabel = dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <main className="container mx-auto px-6 py-12 flex justify-center">
-      <div className="w-full max-w-lg">
-        {event.organization?.name ? (
-          <div className="flex items-center gap-2 mb-8">
-            <span className="text-[11px] text-muted-foreground uppercase tracking-widest">{t("hostedBy", locale)}</span>
-            <span className="text-[11px] font-medium uppercase tracking-widest">{event.organization.name}</span>
-          </div>
-        ) : null}
+    <main className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-10">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="overflow-hidden" style={{ backgroundColor: "var(--card)" }}>
+              <CardHeader className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {event.organization?.name ? (
+                    <Badge variant="outline">
+                      {t("hostedBy", locale)} {event.organization.name}
+                    </Badge>
+                  ) : null}
+                  <Badge variant="secondary">{dateLabel}</Badge>
+                </div>
+                <div className="space-y-2">
+                  <CardTitle
+                    className="text-4xl md:text-5xl font-semibold tracking-tight leading-[1.06] italic"
+                    style={{ fontFamily: "var(--font-display)", color: "var(--primary)" }}
+                  >
+                    {event.title}
+                  </CardTitle>
+                  {event.description ? (
+                    <CardDescription className="text-base leading-relaxed">
+                      {event.description}
+                    </CardDescription>
+                  ) : null}
+                </div>
+              </CardHeader>
+            </Card>
 
-        <header className="space-y-6 mb-10">
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-foreground leading-[1.1]">
-            {event.title}
-          </h1>
-          {event.description ? (
-            <p className="text-muted-foreground text-base max-w-sm leading-relaxed">
-              {event.description}
-            </p>
-          ) : null}
-        </header>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Card className="h-full bg-secondary">
+                <CardHeader className="space-y-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/70">
+                    <CalendarIcon className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">{dateLabel}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {dt.toLocaleDateString(undefined, { weekday: "long" })}
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
 
-        <div className="flex flex-wrap gap-6 mb-10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
-              <CalendarIcon className="h-4 w-4" />
+              <Card className="h-full bg-secondary">
+                <CardHeader className="space-y-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/70">
+                    <ClockIcon className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">{timeLabel}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              {event.location ? (
+                <Card className="h-full sm:col-span-2 lg:col-span-1 bg-secondary">
+                  <CardHeader className="space-y-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+                      <MapPinIcon className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium">{event.location}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {event.organization?.name ?? ""}
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ) : null}
             </div>
-            <div>
-              <p className="text-sm font-medium">{dateLabel}</p>
-              <p className="text-xs text-muted-foreground">{dt.toLocaleDateString(undefined, { weekday: "long" })}</p>
-            </div>
+
+            {event.location ? (
+              <Card className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="relative w-full h-56">
+                    <iframe
+                      src={`https://www.google.com/maps?q=${encodeURIComponent(event.location)}&output=embed`}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title={event.location}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
-              <ClockIcon className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">{timeLabel}</p>
-              <p className="text-xs text-muted-foreground">{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
-            </div>
+
+          <div className="space-y-6">
+            <Card className="bg-card" style={{ backgroundColor: "var(--card)" }}>
+              <CardHeader className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle
+                    className="text-lg font-semibold italic"
+                    style={{ fontFamily: "var(--font-display)", color: "var(--primary)" }}
+                  >
+                    {t("volunteerNow", locale)}
+                  </CardTitle>
+                  {typeof event.capacity === "number" ? (
+                    <Badge variant="outline">
+                      {event.capacity} {t("seatsAvailableSuffix", locale)}
+                    </Badge>
+                  ) : null}
+                </div>
+                <Button asChild className="w-full">
+                  <Link href={`/events/${params.slug}/signup`}>{t("volunteerNow", locale)}</Link>
+                </Button>
+                <CardDescription>
+                  {t("approvalEmailNotice", locale)}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="bg-secondary">
+              <CardHeader className="space-y-2">
+                <CardTitle className="text-lg font-semibold">{t("details", locale)}</CardTitle>
+                <CardDescription className="space-y-2">
+                  <div>{t("consentPictures", locale)}</div>
+                  <div>{t("uploadProof", locale)}</div>
+                </CardDescription>
+              </CardHeader>
+            </Card>
           </div>
-          {event.location ? (
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
-                <MapPinIcon className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">{event.location}</p>
-                <p className="text-xs text-muted-foreground">{event.organization?.name ?? ""}</p>
-              </div>
-            </div>
-          ) : null}
         </div>
-
-        {event.location ? (
-          <div className="relative w-full h-36 rounded-lg overflow-hidden border border-border mb-10">
-            <iframe
-              src={`https://www.google.com/maps?q=${encodeURIComponent(event.location)}&output=embed`}
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title={event.location}
-            />
-          </div>
-        ) : null}
-
-        <div className="mb-8">
-          <Link
-            href={`/events/${params.slug}/signup`}
-            className="inline-flex w-full justify-center rounded-md bg-primary px-4 py-2 text-primary-foreground"
-          >
-            {t("volunteerNow", locale)}
-          </Link>
-        </div>
-
-        {typeof event.capacity === "number" ? (
-          <footer className="mt-6 text-center">
-            <p className="text-[11px] text-muted-foreground tracking-wide">
-              {event.capacity} {t("seatsAvailableSuffix", locale)}
-            </p>
-          </footer>
-        ) : null}
       </div>
     </main>
   );

@@ -35,7 +35,7 @@ export default async function OrganizationPage(props: { params: Promise<{ slug: 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
           {(org.events ?? []).map((event: any) => (
             <Link key={event._id} href={`/events/${event.slug.current}`}>
-              <Card>
+              <Card className="bg-secondary/80">
                 <CardHeader>
                   <CardTitle>{event.title}</CardTitle>
                   <CardDescription>

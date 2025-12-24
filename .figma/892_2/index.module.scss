@@ -1,0 +1,154 @@
+* {
+  box-sizing: border-box;
+}
+
+.macBookPro141 {
+  display: flex;
+  position: relative;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: #fff7e5;
+  padding: 42px 45px 2127px;
+  width: 1512px;
+  height: 2871px;
+  overflow: hidden;
+
+  .rectangle220 {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    align-items: flex-start;
+    border-radius: 33px;
+    background: #ffd0ef;
+    padding: 71px 23px 102px 49px;
+
+    .autoWrapper {
+      position: relative;
+      width: 721px;
+      height: 348px;
+
+      .welcomeTommaso {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 721px;
+        height: 348px;
+        line-height: 102px;
+        letter-spacing: -5.5px;
+        color: #b8325c;
+        font-family: "Averia Libre", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+        font-size: 110px;
+        font-weight: 700;
+        font-style: italic;
+      }
+
+      .thanksForHelpingDist {
+        position: absolute;
+        bottom: -33px;
+        left: 0;
+        width: 695px;
+        height: 129px;
+        line-height: 57px;
+        letter-spacing: -1.65px;
+        color: #b8325c;
+        font-family: Actor, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+        font-size: 55px;
+      }
+    }
+
+    .youCanViewEventsAndM {
+      margin: 52px 0px 0px 3px;
+      width: 695px;
+      height: 129px;
+      line-height: 31px;
+      letter-spacing: -0.9px;
+      color: #b8325c;
+      font-family: Actor, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+      font-size: 30px;
+    }
+
+    .rectangle222 {
+      display: flex;
+      position: absolute;
+      top: 551px;
+      left: 60px;
+      align-items: flex-start;
+      border-radius: 33px;
+      background: #b8325c;
+      padding-top: 9px;
+      padding-left: 4px;
+      width: 578px;
+      height: 105px;
+
+      .rectangle223 {
+        border-radius: 33px;
+        background: #e683a2;
+        width: 574px;
+        height: 96px;
+      }
+    }
+  }
+
+  .rectangle221 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border-radius: 33px;
+    background: #e683a2;
+    padding: 153px 44px 43px 38px;
+
+    .rectangle226 {
+      border-radius: 33px;
+      background: #fff7e5;
+      width: 520px;
+      height: 156px;
+    }
+
+    .rectangle227 {
+      margin-top: 19px;
+      border-radius: 33px;
+      background: #fff7e5;
+      width: 520px;
+      height: 156px;
+    }
+  }
+
+  .autoWrapper2 {
+    position: absolute;
+    top: 97px;
+    left: 33px;
+    width: 1602px;
+    height: 641px;
+
+    .yourVolunteering {
+      position: absolute;
+      top: 0;
+      left: 881px;
+      width: 721px;
+      height: 348px;
+      line-height: 56px;
+      letter-spacing: -3px;
+      color: #fff7e5;
+      font-family: "Averia Libre", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+      font-size: 60px;
+      font-weight: 700;
+      font-style: italic;
+    }
+
+    .volunteerNow {
+      position: absolute;
+      top: 530px;
+      left: 0;
+      width: 723px;
+      height: 111px;
+      text-align: center;
+      line-height: 37px;
+      letter-spacing: -2px;
+      color: #ffffff;
+      font-family: "Averia Libre", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+      font-size: 40px;
+      font-weight: 700;
+      font-style: italic;
+    }
+  }
+}

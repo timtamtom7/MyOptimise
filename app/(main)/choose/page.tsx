@@ -27,7 +27,7 @@ export default async function ChoosePage(props: { searchParams?: Promise<{ next?
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <Button
           variant="outline"
-          className="h-40 flex flex-col items-center justify-center"
+          className="h-40 flex flex-col items-center justify-center border-[rgba(184,50,92,0.28)] bg-[rgba(255,208,239,0.65)] hover:bg-[rgba(255,208,239,0.80)]"
           asChild
         >
           <a href={`/login?type=individual&next=${encodeURIComponent(next || "/dashboard")}`}>
@@ -37,7 +37,7 @@ export default async function ChoosePage(props: { searchParams?: Promise<{ next?
         </Button>
         <Button
           variant="outline"
-          className="h-40 flex flex-col items-center justify-center"
+          className="h-40 flex flex-col items-center justify-center border-[rgba(70,140,205,0.35)] bg-[rgba(207,232,255,0.65)] hover:bg-[rgba(207,232,255,0.82)]"
           asChild
         >
           <a href={`/login?type=business&next=${encodeURIComponent(next || "/dashboard/business")}`}>

@@ -14,7 +14,7 @@ export default function DesktopNav({
 }) {
   const pathname = usePathname();
   return (
-    <div className="hidden xl:flex items-center gap-6 text-primary">
+    <div className="hidden xl:flex items-center gap-3">
       {navigation[0]?.links?.map((navItem: SanityLink) => (
         <Link
           key={navItem._key}
@@ -24,8 +24,13 @@ export default function DesktopNav({
           className={(() => {
             const href = navItem.href || "";
             const isActive = href && (pathname === href || pathname.startsWith(href));
-            const base = buttonVariants({ variant: isActive ? "default" : "ghost", size: "sm" });
-            return cn(base, "h-9 px-4");
+            return cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "h-10 px-5 rounded-[33px] border-0 bg-transparent font-semibold text-[#b8325c] hover:bg-muted/40 shadow-none",
+              isActive
+                ? "bg-muted text-[#b8325c] hover:bg-muted/60"
+                : undefined
+            );
           })()}
         >
           {navItem.title}

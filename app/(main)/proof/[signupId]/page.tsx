@@ -64,7 +64,7 @@ export default async function ProofPage(props: { params: Promise<{ signupId: str
         {new Date(signup.event?.date).toLocaleString()} • {signup.event?.location}
       </p>
       {signup.status !== "confirmed" ? (
-        <div className="mt-6 rounded-md border p-4 text-sm text-muted-foreground">
+        <div className="mt-6 rounded-md border border-[rgba(184,50,92,0.28)] bg-[rgba(255,208,239,0.35)] p-4 text-sm text-muted-foreground">
           {signup.status === "received"
             ? t("proofNotAllowedPending", locale)
             : signup.status === "rejected"
@@ -79,7 +79,7 @@ export default async function ProofPage(props: { params: Promise<{ signupId: str
             type="file"
             accept="image/*,video/*"
             multiple
-            className="rounded-md border px-3 py-2"
+            className="rounded-md border border-[rgba(184,50,92,0.28)] bg-[rgba(255,247,229,0.65)] px-3 py-2"
             required
           />
           <label className="flex items-center gap-2 text-sm">

@@ -64,6 +64,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -83,38 +84,43 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.028 261.692);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.028 261.692);
-  --primary: oklch(0.21 0.034 264.665);
-  --primary-foreground: oklch(0.985 0.002 247.839);
-  --secondary: oklch(0.967 0.003 264.542);
-  --secondary-foreground: oklch(0.21 0.034 264.665);
-  --muted: oklch(0.967 0.003 264.542);
-  --muted-foreground: oklch(0.551 0.027 264.364);
-  --accent: oklch(0.967 0.003 264.542);
-  --accent-foreground: oklch(0.21 0.034 264.665);
+  --radius: 1rem;
+  --card: #ffd0ef;
+  --card-foreground: oklch(0.24 0.03 30);
+  --popover: #ffd0ef;
+  --popover-foreground: oklch(0.24 0.03 30);
+  --primary: #b8325c;
+  --primary-foreground: #fff7e5;
+  --header: #ffd0ef;
+  --header-foreground: #b8325c;
+  --secondary: oklch(0.92 0.05 95);
+  --secondary-foreground: oklch(0.24 0.03 30);
+  --muted: oklch(0.95 0.02 90);
+  --muted-foreground: oklch(0.48 0.03 30);
+  --accent: #cfe8ff;
+  --accent-foreground: oklch(0.24 0.03 30);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.928 0.006 264.531);
-  --input: oklch(0.928 0.006 264.531);
-  --ring: oklch(0.707 0.022 261.325);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0.002 247.839);
-  --sidebar-foreground: oklch(0.13 0.028 261.692);
-  --sidebar-primary: oklch(0.21 0.034 264.665);
-  --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.967 0.003 264.542);
-  --sidebar-accent-foreground: oklch(0.21 0.034 264.665);
-  --sidebar-border: oklch(0.928 0.006 264.531);
-  --sidebar-ring: oklch(0.707 0.022 261.325);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.13 0.028 261.692);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: #e7a2b6;
+  --input: #e7a2b6;
+  --ring: #b8325c;
+  --cta-blue: #cfe8ff;
+  --cta-blue-border: #468ccd;
+  --chart-1: oklch(0.66 0.18 30);
+  --chart-2: oklch(0.78 0.1 220);
+  --chart-3: oklch(0.75 0.09 165);
+  --chart-4: oklch(0.86 0.08 95);
+  --chart-5: oklch(0.72 0.12 320);
+  --sidebar: oklch(0.98 0.02 95);
+  --sidebar-foreground: oklch(0.24 0.03 30);
+  --sidebar-primary: #b8325c;
+  --sidebar-primary-foreground: #fff7e5;
+  --sidebar-accent: #ffd0ef;
+  --sidebar-accent-foreground: oklch(0.24 0.03 30);
+  --sidebar-border: #b8325c;
+  --sidebar-ring: #b8325c;
+  --background: #fff7e5;
+  --foreground: oklch(0.24 0.03 30);
 }
 
 .dark {
@@ -126,6 +132,8 @@
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.985 0 0);
   --primary-foreground: oklch(0.19 0 0);
+  --header: oklch(0.32 0.09 12);
+  --header-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.24 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.24 0 0);
@@ -133,6 +141,7 @@
   --accent: oklch(0.24 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.6 0 0);
@@ -183,27 +192,30 @@
     @apply bg-background text-foreground;
   }
   h1 {
-    font-family: var(--font-sans);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 700;
     font-size: 3rem;
     line-height: 1.2;
-    font-weight: bold;
     @media (width >= theme(--breakpoint-md)) {
       font-size: 4rem;
     }
   }
 
   h2 {
-    font-family: var(--font-sans);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 700;
     font-size: 2rem;
     line-height: 1.2;
-    font-weight: bold;
     @media (width >= theme(--breakpoint-md)) {
       font-size: 2.5rem;
     }
   }
 
   h3 {
-    font-family: var(--font-sans);
+    font-family: var(--font-display);
+    font-style: italic;
     font-size: 1.5rem;
     line-height: 1.2;
     @media (width >= theme(--breakpoint-md)) {

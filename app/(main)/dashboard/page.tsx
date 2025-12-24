@@ -62,7 +62,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ em
               defaultValue={email}
               placeholder="Your email"
               type="email"
-              className="rounded-md border px-3 py-2 flex-1"
+              className="rounded-md border border-[rgba(184,50,92,0.28)] bg-[rgba(255,247,229,0.65)] px-3 py-2 flex-1"
               required
             />
             <button className="rounded-md bg-primary px-4 py-2 text-primary-foreground">View</button>
@@ -86,7 +86,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ em
               .slice()
               .sort((a: any, b: any) => new Date(a.event?.date).getTime() - new Date(b.event?.date).getTime())
               .map((s: any) => (
-                <div key={`cal-${s._id}`} className="rounded-md border p-4">
+                <div key={`cal-${s._id}`} className="rounded-md border border-[rgba(184,50,92,0.28)] bg-[rgba(255,208,239,0.35)] p-4">
                   <div className="text-sm text-muted-foreground">
                     {new Date(s.event?.date).toLocaleString()}
                   </div>
@@ -102,7 +102,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ em
           <h2 className="text-xl font-semibold">{t("registeredEvents", locale)}</h2>
           <div className="mt-4 grid gap-4">
             {signups.map((s: any) => (
-              <div key={s._id} className="rounded-md border p-4">
+              <div key={s._id} className="rounded-md border border-[rgba(184,50,92,0.28)] bg-[rgba(255,208,239,0.35)] p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-medium">{s.event?.title}</div>

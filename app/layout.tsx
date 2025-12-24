@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Averia_Libre } from "next/font/google";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,13 @@ const fontSans = FontSans({
   variable: "--font-sans",
 });
 
+const fontDisplay = Averia_Libre({
+  subsets: ["latin"],
+  weight: ["700"],
+  style: ["italic"],
+  variable: "--font-display",
+});
+
 export default function RootLayout({
   children,
 }: {
@@ -48,7 +56,8 @@ export default function RootLayout({
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased overscroll-none",
-          fontSans.variable
+          fontSans.variable,
+          fontDisplay.variable
         )}
       >
         <ThemeProvider
