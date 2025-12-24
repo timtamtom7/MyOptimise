@@ -38,14 +38,16 @@ export default async function IndexPage() {
       fetchSanityEvents({ locale }),
       fetchSanityOrganizations({ locale }),
     ]);
+    const heroBgClass = account?.type === "business" ? "bg-[rgba(207,232,255,0.70)]" : "bg-[#ffd0ef]";
+    const heroTextClass = account?.type === "business" ? "text-[#468ccd]" : "text-[#b8325c]";
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 pt-10 pb-16 md:pt-12 md:pb-20">
           <div className={hasRightColumn ? "grid grid-cols-1 md:grid-cols-2 gap-8 items-start" : "items-start"}>
             <div className={hasRightColumn ? leftColClass : "w-full"}>
-          <Card className="w-full border-0 shadow-none rounded-[33px] bg-[#ffd0ef] p-10 md:p-14">
+          <Card className={`w-full border-0 shadow-none rounded-[33px] ${heroBgClass} p-10 md:p-14`}>
           {session ? (
-            <h1 className="text-5xl md:text-7xl leading-[0.95] tracking-[-0.06em] text-[#b8325c]">
+            <h1 className={`text-5xl md:text-7xl leading-[0.95] tracking-[-0.06em] ${heroTextClass}`}>
               {(() => {
                 const fullName = (session as any)?.user?.name || "";
                 const firstName = fullName.includes(" ") ? fullName.split(" ")[0] : fullName;
@@ -55,20 +57,20 @@ export default async function IndexPage() {
           ) : null}
           {session ? (
             account?.type !== "admin" ? (
-              <h2 className="mt-4 text-2xl md:text-4xl leading-tight text-[#b8325c]">
+              <h2 className={`mt-4 text-2xl md:text-4xl leading-tight ${heroTextClass}`}>
                 {t("thanksHeadline", locale)}
               </h2>
             ) : (
-              <h2 className="mt-4 text-2xl md:text-4xl leading-tight text-[#b8325c]">
+              <h2 className={`mt-4 text-2xl md:text-4xl leading-tight ${heroTextClass}`}>
                 {t("adminSubheading", locale)}
               </h2>
             )
           ) : (
-            <h1 className="text-5xl md:text-7xl leading-[0.95] tracking-[-0.06em] text-[#b8325c]">
+            <h1 className={`text-5xl md:text-7xl leading-[0.95] tracking-[-0.06em] ${heroTextClass}`}>
               {t("helpHeadline", locale)}
             </h1>
           )}
-          <p className="mt-4 text-sm md:text-base text-[#b8325c] opacity-80">
+          <p className={`mt-4 text-sm md:text-base ${heroTextClass} opacity-80`}>
             {session ? t("heroSubLoggedIn", locale) : t("heroSubLoggedOut", locale)}
           </p>
           <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -79,7 +81,7 @@ export default async function IndexPage() {
                     <Link href="/studio">{t("goToManagementStudio", locale)}</Link>
                   </Button>
                 ) : account.type === "business" ? (
-                  <Button variant="blue-pill" asChild className="rounded-[33px] px-10">
+                  <Button variant="blue-pill" asChild className="rounded-[33px] px-10 border border-[rgba(70,140,205,0.35)]">
                     <Link href="/sponsor">{t("sponsorMeals", locale)}</Link>
                   </Button>
                 ) : (

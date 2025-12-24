@@ -36,6 +36,8 @@ export async function POST(
 ) {
   try {
     const { slug } = await context.params;
+    const origin = request.nextUrl.origin;
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || origin).replace(/\/$/, "");
     const fd = await request.formData();
     const name = String(fd.get("name") || "");
     const email = String(fd.get("email") || "");
@@ -55,6 +57,12 @@ export async function POST(
       status: "received",
       createdAt: new Date().toISOString(),
     });
+
+    const event = await writeClient.fetch(
+      `*[_type == "event" && _id == $id][0]{title, date, location, organization->{name, contactEmail}}`,
+      { id: eventId }
+    );
+
     if (process.env.RESEND_API_KEY) {
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
@@ -63,20 +71,43 @@ export async function POST(
         resend,
         from: resendFrom,
         to: email,
-        subject: "Volunteer registration received",
+        subject: "Volunteer request received",
         html: `<div style="font-family:system-ui,sans-serif">
           <h2>Thanks for volunteering</h2>
-          <p>We received your registration for the event.</p>
-          <p>View your registrations: <a href="${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?email=${encodeURIComponent(
+          <p>We received your request and will review it shortly.</p>
+          <p>${event?.title ?? "Event"}${event?.date ? ` • ${new Date(event.date).toLocaleString()}` : ""}${event?.location ? ` • ${event.location}` : ""}</p>
+          <p>View your registrations: <a href="${siteUrl}/dashboard?email=${encodeURIComponent(
             email
-          )}">${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?email=${encodeURIComponent(email)}</a></p>
+          )}">${siteUrl}/dashboard?email=${encodeURIComponent(email)}</a></p>
         </div>`,
       });
+
+      const adminEmails = (process.env.ADMIN_EMAILS || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const orgEmail = String(event?.organization?.contactEmail || "").trim();
+      const notifyTo = [...adminEmails, orgEmail].filter(Boolean);
+      if (notifyTo.length > 0) {
+        const subject = `New volunteer request: ${event?.title ?? slug}`;
+        await sendResendEmailWithFallback({
+          resend,
+          from: resendFrom,
+          to: notifyTo,
+          subject,
+          html: `<div style="font-family:system-ui,sans-serif">
+            <h2>${subject}</h2>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
+            <p><strong>Event:</strong> ${event?.title ?? ""}</p>
+            <p>${event?.date ? new Date(event.date).toLocaleString() : ""}${event?.location ? ` • ${event.location}` : ""}</p>
+            <p>Review in studio: <a href="${siteUrl}/studio">${siteUrl}/studio</a></p>
+          </div>`,
+        });
+      }
     }
-    const url = new URL(
-      `/events/${slug}/signup?pending=1`,
-      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3003"
-    );
+    const url = new URL(`/events/${slug}/signup?pending=1`, origin);
     return NextResponse.redirect(url, { status: 303 });
   } catch {
     return new NextResponse("Server error", { status: 500 });
