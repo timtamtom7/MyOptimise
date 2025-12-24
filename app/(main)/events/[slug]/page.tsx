@@ -53,51 +53,55 @@ export default async function EventPage(props: { params: Promise<{ slug: string 
               </CardHeader>
             </Card>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Card className="h-full bg-secondary">
-                <CardHeader className="space-y-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/70">
-                    <CalendarIcon className="h-4 w-4" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium">{dateLabel}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {dt.toLocaleDateString(undefined, { weekday: "long" })}
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-
-              <Card className="h-full bg-secondary">
-                <CardHeader className="space-y-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/70">
-                    <ClockIcon className="h-4 w-4" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium">{timeLabel}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {Intl.DateTimeFormat().resolvedOptions().timeZone}
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-
-              {event.location ? (
-                <Card className="h-full sm:col-span-2 lg:col-span-1 bg-secondary">
-                  <CardHeader className="space-y-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
-                      <MapPinIcon className="h-4 w-4" />
+            <Card className="bg-card" style={{ backgroundColor: "var(--card)" }}>
+              <CardContent className="p-6">
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(184,50,92,0.14)]">
+                      <CalendarIcon className="h-4 w-4" style={{ color: "var(--primary)" }} />
                     </div>
                     <div className="space-y-1">
-                      <div className="text-sm font-medium">{event.location}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {event.organization?.name ?? ""}
+                      <div className="text-sm font-medium" style={{ color: "var(--primary)" }}>
+                        {dateLabel}
+                      </div>
+                      <div className="text-xs opacity-80" style={{ color: "var(--primary)" }}>
+                        {dt.toLocaleDateString(undefined, { weekday: "long" })}
                       </div>
                     </div>
-                  </CardHeader>
-                </Card>
-              ) : null}
-            </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(184,50,92,0.14)]">
+                      <ClockIcon className="h-4 w-4" style={{ color: "var(--primary)" }} />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium" style={{ color: "var(--primary)" }}>
+                        {timeLabel}
+                      </div>
+                      <div className="text-xs opacity-80" style={{ color: "var(--primary)" }}>
+                        {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                      </div>
+                    </div>
+                  </div>
+
+                  {event.location ? (
+                    <div className="flex items-start gap-4 sm:col-span-2 lg:col-span-1">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(184,50,92,0.14)]">
+                        <MapPinIcon className="h-4 w-4" style={{ color: "var(--primary)" }} />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium" style={{ color: "var(--primary)" }}>
+                          {event.location}
+                        </div>
+                        <div className="text-xs opacity-80" style={{ color: "var(--primary)" }}>
+                          {event.organization?.name ?? ""}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
 
             {event.location ? (
               <Card className="overflow-hidden">
@@ -143,10 +147,15 @@ export default async function EventPage(props: { params: Promise<{ slug: string 
               </CardHeader>
             </Card>
 
-            <Card className="bg-secondary">
+            <Card className="bg-card" style={{ backgroundColor: "var(--card)" }}>
               <CardHeader className="space-y-2">
-                <CardTitle className="text-lg font-semibold">{t("details", locale)}</CardTitle>
-                <CardDescription className="space-y-2">
+                <CardTitle
+                  className="text-lg font-semibold italic"
+                  style={{ fontFamily: "var(--font-display)", color: "var(--primary)" }}
+                >
+                  {t("details", locale)}
+                </CardTitle>
+                <CardDescription className="space-y-2" style={{ color: "var(--primary)", opacity: 0.85 }}>
                   <div>{t("consentPictures", locale)}</div>
                   <div>{t("uploadProof", locale)}</div>
                 </CardDescription>
