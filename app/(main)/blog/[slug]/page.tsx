@@ -10,11 +10,14 @@ import {
 import { generatePageMetadata } from "@/sanity/lib/metadata";
 
 export async function generateStaticParams() {
-  const posts = await fetchSanityPostsStaticParams();
-
-  return posts.map((post) => ({
-    slug: post.slug?.current,
-  }));
+  try {
+    const posts = await fetchSanityPostsStaticParams();
+    return posts.map((post) => ({
+      slug: post.slug?.current,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata(props: {

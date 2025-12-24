@@ -54,7 +54,11 @@ export default async function EventsPage(props: { searchParams?: Promise<{ filte
                     : null;
 
             return (
-              <Link key={event._id} href={`/events/${event.slug.current}`} className="block">
+              <Link
+                key={event._id}
+                href={`/events/${event.slug.current}`}
+                className="block rounded-3xl transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
+              >
                 <Card
                   className="overflow-hidden h-full bg-card transition-transform hover:-translate-y-1"
                   style={{ backgroundColor: "var(--card)" }}

@@ -5,8 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { getLocale } from "@/lib/i18n";
 
 export async function generateStaticParams() {
-  const orgs = await fetchSanityOrganizationsStaticParams();
-  return orgs.map((o: any) => ({ slug: o.slug?.current }));
+  try {
+    const orgs = await fetchSanityOrganizationsStaticParams();
+    return orgs.map((o: any) => ({ slug: o.slug?.current }));
+  } catch {
+    return [];
+  }
 }
 
 export default async function OrganizationPage(props: { params: Promise<{ slug: string }> }) {

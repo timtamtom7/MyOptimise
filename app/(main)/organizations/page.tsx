@@ -17,7 +17,11 @@ export default async function OrganizationsPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-6">
         {organizations.map((org: any) => (
-          <Link key={org._id} href={`/organizations/${org.slug?.current}`}>
+          <Link
+            key={org._id}
+            href={`/organizations/${org.slug?.current}`}
+            className="block rounded-3xl transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
+          >
             <Card className="overflow-hidden h-full bg-accent/70 transition-transform hover:-translate-y-1">
               <CardHeader className="flex flex-row items-center gap-4">
                 <div className="flex-none">

@@ -8,11 +8,14 @@ import { generatePageMetadata } from "@/sanity/lib/metadata";
 import { getLocale } from "@/lib/i18n";
 
 export async function generateStaticParams() {
-  const pages = await fetchSanityPagesStaticParams();
-
-  return pages.map((page) => ({
-    slug: page.slug?.current,
-  }));
+  try {
+    const pages = await fetchSanityPagesStaticParams();
+    return pages.map((page) => ({
+      slug: page.slug?.current,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata(props: {

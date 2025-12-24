@@ -425,7 +425,7 @@ export type Signup = {
   name?: string;
   email?: string;
   phone?: string;
-  status?: "received" | "confirmed" | "cancelled";
+  status?: "received" | "confirmed" | "rejected" | "cancelled" | "completed";
   createdAt?: string;
 };
 

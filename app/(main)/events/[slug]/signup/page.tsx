@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { getLocale } from "@/lib/i18n";
 import Link from "next/link";
 import Image from "next/image";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -64,48 +65,65 @@ export default async function SignupPage(props: { params: Promise<{ slug: string
       )}
       <div className="mt-8 grid gap-8 md:grid-cols-3">
         <div className="md:col-span-2">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold">{t("volunteerFor", locale)} {event.title}</h1>
-          <p className="mt-3 text-muted-foreground">
-            {new Date(event.date).toLocaleString()} • {event.location}
-          </p>
-          <p className="mt-6 leading-relaxed">{event.description}</p>
+          <Card className="bg-card" style={{ backgroundColor: "var(--card)" }}>
+            <CardHeader className="space-y-3">
+              <CardTitle
+                className="text-3xl md:text-4xl lg:text-5xl font-semibold italic tracking-[-0.04em] leading-[1.06]"
+                style={{ fontFamily: "var(--font-display)", color: "var(--primary)" }}
+              >
+                {t("volunteerFor", locale)} {event.title}
+              </CardTitle>
+              <div className="text-sm text-muted-foreground">
+                {new Date(event.date).toLocaleString()} • {event.location}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="leading-relaxed">{event.description}</p>
+            </CardContent>
+          </Card>
         </div>
         <div className="md:col-span-1">
-          <div className="rounded-xl border border-secondary/60 bg-secondary/80 p-5 shadow-sm">
-            <div className="text-sm text-muted-foreground">{t("organizationLabel", locale)}</div>
-            <div className="mt-1 font-medium">{event.organization?.name ?? t("communityPartner", locale)}</div>
-            <div className="mt-4 text-sm text-muted-foreground">{t("capacityLabel", locale)}</div>
-            <div className="mt-1 font-medium">{event.capacity ?? t("openCapacity", locale)}</div>
-            <form method="post" action={`/events/${params.slug}/signup/submit`} className="mt-6 grid gap-3">
-              <input type="hidden" name="eventId" value={event._id} />
-              <input
-                className="rounded-md border bg-[rgba(255,247,229,0.65)] px-3 py-2"
-                name="name"
-                defaultValue={name}
-                placeholder={t("fullName", locale)}
-                required
-              />
-              <input
-                className="rounded-md border bg-[rgba(255,247,229,0.65)] px-3 py-2"
-                name="email"
-                type="email"
-                defaultValue={email}
-                placeholder={t("emailAddress", locale)}
-                required
-              />
-              <input
-                className="rounded-md border bg-[rgba(255,247,229,0.65)] px-3 py-2"
-                name="phone"
-                placeholder={t("phoneOptional", locale)}
-              />
-              <div className="text-sm text-muted-foreground">
-                {t("approvalEmailNotice", locale)}
+          <Card className="bg-card" style={{ backgroundColor: "var(--card)" }}>
+            <CardHeader className="space-y-4">
+              <div>
+                <div className="text-sm text-muted-foreground">{t("organizationLabel", locale)}</div>
+                <div className="mt-1 font-medium">{event.organization?.name ?? t("communityPartner", locale)}</div>
               </div>
-              <button type="submit" className="rounded-md bg-primary px-4 py-2 text-primary-foreground">
-                {t("volunteerAction", locale)}
-              </button>
-            </form>
-          </div>
+              <div>
+                <div className="text-sm text-muted-foreground">{t("capacityLabel", locale)}</div>
+                <div className="mt-1 font-medium">{event.capacity ?? t("openCapacity", locale)}</div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <form method="post" action={`/events/${params.slug}/signup/submit`} className="grid gap-3">
+                <input type="hidden" name="eventId" value={event._id} />
+                <input
+                  className="rounded-md border bg-[rgba(255,247,229,0.65)] px-3 py-2"
+                  name="name"
+                  defaultValue={name}
+                  placeholder={t("fullName", locale)}
+                  required
+                />
+                <input
+                  className="rounded-md border bg-[rgba(255,247,229,0.65)] px-3 py-2"
+                  name="email"
+                  type="email"
+                  defaultValue={email}
+                  placeholder={t("emailAddress", locale)}
+                  required
+                />
+                <input
+                  className="rounded-md border bg-[rgba(255,247,229,0.65)] px-3 py-2"
+                  name="phone"
+                  placeholder={t("phoneOptional", locale)}
+                />
+                <div className="text-sm text-muted-foreground">{t("approvalEmailNotice", locale)}</div>
+                <button type="submit" className="rounded-md bg-primary px-4 py-2 text-primary-foreground">
+                  {t("volunteerAction", locale)}
+                </button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

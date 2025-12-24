@@ -170,7 +170,11 @@ export default async function IndexPage() {
           <h2 className="text-xl font-semibold text-[#b8325c]">{t("upcomingEvents", locale)}</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
             {(events ?? []).slice(0, 3).map((event: any) => (
-              <Link key={event._id} href={`/events/${event.slug.current}`}>
+              <Link
+                key={event._id}
+                href={`/events/${event.slug.current}`}
+                className="block rounded-3xl transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
+              >
                 <Card
                   className="overflow-hidden h-full bg-card transition-transform hover:-translate-y-1"
                   style={{ backgroundColor: "var(--card)" }}
@@ -243,7 +247,11 @@ export default async function IndexPage() {
           <h2 className="text-xl font-semibold">{t("partnerOrganizations", locale)}</h2>
           <div className="grid gap-4 md:grid-cols-3 mt-4">
             {(orgs ?? []).slice(0, 6).map((org: any) => (
-              <Link key={org._id} href={`/organizations/${org.slug.current}`}>
+              <Link
+                key={org._id}
+                href={`/organizations/${org.slug.current}`}
+                className="block rounded-3xl transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
+              >
                 <Card className="overflow-hidden h-full bg-[rgba(207,232,255,0.70)] transition-transform hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center gap-4">
                     <div className="flex-none">

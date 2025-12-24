@@ -41,6 +41,31 @@ async function approveEvent(formData: FormData) {
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
   await writeClient.patch(id).set({ status: "approved" }).commit();
+  try {
+    const resendKey = process.env.RESEND_API_KEY || "";
+    if (resendKey) {
+      const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
+      const resend = new Resend(resendKey);
+      const event = await writeClient.fetch(
+        `*[_type == "event" && _id == $id][0]{title, date, location, organization->{name, contactEmail}}`,
+        { id }
+      );
+      const orgEmail = String(event?.organization?.contactEmail || "").trim();
+      if (orgEmail) {
+        await sendResendEmailWithFallback({
+          resend,
+          from: resendFrom,
+          to: orgEmail,
+          subject: "Your event has been approved",
+          html: `<div style="font-family:system-ui,sans-serif">
+            <p>Your event has been approved.</p>
+            <p><strong>${event?.title ?? "Event"}</strong></p>
+            <p>${event?.date ? new Date(event.date).toLocaleString() : ""}${event?.location ? ` • ${event.location}` : ""}</p>
+          </div>`,
+        });
+      }
+    }
+  } catch {}
   revalidatePath("/events");
 }
 
@@ -87,21 +112,26 @@ async function cancelSignup(formData: FormData) {
   if (!id) return;
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-  await writeClient.patch(id).set({ status: "cancelled" }).commit();
+  await writeClient.patch(id).set({ status: "rejected" }).commit();
   try {
     const resendKey = process.env.RESEND_API_KEY || "";
     if (resendKey) {
       const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
       const resend = new Resend(resendKey);
-      const signup = await writeClient.fetch(`*[_type == "signup" && _id == $id][0]{email, name, event->{title}}`, { id });
+      const signup = await writeClient.fetch(`*[_type == "signup" && _id == $id][0]{email, name, event->{title, date, location}}`, { id });
       if (signup?.email) {
+        const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+        const dashboardUrl = siteUrl ? `${siteUrl}/dashboard?email=${encodeURIComponent(signup.email)}` : "";
         await sendResendEmailWithFallback({
           resend,
           from: resendFrom,
           to: signup.email,
-          subject: "Your volunteer registration was cancelled",
+          subject: "Your volunteer request was rejected",
           html: `<div style="font-family:system-ui,sans-serif">
-            <p>Your registration for ${signup?.event?.title ?? "the event"} was cancelled.</p>
+            <p>Thanks for volunteering. We’re sorry, but your request was not approved.</p>
+            <p><strong>${signup?.event?.title ?? "Event"}</strong></p>
+            <p>${signup?.event?.date ? new Date(signup.event.date).toLocaleString() : ""}${signup?.event?.location ? ` • ${signup.event.location}` : ""}</p>
+            ${dashboardUrl ? `<p>View your requests: <a href="${dashboardUrl}">${dashboardUrl}</a></p>` : ""}
           </div>`,
         });
       }
@@ -116,6 +146,31 @@ async function approveSponsorship(formData: FormData) {
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
   await writeClient.patch(id).set({ status: "approved" }).commit();
+  try {
+    const resendKey = process.env.RESEND_API_KEY || "";
+    if (resendKey) {
+      const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
+      const resend = new Resend(resendKey);
+      const sponsorship = await writeClient.fetch(
+        `*[_type == "sponsorship" && _id == $id][0]{businessName, contactEmail, mealsCount, date, location}`,
+        { id }
+      );
+      const to = String(sponsorship?.contactEmail || "").trim();
+      if (to) {
+        await sendResendEmailWithFallback({
+          resend,
+          from: resendFrom,
+          to,
+          subject: "Your sponsorship has been approved",
+          html: `<div style="font-family:system-ui,sans-serif">
+            <p>Thanks for your support. Your sponsorship has been approved.</p>
+            <p><strong>${sponsorship?.businessName ?? "Sponsorship"}</strong></p>
+            <p>${sponsorship?.mealsCount ? `${sponsorship.mealsCount} meals` : ""}${sponsorship?.date ? ` • ${new Date(sponsorship.date).toLocaleDateString()}` : ""}${sponsorship?.location ? ` • ${sponsorship.location}` : ""}</p>
+          </div>`,
+        });
+      }
+    }
+  } catch {}
   revalidatePath("/dashboard/business");
 }
 
@@ -125,6 +180,31 @@ async function completeSponsorship(formData: FormData) {
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || previewToken;
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
   await writeClient.patch(id).set({ status: "completed" }).commit();
+  try {
+    const resendKey = process.env.RESEND_API_KEY || "";
+    if (resendKey) {
+      const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
+      const resend = new Resend(resendKey);
+      const sponsorship = await writeClient.fetch(
+        `*[_type == "sponsorship" && _id == $id][0]{businessName, contactEmail, mealsCount, date, location}`,
+        { id }
+      );
+      const to = String(sponsorship?.contactEmail || "").trim();
+      if (to) {
+        await sendResendEmailWithFallback({
+          resend,
+          from: resendFrom,
+          to,
+          subject: "Your sponsorship has been completed",
+          html: `<div style="font-family:system-ui,sans-serif">
+            <p>Your sponsorship has been marked as completed.</p>
+            <p><strong>${sponsorship?.businessName ?? "Sponsorship"}</strong></p>
+            <p>${sponsorship?.mealsCount ? `${sponsorship.mealsCount} meals` : ""}${sponsorship?.date ? ` • ${new Date(sponsorship.date).toLocaleDateString()}` : ""}${sponsorship?.location ? ` • ${sponsorship.location}` : ""}</p>
+          </div>`,
+        });
+      }
+    }
+  } catch {}
   revalidatePath("/dashboard/business");
 }
 
@@ -517,7 +597,7 @@ export default async function AdminPage(props: {
                 </form>
                 <form action={cancelSignup}>
                   <input type="hidden" name="id" value={s._id} />
-                  <button className="rounded-md border px-3 py-2">Cancel</button>
+                  <button className="rounded-md border px-3 py-2">Reject</button>
                 </form>
               </div>
             </div>

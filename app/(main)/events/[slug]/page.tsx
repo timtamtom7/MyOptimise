@@ -8,8 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export async function generateStaticParams() {
-  const items = await fetchSanityEventsStaticParams();
-  return items.map((e) => ({ slug: e.slug?.current }));
+  try {
+    const items = await fetchSanityEventsStaticParams();
+    return items.map((e) => ({ slug: e.slug?.current }));
+  } catch {
+    return [];
+  }
 }
 
 export default async function EventPage(props: { params: Promise<{ slug: string }> }) {
