@@ -30,7 +30,7 @@ const singletonTypes = new Set(["settings"]);
 
 export default defineConfig({
   basePath: "/studio",
-  title: "Helping Hands management Studio",
+  title: "Optimise Operations Management Studio",
   projectId,
   dataset,
   studio: {

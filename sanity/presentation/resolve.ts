@@ -21,24 +21,6 @@ export const resolve: PresentationPluginOptions["resolve"] = {
         ],
       }),
     }),
-    event: defineLocations({
-      select: { title: "title", slug: "slug.current" },
-      resolve: (doc) => ({
-        locations: [
-          { title: doc?.title || "Event", href: `/events/${doc?.slug}` },
-          { title: "Events", href: `/events` },
-        ],
-      }),
-    }),
-    organization: defineLocations({
-      select: { title: "name", slug: "slug.current" },
-      resolve: (doc) => ({
-        locations: [
-          { title: (doc as any)?.name || "Organization", href: `/organizations/${(doc as any)?.slug}` },
-          { title: "Organizations", href: `/organizations` },
-        ],
-      }),
-    }),
   },
   mainDocuments: defineDocuments([
     {

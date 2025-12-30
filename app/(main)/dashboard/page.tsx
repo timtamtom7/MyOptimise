@@ -1,178 +1,26 @@
-import { fetchSanitySignupsByEmail, fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
-import Link from "next/link";
-import { Resend } from "resend";
-import { revalidatePath } from "next/cache";
 import { safeGetServerSession } from "@/lib/auth";
-import { t, getLocale } from "@/lib/i18n";
+import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-async function sendResendEmailWithFallback({
-  resend,
-  from,
-  to,
-  subject,
-  html,
-}: {
-  resend: Resend;
-  from: string;
-  to: string | string[];
-  subject: string;
-  html: string;
-}) {
-  try {
-    await resend.emails.send({ from, to, subject, html });
-    return;
-  } catch {
-    if (from.toLowerCase().includes("onboarding@resend.dev")) throw new Error("resend_send_failed");
-    await resend.emails.send({
-      from: "Helping Hand <onboarding@resend.dev>",
-      to,
-      subject,
-      html,
-    });
-  }
-}
-
-export default async function DashboardPage(props: { searchParams?: Promise<{ email?: string }> }) {
+export default async function DashboardRouterPage() {
   const session = await safeGetServerSession();
-  const searchParams = (await props.searchParams) || {};
-  const email = (session as any)?.user?.email || searchParams.email || "";
-  const locale = await getLocale();
-  const resendFrom = process.env.RESEND_FROM || "Helping Hand <onboarding@resend.dev>";
-
-  const signups = email ? await fetchSanitySignupsByEmail({ email, locale }) : [];
-
-  if (session && email && signups.length === 0) {
-    redirect("/events");
+  if (!session) {
+    redirect("/login?next=/dashboard");
   }
-
-  return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl font-semibold">{t("yourVolunteering", locale)}</h1>
-      {!email ? (
-        <>
-          <p className="mt-2 text-muted-foreground">
-            Enter your email to view registered events and upload proof after distribution.
-          </p>
-          <form method="get" className="mt-6 flex gap-3 max-w-md">
-            <input
-              name="email"
-              defaultValue={email}
-              placeholder="Your email"
-              type="email"
-              className="rounded-md border border-[rgba(184,50,92,0.28)] bg-[rgba(255,247,229,0.65)] px-3 py-2 flex-1"
-              required
-            />
-            <button className="rounded-md bg-primary px-4 py-2 text-primary-foreground">View</button>
-          </form>
-        </>
-      ) : null}
-
-      {email && (
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold">{t("calendar", locale)}</h2>
-          <div className="mt-2">
-            <a
-              href={`/api/ical?email=${encodeURIComponent(email)}`}
-              className="rounded-md border px-3 py-2 inline-block"
-            >
-              {t("downloadICal", locale)}
-            </a>
-          </div>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {signups
-              .slice()
-              .sort((a: any, b: any) => new Date(a.event?.date).getTime() - new Date(b.event?.date).getTime())
-              .map((s: any) => (
-                <div key={`cal-${s._id}`} className="rounded-md border border-[rgba(184,50,92,0.28)] bg-[rgba(255,208,239,0.35)] p-4">
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(s.event?.date).toLocaleString()}
-                  </div>
-                  <div className="mt-1 font-medium">{s.event?.title}</div>
-                  <div className="text-sm">{s.event?.location}</div>
-                </div>
-              ))}
-            {signups.length === 0 ? (
-              <div className="text-muted-foreground">{t("noUpcomingRegistrations", locale)}</div>
-            ) : null}
-          </div>
-
-          <h2 className="text-xl font-semibold">{t("registeredEvents", locale)}</h2>
-          <div className="mt-4 grid gap-4">
-            {signups.map((s: any) => (
-              <div key={s._id} className="rounded-md border border-[rgba(184,50,92,0.28)] bg-[rgba(255,208,239,0.35)] p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{s.event?.title}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(s.event?.date).toLocaleString()} • {s.event?.location}
-                    </div>
-                    <div className="mt-1 text-xs uppercase tracking-wide">
-                      Status: {s.status}
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <Link
-                      href={`/events/${s.event?.slug?.current}`}
-                      className="rounded-md border px-3 py-2"
-                    >
-                      {t("details", locale)}
-                    </Link>
-                    <Link
-                      href={`/proof/${s._id}`}
-                      className="rounded-md bg-primary px-3 py-2 text-primary-foreground"
-                    >
-                      {t("uploadProof", locale)}
-                    </Link>
-                    <form action={async () => {
-                      if (!process.env.RESEND_API_KEY) return;
-                      const resend = new Resend(process.env.RESEND_API_KEY);
-                      await sendResendEmailWithFallback({
-                        resend,
-                        from: resendFrom,
-                        to: s.email,
-                        subject: "Reminder: Upcoming distribution",
-                        html: `<div style="font-family:system-ui,sans-serif">
-                          <p>Reminder for ${s.event?.title} on ${new Date(s.event?.date).toLocaleString()}.</p>
-                          <p>Event details: ${s.event?.location}</p>
-                          <p>View your registrations: <a href="${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?email=${encodeURIComponent(
-                            email
-                          )}">${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?email=${encodeURIComponent(email)}</a></p>
-                        </div>`,
-                      });
-                      revalidatePath("/dashboard");
-                    }}>
-                      <button className="rounded-md border px-3 py-2">{t("sendReminder", locale)}</button>
-                    </form>
-                    <form action={async () => {
-                      if (!process.env.RESEND_API_KEY) return;
-                      const resend = new Resend(process.env.RESEND_API_KEY);
-                      await sendResendEmailWithFallback({
-                        resend,
-                        from: resendFrom,
-                        to: s.email,
-                        subject: "Please upload proof of distribution",
-                        html: `<div style="font-family:system-ui,sans-serif">
-                          <p>Upload proof for ${s.event?.title}.</p>
-                          <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/proof/${s._id}">Upload proof</a></p>
-                        </div>`,
-                      });
-                      revalidatePath("/dashboard");
-                    }}>
-                      <button className="rounded-md border px-3 py-2">{t("sendProofPrompt", locale)}</button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {signups.length === 0 ? (
-              <div className="text-muted-foreground">{t("noRegistrationsFoundFor", locale)} {email}</div>
-            ) : null}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const email = String((session as any)?.user?.email || "");
+  const acct = email ? await fetchSanityAccountByEmail({ email }) : null;
+  const type = String(acct?.type || (session as any)?.type || "");
+  const dest =
+    type === "client"
+      ? "/dashboard/client"
+      : type === "admin"
+        ? "/dashboard/admin"
+        : type === "manager"
+          ? "/dashboard/manager"
+          : type === "employee"
+            ? "/dashboard/employee"
+            : "/";
+  redirect(dest);
 }

@@ -4,49 +4,60 @@ import Image from "next/image";
 import { urlFor } from "@/sanity/lib/image";
 import { SETTINGS_QUERYResult } from "@/sanity.types";
 import { useTheme } from "next-themes";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
-export default function Logo({ settings }: { settings: SETTINGS_QUERYResult }) {
+export default function Logo({
+  settings,
+  className,
+}: {
+  settings: SETTINGS_QUERYResult;
+  className?: string;
+}) {
   const { resolvedTheme } = useTheme();
-  const themeToUse = resolvedTheme || "light";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const themeToUse = mounted ? resolvedTheme || "light" : "light";
 
-  // Select the appropriate logo based on resolved theme (handles "system" correctly)
-  const selectedLogo =
-    settings?.logo?.[themeToUse === "dark" ? "dark" : "light"];
-
-  // If no logo for the current theme, try the opposite theme as fallback
-  const fallbackLogo =
-    settings?.logo?.[themeToUse === "dark" ? "light" : "dark"];
+  const preferredKey = themeToUse === "dark" ? "dark" : "light";
+  const fallbackKey = themeToUse === "dark" ? "light" : "dark";
+  const selectedLogo = settings?.logo?.[preferredKey];
+  const fallbackLogo = settings?.logo?.[fallbackKey];
   const logoToUse = selectedLogo || fallbackLogo;
+  const siteName = settings?.siteName || "Optimise Operations";
 
   return logoToUse ? (
     <Image
       src={urlFor(logoToUse).url()}
-      alt={settings.siteName || ""}
+      alt={siteName}
       width={
-        (settings.logo?.width as number) ??
+        settings?.logo?.width ??
         logoToUse?.asset?.metadata?.dimensions?.width ??
         100
       }
       height={
-        (settings.logo?.height as number) ??
+        settings?.logo?.height ??
         logoToUse?.asset?.metadata?.dimensions?.height ??
         40
       }
-      title={settings.siteName || ""}
+      className={cn("h-auto w-auto", className)}
+      title={siteName}
       placeholder={
         logoToUse?.asset?.metadata?.lqip &&
         logoToUse?.asset?.mimeType !== "image/svg+xml"
           ? "blur"
-          : undefined
+        : undefined
       }
       blurDataURL={logoToUse?.asset?.metadata?.lqip || undefined}
       quality={100}
       priority
     />
   ) : (
-    <span className="text-lg font-semibold tracking-tighter">
-      {settings?.siteName || "Logo"}
+    <span className="text-lg font-semibold tracking-tighter text-[color:var(--primary)]">
+      {siteName}
     </span>
   );
 }

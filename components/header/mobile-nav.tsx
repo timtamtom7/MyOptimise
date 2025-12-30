@@ -16,17 +16,19 @@ import { AlignRight, CalendarDays, Building2, HandHeart } from "lucide-react";
 import { SETTINGS_QUERYResult, NAVIGATION_QUERYResult } from "@/sanity.types";
 import SignOutButton from "@/components/auth/signout-button";
 
-type SanityLink = NonNullable<NAVIGATION_QUERYResult[0]["links"]>[number];
+type SanityLink = NonNullable<NAVIGATION_QUERYResult[0]["links"]>[number] & {
+  target?: boolean | null;
+};
 
 export default function MobileNav({
   navigation,
   settings,
-  isAdmin = false,
+  canAccessStudio = false,
   isLoggedIn = false,
 }: {
   navigation: NAVIGATION_QUERYResult;
   settings: SETTINGS_QUERYResult;
-  isAdmin?: boolean;
+  canAccessStudio?: boolean;
   isLoggedIn?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -44,7 +46,7 @@ export default function MobileNav({
       <SheetContent>
         <SheetHeader>
           <div className="mx-0">
-            <Logo settings={settings} />
+            <Logo settings={settings} className="h-7 w-auto" />
           </div>
           <div className="sr-only">
             <SheetTitle>Main Navigation</SheetTitle>
@@ -78,7 +80,7 @@ export default function MobileNav({
           </div>
         </div>
         <div className="container border-t pt-6">
-          {isAdmin ? (
+          {canAccessStudio ? (
             <div className="grid gap-3">
               <Link
                 onClick={() => setOpen(false)}
@@ -105,16 +107,6 @@ export default function MobileNav({
                 )}
               >
                 Sign In
-              </Link>
-              <Link
-                onClick={() => setOpen(false)}
-                href="/signup"
-                className={cn(
-                  buttonVariants({ variant: "default", size: "lg" }),
-                  "w-full justify-center"
-                )}
-              >
-                Sign Up
               </Link>
             </div>
           )}

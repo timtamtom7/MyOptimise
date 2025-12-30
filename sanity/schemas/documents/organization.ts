@@ -9,6 +9,7 @@ export default defineType({
   groups: [
     { name: "content", title: "Content" },
     { name: "details", title: "Details" },
+    { name: "access", title: "Access" },
   ],
   fields: [
     defineField({ name: "name", type: "string", title: "Name", group: "content", validation: (Rule) => Rule.required() }),
@@ -44,6 +45,20 @@ export default defineType({
       ],
     }),
     defineField({ name: "contactEmail", type: "string", title: "Contact Email", group: "details" }),
+    defineField({
+      name: "clientAccount",
+      type: "reference",
+      title: "Client Account",
+      group: "access",
+      to: [{ type: "account" }],
+    }),
+    defineField({
+      name: "teamMembers",
+      title: "Team Members",
+      type: "array",
+      group: "access",
+      of: [{ type: "reference", to: [{ type: "account" }] }],
+    }),
     defineField({ name: "website", type: "url", title: "Website", group: "details" }),
     defineField({ name: "logo", type: "image", title: "Logo", group: "details" }),
   ],

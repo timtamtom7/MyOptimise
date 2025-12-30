@@ -26,7 +26,7 @@ async function getPagesSitemap(): Promise<MetadataRoute.Sitemap[]> {
     },
   });
 
-  return data;
+  return (data ?? []) as MetadataRoute.Sitemap[];
 }
 
 async function getPostsSitemap(): Promise<MetadataRoute.Sitemap[]> {
@@ -46,7 +46,7 @@ async function getPostsSitemap(): Promise<MetadataRoute.Sitemap[]> {
     },
   });
 
-  return data;
+  return (data ?? []) as MetadataRoute.Sitemap[];
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap[]> {

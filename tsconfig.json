@@ -32,13 +32,15 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "minimalist-event-sign-up-page",
     "segmented-button",
-    "Simple Card Stack (Community)"
+    "Simple Card Stack (Community)",
+    "src",
+    "components/dashboard",
+    "hooks"
   ]
 }

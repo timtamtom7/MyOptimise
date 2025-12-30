@@ -68,19 +68,6 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative w-full h-36 rounded-lg overflow-hidden border border-border mb-10">
-          <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3861.5670847068973!2d121.04529407593066!3d14.550986778284!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397c8edc39b5c5f%3A0x5e7f23e9c9963bc6!2sYardstick%20Coffee!5e0!3m2!1sen!2sph!4v1704067200000!5m2!1sen!2sph"
-            width="100%"
-            height="100%"
-            style={{ border: 0, filter: "grayscale(100%) invert(92%) contrast(90%)" }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title="Yardstick Coffee, BGC"
-          />
-        </div>
-
         <div className="mb-10">
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-4">Who's attending</p>
           <div className="flex flex-wrap gap-4">

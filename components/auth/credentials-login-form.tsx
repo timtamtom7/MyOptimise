@@ -3,7 +3,6 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import Link from "next/link";
 
 export default function CredentialsLoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [email, setEmail] = useState("");
@@ -24,7 +23,7 @@ export default function CredentialsLoginForm({ callbackUrl }: { callbackUrl?: st
           redirect: false,
         }).then((res) => {
           if (res?.error) {
-            setError("Sign in failed. Your account may be pending approval or credentials are incorrect.");
+            setError("Sign in failed. Your credentials may be incorrect or your account is disabled.");
             setShowErrorModal(true);
             setLoading(false);
           } else if (res?.ok) {
@@ -69,13 +68,12 @@ export default function CredentialsLoginForm({ callbackUrl }: { callbackUrl?: st
               <div className="fixed z-50 left-1/2 top-1/2 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-background p-6 shadow-xl">
                 <div className="text-xl font-semibold">Sign in blocked</div>
                 <div className="mt-2 text-sm text-muted-foreground">
-                  Your account is pending approval or the credentials are invalid. Try again later or contact support.
+                  Your credentials are invalid or your account is disabled. Ask a director to create or re-enable your account.
                 </div>
                 <div className="mt-6 flex gap-3">
                   <button onClick={() => setShowErrorModal(false)} className="rounded-md bg-primary px-4 py-2 text-primary-foreground flex-1">
                     Close
                   </button>
-                  <Link href="/signup" className="rounded-md border px-4 py-2 flex-1 text-center">Create account</Link>
                 </div>
               </div>
             </>

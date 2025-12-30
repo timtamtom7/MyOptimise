@@ -38,6 +38,22 @@ export default defineType({
       ],
     }),
     defineField({
+      name: "clientCta",
+      title: "Client CTA",
+      type: "object",
+      fields: [
+        defineField({
+          name: "logo",
+          type: "image",
+          options: { hotspot: true },
+        }),
+        defineField({
+          name: "url",
+          type: "url",
+        }),
+      ],
+    }),
+    defineField({
       name: "siteName",
       type: "string",
       description: "The name of your site",

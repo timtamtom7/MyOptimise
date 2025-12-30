@@ -1,0 +1,116 @@
+import { defineField, defineType } from "sanity";
+import { Calendar } from "lucide-react";
+
+export default defineType({
+  name: "scheduleItem",
+  type: "document",
+  title: "Schedule Item",
+  icon: Calendar,
+  groups: [
+    { name: "content", title: "Content" },
+    { name: "time", title: "Time" },
+    { name: "sharing", title: "Sharing" },
+    { name: "links", title: "Links" },
+    { name: "meta", title: "Meta" },
+  ],
+  fields: [
+    defineField({
+      name: "title",
+      title: "Title",
+      type: "string",
+      group: "content",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "description",
+      title: "Description",
+      type: "text",
+      group: "content",
+    }),
+    defineField({
+      name: "type",
+      title: "Type",
+      type: "string",
+      group: "content",
+      options: {
+        list: [
+          { title: "Personal", value: "personal" },
+          { title: "Team", value: "team" },
+          { title: "Campaign", value: "campaign" },
+          { title: "Deadline", value: "deadline" },
+          { title: "Availability", value: "availability" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "personal",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "startsAt",
+      title: "Starts At",
+      type: "datetime",
+      group: "time",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "endsAt",
+      title: "Ends At",
+      type: "datetime",
+      group: "time",
+    }),
+    defineField({
+      name: "visibility",
+      title: "Visibility",
+      type: "string",
+      group: "sharing",
+      options: {
+        list: [
+          { title: "Internal", value: "internal" },
+          { title: "Client Visible", value: "client" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "internal",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "participants",
+      title: "Participants",
+      type: "array",
+      group: "sharing",
+      of: [{ type: "reference", to: [{ type: "account" }] }],
+      validation: (Rule) => Rule.min(1),
+    }),
+    defineField({
+      name: "relatedWorkItem",
+      title: "Related Work Item",
+      type: "reference",
+      to: [{ type: "workItem" }],
+      group: "links",
+    }),
+    defineField({
+      name: "createdBy",
+      title: "Created By",
+      type: "reference",
+      to: [{ type: "account" }],
+      group: "meta",
+      readOnly: true,
+    }),
+    defineField({
+      name: "createdAt",
+      title: "Created At",
+      type: "datetime",
+      group: "meta",
+      initialValue: () => new Date().toISOString(),
+      readOnly: true,
+    }),
+    defineField({
+      name: "updatedAt",
+      title: "Updated At",
+      type: "datetime",
+      group: "meta",
+      readOnly: true,
+    }),
+  ],
+});
+

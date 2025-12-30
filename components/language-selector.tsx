@@ -1,5 +1,4 @@
 "use client";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,46 +9,38 @@ const options = [
   { code: "zh-CN", label: "中文（普通话）" },
 ] as const;
 
-export default function LanguageSelector() {
-  const [lang, setLang] = useState<string>(() => {
-    if (typeof document === "undefined") return "en";
-    const m = document.cookie.match(/(?:^|; )lang=([^;]+)/);
-    return m?.[1] ? decodeURIComponent(m[1]) : "en";
-  });
-  const [userSelected, setUserSelected] = useState(false);
-  function setLanguage(code: string) {
-    setLang(code);
-    setUserSelected(true);
-  }
+export default function LanguageSelector({ initialLang }: { initialLang?: string }) {
+  const [lang, setLang] = useState<string>(() => initialLang || "en");
   useEffect(() => {
-    if (!userSelected) return;
-    document.cookie = `lang=${encodeURIComponent(lang)}; path=/; max-age=${60 * 60 * 24 * 365}`;
-    window.location.reload();
-  }, [lang, userSelected]);
+    const m = document.cookie.match(/(?:^|; )lang=([^;]+)/);
+    const cookieLang = m?.[1] ? decodeURIComponent(m[1]) : "";
+    if (cookieLang && cookieLang !== lang) {
+      setLang(cookieLang);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function setLanguage(nextLang: string) {
+    const url = new URL(window.location.href);
+    const returnTo = `${url.pathname}${url.search}${url.hash}`;
+    window.location.href = `/api/i18n/apply?lang=${encodeURIComponent(nextLang)}&returnTo=${encodeURIComponent(returnTo)}`;
+  }
   const current = options.find((o) => o.code === lang) || options[0];
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button
-          className={cn(
-            buttonVariants({ variant: "outline", size: "sm" }),
-            "border-0 bg-transparent shadow-none hover:bg-muted/40"
-          )}
-        >
-          {current.label}
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content className="rounded-2xl border border-border bg-background p-1 shadow-lg">
-        {options.map((o) => (
-          <DropdownMenu.Item
-            key={o.code}
-            onSelect={() => setLanguage(o.code)}
-            className="cursor-pointer rounded-xl px-3 py-2 hover:bg-muted/60"
-          >
-            {o.label}
-          </DropdownMenu.Item>
-        ))}
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
+    <select
+      aria-label="Language"
+      value={current.code}
+      onChange={(e) => setLanguage(e.target.value)}
+      className={cn(
+        buttonVariants({ variant: "outline", size: "sm" }),
+        "h-9 w-[140px] border-0 bg-transparent shadow-none hover:bg-muted/40"
+      )}
+    >
+      {options.map((o) => (
+        <option key={o.code} value={o.code}>
+          {o.label}
+        </option>
+      ))}
+    </select>
   );
 }

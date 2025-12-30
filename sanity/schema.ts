@@ -2,11 +2,21 @@ import { type SchemaTypeDefinition } from "sanity";
 // documents
 import navigation from "./schemas/documents/navigation";
 import settings from "./schemas/documents/settings";
-import event from "./schemas/documents/event";
+import account from "./schemas/documents/account";
 import organization from "./schemas/documents/organization";
+import event from "./schemas/documents/event";
 import signup from "./schemas/documents/signup";
 import sponsorship from "./schemas/documents/sponsorship";
-import account from "./schemas/documents/account";
+import workItem from "./schemas/documents/workItem";
+import clientRequest from "./schemas/documents/clientRequest";
+import clientService from "./schemas/documents/clientService";
+import serviceRequest from "./schemas/documents/serviceRequest";
+import messageThread from "./schemas/documents/messageThread";
+import announcement from "./schemas/documents/announcement";
+import feedback from "./schemas/documents/feedback";
+import auditLog from "./schemas/documents/auditLog";
+import documentItem from "./schemas/documents/documentItem";
+import scheduleItem from "./schemas/documents/scheduleItem";
 import page from "./schemas/documents/page";
 import post from "./schemas/documents/post";
 import category from "./schemas/documents/category";
@@ -49,11 +59,21 @@ export const schema: { types: SchemaTypeDefinition[] } = {
   types: [
     navigation,
     settings,
-    event,
+    account,
     organization,
+    event,
     signup,
     sponsorship,
-    account,
+    workItem,
+    clientRequest,
+    clientService,
+    serviceRequest,
+    messageThread,
+    announcement,
+    feedback,
+    auditLog,
+    documentItem,
+    scheduleItem,
     // documents
     page,
     post,

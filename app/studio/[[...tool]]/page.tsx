@@ -8,12 +8,25 @@
  */
 
 import StudioClient from "./studio-client";
+import { safeGetServerSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export { metadata, viewport } from "next-sanity/studio";
 
-export default function StudioPage() {
-  return <StudioClient />
+export default async function StudioPage() {
+  const session = await safeGetServerSession();
+  const email = String((session as any)?.user?.email || "");
+  if (!email) {
+    redirect("/login?next=/studio");
+  }
+  const acct = await fetchSanityAccountByEmail({ email });
+  const canAccessStudio = acct?.type === "admin";
+  if (!acct || acct.status === "disabled" || !canAccessStudio) {
+    redirect("/login?error=AccessDenied&next=/studio");
+  }
+  return <StudioClient />;
 }

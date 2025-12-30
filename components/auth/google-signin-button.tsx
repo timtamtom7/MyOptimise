@@ -7,16 +7,22 @@ import { Loader2 } from "lucide-react";
 export default function GoogleSignInButton({
   callbackUrl,
   label = "Continue with Google",
+  loginHint,
 }: {
   callbackUrl?: string;
   label?: string;
+  loginHint?: string;
 }) {
   const [loading, setLoading] = useState(false);
   return (
     <Button
       onClick={() => {
         setLoading(true);
-        signIn("google", { callbackUrl });
+        signIn(
+          "google",
+          { callbackUrl },
+          loginHint ? { login_hint: loginHint } : undefined
+        );
       }}
       className="w-full"
       disabled={loading}

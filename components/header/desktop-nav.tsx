@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils";
 import { NAVIGATION_QUERYResult } from "@/sanity.types";
 import { usePathname } from "next/navigation";
 
-type SanityLink = NonNullable<NAVIGATION_QUERYResult[0]["links"]>[number];
+type SanityLink = NonNullable<NAVIGATION_QUERYResult[0]["links"]>[number] & {
+  target?: boolean | null;
+};
 
 export default function DesktopNav({
   navigation,
@@ -26,9 +28,9 @@ export default function DesktopNav({
             const isActive = href && (pathname === href || pathname.startsWith(href));
             return cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
-              "h-10 px-5 rounded-[33px] border-0 bg-transparent font-semibold text-[#b8325c] hover:bg-muted/40 shadow-none",
+              "h-10 px-5 rounded-[33px] border-0 bg-transparent font-semibold text-[color:var(--primary)] hover:bg-muted/40 shadow-none",
               isActive
-                ? "bg-muted text-[#b8325c] hover:bg-muted/60"
+                ? "bg-muted text-[color:var(--primary)] hover:bg-muted/60"
                 : undefined
             );
           })()}

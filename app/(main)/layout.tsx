@@ -5,19 +5,60 @@ import { VisualEditing } from "next-sanity/visual-editing";
 import { draftMode } from "next/headers";
 import { SanityLive } from "@/sanity/lib/live";
 import GlobalRouteLoader from "@/components/global-route-loader";
+import CommandPalette, { type CommandPaletteCommand } from "@/components/command-palette";
+import { safeGetServerSession, hasAccountCapability } from "@/lib/auth";
+import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 
 export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const isDraftMode = (await draftMode()).isEnabled;
+  const allowVisualEditing = process.env.NODE_ENV !== "development";
+  const session = await safeGetServerSession();
+  const email = String((session as any)?.user?.email || "");
+  const acct = email ? await fetchSanityAccountByEmail({ email }) : null;
+  const canUseCommandPalette = Boolean(acct && hasAccountCapability(acct, "system.command_palette"));
+  const commands: CommandPaletteCommand[] = [];
+  if (acct && canUseCommandPalette) {
+    const type = String(acct.type || (session as any)?.type || "");
+    commands.push({ id: "go_dashboard", label: "Go to Dashboard", kind: "link", href: "/dashboard", keywords: "home" });
+    commands.push({ id: "go_settings", label: "Go to Settings", kind: "link", href: "/dashboard/settings", keywords: "profile preferences" });
+    if (hasAccountCapability(acct, "system.search.global")) {
+      commands.push({ id: "go_search", label: "Go to Search", kind: "link", href: "/dashboard/search", keywords: "find" });
+    }
+    if (hasAccountCapability(acct, "system.announcements.view")) {
+      commands.push({
+        id: "go_announcements",
+        label: "Go to Announcements",
+        kind: "link",
+        href: "/dashboard/announcements",
+        keywords: "news updates",
+      });
+    }
+    if (hasAccountCapability(acct, "system.feedback.submit")) {
+      commands.push({ id: "go_feedback", label: "Go to Feedback", kind: "link", href: "/dashboard/feedback", keywords: "report" });
+    }
+    if (hasAccountCapability(acct, "documents.view.shared")) {
+      commands.push({ id: "go_documents", label: "Go to Documents", kind: "link", href: "/dashboard/documents", keywords: "files" });
+    }
+    if (type === "admin") commands.push({ id: "go_admin", label: "Go to Admin Dashboard", kind: "link", href: "/dashboard/admin", keywords: "users" });
+    if (type === "manager") commands.push({ id: "go_manager", label: "Go to Manager Dashboard", kind: "link", href: "/dashboard/manager", keywords: "team" });
+    if (type === "employee") commands.push({ id: "go_employee", label: "Go to Employee Dashboard", kind: "link", href: "/dashboard/employee", keywords: "tasks" });
+    if (type === "client") commands.push({ id: "go_client", label: "Go to Client Dashboard", kind: "link", href: "/dashboard/client", keywords: "support" });
+    if (hasAccountCapability(acct, "identity.session.logout_all")) {
+      commands.push({ id: "logout_all", label: "Log out all devices", kind: "logout_all", keywords: "session security" });
+    }
+  }
   return (
     <>
       <Header />
       <GlobalRouteLoader />
       <main>{children}</main>
-      <SanityLive />
-      {(await draftMode()).isEnabled && (
+      <CommandPalette enabled={canUseCommandPalette} commands={commands} />
+      {isDraftMode && allowVisualEditing ? <SanityLive /> : null}
+      {isDraftMode && allowVisualEditing && (
         <>
           <DisableDraftMode />
           <VisualEditing />

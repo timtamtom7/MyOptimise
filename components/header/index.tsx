@@ -15,21 +15,22 @@ export default async function Header() {
   const settings = await fetchSanitySettings();
   const navigation = await fetchSanityNavigation();
   const session = await safeGetServerSession();
-  const isAdmin = Boolean((session as any)?.isAdmin);
+  const role = String((session as any)?.type || "");
+  const canAccessStudio = role === "admin";
   const isLoggedIn = Boolean(session);
   const locale = await getLocale();
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-background text-[var(--header-foreground)] shadow-none">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" aria-label="Home page">
-          <Logo settings={settings} />
+          <Logo settings={settings} className="h-7 w-auto" />
         </Link>
         <div className="hidden xl:flex gap-7 items-center justify-between">
           {!isLoggedIn && <DesktopNav navigation={navigation} />}
           <div className="flex items-center gap-3">
             <ModeToggle />
-            <LanguageSelector />
-            {isAdmin ? (
+            <LanguageSelector initialLang={locale} />
+            {canAccessStudio ? (
               <>
                 <Link
                   href="/studio"
@@ -63,27 +64,18 @@ export default async function Header() {
                 >
                   {t("signInTitle", locale)}
                 </Link>
-                <Link
-                  href="/signup"
-                  className={cn(
-                    buttonVariants({ variant: "default", size: "sm" }),
-                    "border-0 shadow-sm"
-                  )}
-                >
-                  {t("signUpTitle", locale)}
-                </Link>
               </>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2 xl:hidden">
           <ModeToggle />
-          <LanguageSelector />
+          <LanguageSelector initialLang={locale} />
           {!isLoggedIn && (
             <MobileNav
               navigation={navigation}
               settings={settings}
-              isAdmin={isAdmin}
+              canAccessStudio={canAccessStudio}
               isLoggedIn={isLoggedIn}
             />
           )}

@@ -21,6 +21,9 @@ export default function SectionHeader({
   const isNarrow = stegaClean(sectionWidth) === "narrow";
   const align = stegaClean(stackAlign);
   const color = stegaClean(colorVariant);
+  const tagLineText = typeof tagLine === "string" ? tagLine : "";
+  const titleText = typeof title === "string" ? title : "";
+  const descriptionText = typeof description === "string" ? description : "";
 
   return (
     <SectionContainer color={color} padding={padding}>
@@ -31,14 +34,20 @@ export default function SectionHeader({
         )}
       >
         <div className={cn(color === "primary" ? "text-background" : undefined)}>
-          {tagLine && (
+          {tagLineText ? (
             <h1 className="leading-[0] mb-4">
-              <span className="text-base font-semibold">{tagLine}</span>
+              <span className="text-base font-semibold">{tagLineText}</span>
             </h1>
-          )}
-          <h2 className="text-3xl md:text-5xl mb-4 text-[color:var(--header-foreground)]">{title}</h2>
+          ) : null}
+          {titleText ? (
+            <h2 className="text-3xl md:text-5xl mb-4 text-[color:var(--header-foreground)]">
+              {titleText}
+            </h2>
+          ) : null}
         </div>
-        <p className="text-[color:var(--header-foreground)]">{description}</p>
+        {descriptionText ? (
+          <p className="text-[color:var(--header-foreground)]">{descriptionText}</p>
+        ) : null}
       </div>
     </SectionContainer>
   );

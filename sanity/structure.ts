@@ -1,126 +1,21 @@
 import { orderableDocumentListDeskItem } from "@sanity/orderable-document-list";
 import {
   Files,
-  BookA,
   User,
-  ListCollapse,
-  Quote,
   Menu,
   Settings,
-  CalendarDays,
   Building2,
+  CalendarDays,
+  ClipboardList,
+  MessageSquare,
+  UserPlus,
+  Utensils,
 } from "lucide-react";
 
 export const structure = (S: any, context: any) =>
   S.list()
     .title("Content")
     .items([
-      S.listItem()
-        .title("Volunteering")
-        .icon(CalendarDays)
-        .child(
-          S.list()
-            .title("Volunteering")
-            .items([
-              S.listItem()
-                .title("Events")
-                .icon(CalendarDays)
-                .child(
-                  S.documentTypeList("event")
-                    .title("Events")
-                    .defaultOrdering([{ field: "date", direction: "asc" }])
-                ),
-              S.listItem()
-                .title("Organizations")
-                .icon(Building2)
-                .child(
-                  S.documentTypeList("organization")
-                    .title("Organizations")
-                    .defaultOrdering([{ field: "name", direction: "asc" }])
-                ),
-              S.listItem()
-                .title("Pending Requests")
-                .icon(User)
-                .child(
-                  S.documentList()
-                    .title("Pending Requests")
-                    .filter('_type == "signup" && status == "received"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-              S.listItem()
-                .title("Approved Volunteers")
-                .icon(User)
-                .child(
-                  S.documentList()
-                    .title("Approved Volunteers")
-                    .filter('_type == "signup" && status == "confirmed"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-              S.listItem()
-                .title("Rejected Requests")
-                .icon(User)
-                .child(
-                  S.documentList()
-                    .title("Rejected Requests")
-                    .filter('_type == "signup" && status == "rejected"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-              S.listItem()
-                .title("Proof Submissions")
-                .icon(User)
-                .child(
-                  S.documentList()
-                    .title("Proof Submissions")
-                    .filter('_type == "signup" && defined(proofMedia) && count(proofMedia) > 0')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-            ])
-        ),
-      S.listItem()
-        .title("Business")
-        .icon(Building2)
-        .child(
-          S.list()
-            .title("Business")
-            .items([
-              S.listItem()
-                .title("Pending Sponsorships")
-                .icon(Building2)
-                .child(
-                  S.documentList()
-                    .title("Pending Sponsorships")
-                    .filter('_type == "sponsorship" && status == "submitted"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-              S.listItem()
-                .title("Approved Sponsorships")
-                .icon(Building2)
-                .child(
-                  S.documentList()
-                    .title("Approved Sponsorships")
-                    .filter('_type == "sponsorship" && status == "approved"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-              S.listItem()
-                .title("Rejected Sponsorships")
-                .icon(Building2)
-                .child(
-                  S.documentList()
-                    .title("Rejected Sponsorships")
-                    .filter('_type == "sponsorship" && status == "rejected"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-              S.listItem()
-                .title("Completed Sponsorships")
-                .icon(Building2)
-                .child(
-                  S.documentList()
-                    .title("Completed Sponsorships")
-                    .filter('_type == "sponsorship" && status == "completed"')
-                    .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-                ),
-            ])
-        ),
       S.listItem()
         .title("Accounts")
         .icon(User)
@@ -129,33 +24,107 @@ export const structure = (S: any, context: any) =>
             .title("Accounts")
             .items([
               S.listItem()
-                .title("Pending Accounts")
+                .title("Admins")
                 .icon(User)
                 .child(
                   S.documentList()
-                    .title("Pending Accounts")
-                    .filter('_type == "account" && status == "pending"')
+                    .title("Admins")
+                    .filter('_type == "account" && type == "admin"')
                     .defaultOrdering([{ field: "_createdAt", direction: "asc" }])
                 ),
               S.listItem()
-                .title("Approved Accounts")
+                .title("Managers")
                 .icon(User)
                 .child(
                   S.documentList()
-                    .title("Approved Accounts")
-                    .filter('_type == "account" && status == "approved"')
+                    .title("Managers")
+                    .filter('_type == "account" && type == "manager"')
                     .defaultOrdering([{ field: "_createdAt", direction: "asc" }])
                 ),
               S.listItem()
-                .title("Denied Accounts")
+                .title("Employees")
                 .icon(User)
                 .child(
                   S.documentList()
-                    .title("Denied Accounts")
-                    .filter('_type == "account" && status == "denied"')
+                    .title("Employees")
+                    .filter('_type == "account" && type == "employee"')
+                    .defaultOrdering([{ field: "_createdAt", direction: "asc" }])
+                ),
+              S.listItem()
+                .title("Clients")
+                .icon(User)
+                .child(
+                  S.documentList()
+                    .title("Clients")
+                    .filter('_type == "account" && type == "client"')
+                    .defaultOrdering([{ field: "_createdAt", direction: "asc" }])
+                ),
+              S.listItem()
+                .title("All Accounts")
+                .icon(User)
+                .child(
+                  S.documentTypeList("account")
+                    .title("All Accounts")
                     .defaultOrdering([{ field: "_createdAt", direction: "asc" }])
                 ),
             ])
+        ),
+      S.divider({ title: "Operations" }),
+      S.listItem()
+        .title("Organizations")
+        .icon(Building2)
+        .child(
+          S.documentTypeList("organization")
+            .title("Organizations")
+            .defaultOrdering([{ field: "name", direction: "asc" }])
+        ),
+      S.listItem()
+        .title("Events")
+        .icon(CalendarDays)
+        .child(
+          S.documentTypeList("event")
+            .title("Events")
+            .defaultOrdering([{ field: "date", direction: "desc" }])
+        ),
+      S.listItem()
+        .title("Signups")
+        .icon(UserPlus)
+        .child(
+          S.documentTypeList("signup")
+            .title("Signups")
+            .defaultOrdering([{ field: "createdAt", direction: "desc" }])
+        ),
+      S.listItem()
+        .title("Sponsorships")
+        .icon(Utensils)
+        .child(
+          S.documentTypeList("sponsorship")
+            .title("Sponsorships")
+            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
+        ),
+      S.listItem()
+        .title("Work Items")
+        .icon(ClipboardList)
+        .child(
+          S.documentTypeList("workItem")
+            .title("Work Items")
+            .defaultOrdering([{ field: "createdAt", direction: "desc" }])
+        ),
+      S.listItem()
+        .title("Client Requests")
+        .icon(MessageSquare)
+        .child(
+          S.documentTypeList("clientRequest")
+            .title("Client Requests")
+            .defaultOrdering([{ field: "createdAt", direction: "desc" }])
+        ),
+      S.listItem()
+        .title("Message Threads")
+        .icon(MessageSquare)
+        .child(
+          S.documentTypeList("messageThread")
+            .title("Message Threads")
+            .defaultOrdering([{ field: "updatedAt", direction: "desc" }])
         ),
       orderableDocumentListDeskItem({
         type: "page",

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Averia_Libre } from "next/font/google";
+import { Instrument_Serif } from "next/font/google";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -15,8 +15,8 @@ const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ||
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    template: "%s | Schema UI Starter",
-    default: "Sanity Next.js Website | Schema UI Starter",
+    template: "%s | Optimise Operations",
+    default: "Optimise Operations",
   },
   openGraph: {
     images: [
@@ -38,10 +38,9 @@ const fontSans = FontSans({
   variable: "--font-sans",
 });
 
-const fontDisplay = Averia_Libre({
+const fontDisplay = Instrument_Serif({
   subsets: ["latin"],
-  weight: ["700"],
-  style: ["italic"],
+  weight: ["400"],
   variable: "--font-display",
 });
 

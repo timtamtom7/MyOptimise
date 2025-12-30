@@ -24,6 +24,8 @@ export default function Cta1({
   const isNarrow = stegaClean(sectionWidth) === "narrow";
   const align = stegaClean(stackAlign);
   const color = stegaClean(colorVariant);
+  const tagLineText = typeof tagLine === "string" ? tagLine : "";
+  const titleText = typeof title === "string" ? title : "";
 
   return (
     <SectionContainer color={color} padding={padding}>
@@ -36,12 +38,12 @@ export default function Cta1({
         <div
           className={cn(color === "primary" ? "text-background" : undefined)}
         >
-          {tagLine && (
+          {tagLineText ? (
             <h1 className="leading-[0] mb-4">
-              <span className="text-base font-semibold">{tagLine}</span>
+              <span className="text-base font-semibold">{tagLineText}</span>
             </h1>
-          )}
-          <h2 className="mb-4">{title}</h2>
+          ) : null}
+          {titleText ? <h2 className="mb-4">{titleText}</h2> : null}
           {body && <PortableTextRenderer value={body} />}
         </div>
         {links && links.length > 0 && (
