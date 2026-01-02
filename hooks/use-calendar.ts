@@ -8,13 +8,13 @@ export interface CalendarFilters {
   userId?: string
 }
 
-export function useCalendarEvents(organizationId: string, filters?: CalendarFilters) {
+export function useCalendarEvents(accountId: string, filters?: CalendarFilters) {
   const [events, setEvents] = useState<CalendarEventWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    if (!organizationId) {
+    if (!accountId) {
       setLoading(false)
       return
     }
@@ -28,13 +28,13 @@ export function useCalendarEvents(organizationId: string, filters?: CalendarFilt
           .select(`
             *,
             creator:users!calendar_events_created_by_fkey(*),
-            organization:organizations(*),
+            account:organizations(*),
             attendees:event_attendees!event_attendees_calendar_event_id_fkey(
               *,
               user:users!event_attendees_user_id_fkey(*)
             )
           `)
-          .eq('organization_id', organizationId)
+          .eq('organization_id', accountId)
           .order('start_time', { ascending: true })
 
         // Apply filters
@@ -72,14 +72,14 @@ export function useCalendarEvents(organizationId: string, filters?: CalendarFilt
 
     // Subscribe to event changes
     const channel = supabase
-      .channel(`calendar:${organizationId}`)
+      .channel(`calendar:${accountId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'calendar_events',
-          filter: `organization_id=eq.${organizationId}`,
+          filter: `organization_id=eq.${accountId}`,
         },
         () => {
           fetchEvents() // Refetch all events on any change
@@ -101,7 +101,7 @@ export function useCalendarEvents(organizationId: string, filters?: CalendarFilt
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [organizationId, JSON.stringify(filters)])
+  }, [accountId, JSON.stringify(filters)])
 
   const createEvent = async (event: {
     title: string
@@ -122,7 +122,7 @@ export function useCalendarEvents(organizationId: string, filters?: CalendarFilt
           end_time: event.endTime,
           location: event.location,
           type: event.type,
-          organization_id: organizationId,
+          organization_id: accountId,
           created_by: userId,
         })
         .select()
@@ -147,7 +147,7 @@ export function useCalendarEvents(organizationId: string, filters?: CalendarFilt
       // Log audit event
       await supabase.from('audit_logs').insert({
         user_id: userId,
-        organization_id: organizationId,
+        organization_id: accountId,
         action: 'event_created',
         resource_type: 'calendar_event',
         resource_id: eventData.id,
@@ -155,7 +155,7 @@ export function useCalendarEvents(organizationId: string, filters?: CalendarFilt
 
       // Emit event
       await supabase.from('event_bus').insert({
-        organization_id: organizationId,
+        organization_id: accountId,
         user_id: userId,
         event_type: 'event_created',
         data: { event_id: eventData.id, title: event.title },
@@ -181,7 +181,7 @@ export function useCalendarEvents(organizationId: string, filters?: CalendarFilt
       // Log audit event
       await supabase.from('audit_logs').insert({
         user_id: userId,
-        organization_id: organizationId,
+        organization_id: accountId,
         action: 'event_updated',
         resource_type: 'calendar_event',
         resource_id: eventId,
@@ -206,7 +206,7 @@ export function useCalendarEvents(organizationId: string, filters?: CalendarFilt
       // Log audit event
       await supabase.from('audit_logs').insert({
         user_id: userId,
-        organization_id: organizationId,
+        organization_id: accountId,
         action: 'event_deleted',
         resource_type: 'calendar_event',
         resource_id: eventId,
@@ -340,13 +340,13 @@ export function useCalendarEvent(eventId: string) {
   return { event, loading, error }
 }
 
-export function useUpcomingEvents(organizationId: string, limit: number = 5) {
+export function useUpcomingEvents(accountId: string, limit: number = 5) {
   const [events, setEvents] = useState<CalendarEventWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    if (!organizationId) {
+    if (!accountId) {
       setLoading(false)
       return
     }
@@ -367,7 +367,7 @@ export function useUpcomingEvents(organizationId: string, limit: number = 5) {
               user:users!event_attendees_user_id_fkey(*)
             )
           `)
-          .eq('organization_id', organizationId)
+          .eq('organization_id', accountId)
           .gte('start_time', now)
           .order('start_time', { ascending: true })
           .limit(limit)
@@ -385,14 +385,14 @@ export function useUpcomingEvents(organizationId: string, limit: number = 5) {
 
     // Subscribe to event changes
     const channel = supabase
-      .channel(`upcoming_events:${organizationId}`)
+      .channel(`upcoming_events:${accountId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'calendar_events',
-          filter: `organization_id=eq.${organizationId}`,
+          filter: `organization_id=eq.${accountId}`,
         },
         () => {
           fetchUpcomingEvents()
@@ -403,7 +403,78 @@ export function useUpcomingEvents(organizationId: string, limit: number = 5) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [organizationId, limit])
+  }, [accountId, limit])
 
   return { events, loading, error }
+}
+
+export function useTodayCalendarEvents(accountId: string) {
+  const [events, setEvents] = useState<CalendarEventWithDetails[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    if (!accountId) {
+      setLoading(false)
+      return
+    }
+
+    const fetchTodayEvents = async () => {
+      try {
+        setLoading(true)
+        const todayStart = new Date()
+        todayStart.setHours(0, 0, 0, 0)
+        const todayEnd = new Date()
+        todayEnd.setHours(23, 59, 59, 999)
+
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .select(`
+            *,
+            creator:users!calendar_events_created_by_fkey(*),
+            organization:organizations(*),
+            attendees:event_attendees!event_attendees_calendar_event_id_fkey(
+              *,
+              user:users!event_attendees_user_id_fkey(*)
+            )
+          `)
+          .eq('organization_id', accountId)
+          .gte('start_time', todayStart.toISOString())
+          .lte('start_time', todayEnd.toISOString())
+          .order('start_time', { ascending: true })
+
+        if (error) throw error
+        setEvents(data || [])
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch today events'))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTodayEvents()
+    
+    // Subscribe to event changes
+    const channel = supabase
+      .channel(`today_events:${accountId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'calendar_events',
+          filter: `organization_id=eq.${accountId}`,
+        },
+        () => {
+          fetchTodayEvents()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [accountId])
+
+  return { data: events, isLoading: loading, error }
 }

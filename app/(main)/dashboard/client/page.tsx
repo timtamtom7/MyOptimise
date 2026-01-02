@@ -69,7 +69,6 @@ export default async function ClientDashboardPage() {
     if (!acct || acct.status === "disabled" || acct.type !== "client") return;
     if (!hasAccountCapability(acct, "support.ticket.create")) return;
 
-    const organizationId = String(formData.get("organizationId") || "").trim();
     const subject = String(formData.get("subject") || "").trim();
     const message = String(formData.get("message") || "").trim();
     if (!subject || !message) return;
@@ -88,24 +87,12 @@ export default async function ClientDashboardPage() {
       }
     }
 
-    let organizationRef: { _type: "reference"; _ref: string } | undefined;
-    if (organizationId) {
-      const org = await writeClient.fetch(
-        `*[_type == "organization" && _id == $id && ((contactEmail != null && lower(contactEmail) == $email) || clientAccount._ref == $acctId)][0]{_id}`,
-        { id: organizationId, email: email.toLowerCase(), acctId: String(acct._id) },
-      );
-      if (org?._id) {
-        organizationRef = { _type: "reference", _ref: String(org._id) };
-      }
-    }
-
     await writeClient.create({
       _type: "clientRequest",
       subject,
       message,
       clientEmail: email.toLowerCase(),
       clientAccount: { _type: "reference", _ref: String(acct._id) },
-      ...(organizationRef ? { organization: organizationRef } : {}),
       status: "submitted",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -249,8 +236,8 @@ export default async function ClientDashboardPage() {
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
     const svc = await writeClient.fetch(
-      `*[_type == "clientService" && _id == $id && clientCanToggle == true && ((organization->contactEmail != null && lower(organization->contactEmail) == $email) || organization->clientAccount._ref == $acctId)][0]{_id}`,
-      { id, email: email.toLowerCase(), acctId: String(acct._id) },
+      `*[_type == "clientService" && _id == $id && clientCanToggle == true && client._ref == $acctId][0]{_id}`,
+      { id, acctId: String(acct._id) },
     );
     if (!svc?._id) return;
 
@@ -274,22 +261,14 @@ export default async function ClientDashboardPage() {
     if (!acct || acct.status === "disabled" || acct.type !== "client") return;
     if (!hasAccountCapability(acct, "client.services.request_new")) return;
 
-    const organizationId = String(formData.get("organizationId") || "").trim();
     const requestedServiceType = String(formData.get("requestedServiceType") || "other").trim();
     const details = String(formData.get("details") || "").trim();
     const attachment = formData.get("attachment");
-    if (!organizationId) return;
     if (!["instagram", "facebook", "email", "website", "ads", "seo", "other"].includes(requestedServiceType)) return;
 
     const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-
-    const org = await writeClient.fetch(
-      `*[_type == "organization" && _id == $id && ((contactEmail != null && lower(contactEmail) == $email) || clientAccount._ref == $acctId)][0]{_id}`,
-      { id: organizationId, email: email.toLowerCase(), acctId: String(acct._id) },
-    );
-    if (!org?._id) return;
 
     let uploadedAssetId: string | null = null;
     if (attachment && typeof attachment !== "string") {
@@ -303,7 +282,6 @@ export default async function ClientDashboardPage() {
     const now = new Date().toISOString();
     await writeClient.create({
       _type: "serviceRequest",
-      organization: { _type: "reference", _ref: organizationId },
       clientAccount: { _type: "reference", _ref: String(acct._id) },
       requestedServiceType,
       details: details || undefined,
@@ -321,7 +299,6 @@ export default async function ClientDashboardPage() {
     supportStaffRes,
     myThreadsRes,
     clientWorkItemsRes,
-    organizationsRes,
     clientServicesRes,
     myServiceRequestsRes,
   ] = await Promise.all([
@@ -354,33 +331,27 @@ export default async function ClientDashboardPage() {
       params: { acctId: String(effectiveAcct?._id || "") },
     }),
     sanityFetch({
-      query: `*[_type == "workItem" && isTemplate != true && visibility == "client" && ((relatedOrganization->contactEmail != null && lower(relatedOrganization->contactEmail) == $email) || relatedOrganization->clientAccount._ref == $acctId)] | order(coalesce(dueDate, createdAt) asc)[0..19]{
+      query: `*[_type == "workItem" && isTemplate != true && visibility == "client" && clientAccount._ref == $acctId] | order(coalesce(dueDate, createdAt) asc)[0..19]{
         _id, title, description, status, priority, dueDate, createdAt,
         "commentsCount": count(comments),
         attachments[]{asset->{url, originalFilename}}
       }`,
-      params: { email: emailLower, acctId },
-    }),
-    sanityFetch({
-      query: `*[_type == "organization" && ((contactEmail != null && lower(contactEmail) == $email) || clientAccount._ref == $acctId)] | order(name asc){_id, name, contactEmail}`,
-      params: { email: emailLower, acctId },
+      params: { acctId },
     }),
     canViewServices
       ? sanityFetch({
-          query: `*[_type == "clientService" && ((organization->contactEmail != null && lower(organization->contactEmail) == $email) || organization->clientAccount._ref == $acctId)] | order(coalesce(updatedAt, createdAt) desc)[0..49]{
-            _id, title, serviceType, status, statusNote, clientCanToggle, clientEnabled, createdAt, updatedAt,
-            organization->{_id, name, contactEmail}
+          query: `*[_type == "clientService" && client._ref == $acctId] | order(coalesce(updatedAt, createdAt) desc)[0..49]{
+            _id, title, serviceType, status, statusNote, clientCanToggle, clientEnabled, createdAt, updatedAt
           }`,
-          params: { email: emailLower, acctId },
+          params: { acctId },
         })
       : Promise.resolve({ data: [] }),
     sanityFetch({
-      query: `*[_type == "serviceRequest" && ((organization->contactEmail != null && lower(organization->contactEmail) == $email) || organization->clientAccount._ref == $acctId)] | order(createdAt desc)[0..19]{
+      query: `*[_type == "serviceRequest" && clientAccount._ref == $acctId] | order(createdAt desc)[0..19]{
         _id, status, requestedServiceType, details, resolutionNote, createdAt, updatedAt,
-        organization->{_id, name, contactEmail},
         attachments[]{asset->{url, originalFilename}}
       }`,
-      params: { email: emailLower, acctId },
+      params: { acctId },
     }),
   ]);
 
@@ -388,15 +359,37 @@ export default async function ClientDashboardPage() {
   const supportStaff = ((supportStaffRes as any)?.data ?? []) as any[];
   const myThreads = ((myThreadsRes as any)?.data ?? []) as any[];
   const clientWorkItems = ((clientWorkItemsRes as any)?.data ?? []) as any[];
-  const organizations = ((organizationsRes as any)?.data ?? []) as any[];
   const clientServices = ((clientServicesRes as any)?.data ?? []) as any[];
   const myServiceRequests = ((myServiceRequestsRes as any)?.data ?? []) as any[];
 
   return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Client Dashboard</h1>
-        <div className="text-sm text-muted-foreground">Welcome{name ? `, ${name}` : ""}</div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="rounded-2xl border bg-card overflow-hidden">
+        <div className="p-6 bg-secondary">
+          <div className="flex items-center justify-between">
+            <div className="text-3xl font-semibold">What’s on your mind?</div>
+            <div className="hidden md:flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <button className="rounded-full bg-cta-blue border border-cta-blue-border px-4 py-1.5 text-sm">Overview</button>
+                <button className="rounded-full bg-cta-blue border border-cta-blue-border px-4 py-1.5 text-sm">Calendar</button>
+              </div>
+            </div>
+          </div>
+          <div className="mt-2 text-muted-foreground">any work you need, any question you have, anything.</div>
+          <form action={submitClientRequest} className="mt-4 flex items-center gap-3" encType="multipart/form-data">
+            <input
+              name="subject"
+              className="flex-1 rounded-xl border px-4 py-3 text-sm"
+              placeholder="Search"
+              required
+              disabled={!canWrite}
+            />
+            <button className="rounded-xl bg-primary text-primary-foreground px-6 py-3 text-sm" disabled={!canWrite}>
+              Submit
+            </button>
+            <input name="attachment" type="file" className="text-sm" />
+          </form>
+        </div>
       </div>
 
       {!canWrite ? (
@@ -406,57 +399,6 @@ export default async function ClientDashboardPage() {
       ) : null}
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl border bg-card p-5">
-          <div className="text-sm text-muted-foreground">Support</div>
-          <div className="mt-2 text-2xl font-medium">Submit a request</div>
-          <form action={submitClientRequest} className="mt-4 space-y-3" encType="multipart/form-data">
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Organization</div>
-              <select
-                name="organizationId"
-                defaultValue={String(organizations?.[0]?._id || "")}
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                disabled={!canWrite || !organizations.length}
-              >
-                {(organizations ?? []).map((o: any) => (
-                  <option key={String(o._id)} value={String(o._id)}>
-                    {String(o.name || o.contactEmail || o._id)}
-                  </option>
-                ))}
-              </select>
-              {!organizations.length ? <div className="text-xs text-muted-foreground">No organization is linked to your email.</div> : null}
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Subject</div>
-              <input
-                name="subject"
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                placeholder="What do you need help with?"
-                required
-                disabled={!organizations.length}
-              />
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Message</div>
-              <textarea
-                name="message"
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                placeholder="Share details so we can help faster."
-                rows={6}
-                required
-                disabled={!organizations.length}
-              />
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Attachment (optional)</div>
-              <input name="attachment" type="file" className="text-sm" />
-            </div>
-            <button className="rounded-md border px-4 py-2 text-sm" disabled={!canWrite || !organizations.length}>
-              Send
-            </button>
-          </form>
-        </div>
-
         <div className="rounded-xl border bg-card p-5">
           <div className="text-sm text-muted-foreground">Requests</div>
           <div className="mt-2 text-2xl font-medium">Your latest</div>
@@ -572,13 +514,6 @@ export default async function ClientDashboardPage() {
             <div className="mt-4 rounded-lg border p-4">
               <div className="font-medium">Request a new service</div>
               <form action={submitServiceRequest} className="mt-3 grid gap-3" encType="multipart/form-data">
-                <select name="organizationId" defaultValue={String(organizations?.[0]?._id || "")} className="rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
-                  {(organizations ?? []).map((o: any) => (
-                    <option key={String(o._id)} value={String(o._id)}>
-                      {String(o.name || o.contactEmail || o._id)}
-                    </option>
-                  ))}
-                </select>
                 <select name="requestedServiceType" defaultValue="other" className="rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
                   <option value="instagram">Instagram</option>
                   <option value="facebook">Facebook</option>
@@ -595,10 +530,9 @@ export default async function ClientDashboardPage() {
                   disabled={!canWrite}
                 />
                 <input name="attachment" type="file" className="text-sm" />
-                <button className="justify-self-start rounded-md border px-3 py-2 text-sm" disabled={!canWrite || !organizations.length}>
+                <button className="justify-self-start rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
                   Submit request
                 </button>
-                {!organizations.length ? <div className="text-sm text-muted-foreground">No organization is linked to your email.</div> : null}
               </form>
             </div>
           ) : null}

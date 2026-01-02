@@ -380,7 +380,7 @@ export default async function EmployeeDashboardPage() {
 
   const canWrite = Boolean(process.env.SANITY_API_WRITE_TOKEN) && !isImpersonating;
 
-  const [myWorkItemsRes, staffRes, myThreadsRes] = await Promise.all([
+  const [myWorkItemsRes, staffRes, myThreadsRes, myScheduleRes] = await Promise.all([
     sanityFetch({
       query: `*[_type == "workItem" && (!defined(isTemplate) || isTemplate != true) && status != "done" && assignedTo->email != null && lower(assignedTo->email) == $email] | order(priority desc, dueDate asc, createdAt desc)[0..19]{
         _id, title, description, status, priority, dueDate, createdAt,
@@ -392,7 +392,6 @@ export default async function EmployeeDashboardPage() {
         },
         attachments[]{asset->{url, originalFilename}},
         relatedEvent->{title, slug},
-        relatedOrganization->{name, slug},
         relatedSignup->{name, email},
         relatedSponsorship->{businessName, contactEmail}
       }`,
@@ -414,18 +413,52 @@ export default async function EmployeeDashboardPage() {
       }`,
       params: { acctId: String(effectiveAcct?._id || "") },
     }),
+    sanityFetch({
+      query: `*[_type == "scheduleItem" && $acctId in participants[]._ref] | order(startsAt asc)[0..29]{
+        _id, title, type, startsAt, endsAt
+      }`,
+      params: { acctId: String(effectiveAcct?._id || "") },
+    }),
   ]);
 
   const myWorkItems = ((myWorkItemsRes as any)?.data ?? []) as any[];
   const staff = ((staffRes as any)?.data ?? []) as any[];
   const myThreads = ((myThreadsRes as any)?.data ?? []) as any[];
+  const mySchedule = ((myScheduleRes as any)?.data ?? []) as any[];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const dueTodayCount = myWorkItems.filter((w: any) => String(w.dueDate || "").slice(0, 10) === todayStr).length;
+  const unreadThreadsCount = myThreads.filter((t: any) => {
+    const lastMessageAt = String(t?.lastMessage?.createdAt || t?.updatedAt || t?.createdAt || "");
+    const effectiveAccountId = String(effectiveAcct?._id || "");
+    const lastReadAt = Array.isArray(t?.readStates)
+      ? String(t.readStates.find((rs: any) => String(rs?.user?._ref || "") === effectiveAccountId)?.lastReadAt || "")
+      : "";
+    return Boolean(lastMessageAt && (!lastReadAt || lastReadAt < lastMessageAt));
+  }).length;
 
   return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Employee Dashboard</h1>
-        <div className="text-sm text-muted-foreground">
-          Welcome{name ? `, ${name}` : ""}
+    <div className="container mx-auto px-4 py-8">
+      <div className="rounded-2xl bg-header border border-input px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3 w-full max-w-xl">
+          <div className="relative flex-1">
+            <input
+              className="w-full h-11 pl-10 pr-16 rounded-full border border-input bg-white text-sm"
+              placeholder="Search & Command"
+            />
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">⌕</div>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-input bg-white px-2 py-0.5 text-xs text-muted-foreground">⌘M</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full border border-input flex items-center justify-center text-muted-foreground">🔔</div>
+          <div className="h-9 w-9 rounded-full border border-input flex items-center justify-center text-muted-foreground">⚙️</div>
+          <div className="flex items-center gap-3 rounded-2xl border border-input px-3 py-2 bg-white">
+            <div className="h-8 w-8 rounded-full bg-secondary"></div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium truncate">{name || "—"}</div>
+              <div className="text-xs text-muted-foreground truncate">{email}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -436,9 +469,20 @@ export default async function EmployeeDashboardPage() {
       ) : null}
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-xl border bg-card p-5">
+        <div className="lg:col-span-2 rounded-2xl border bg-card p-5">
           <div className="text-sm text-muted-foreground">Work Items</div>
           <div className="mt-2 text-2xl font-medium">Assigned to you</div>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-sm">
+              <span className="text-muted-foreground">You have </span>
+              <span className="text-blue-600 font-semibold">{dueTodayCount} tasks</span>
+              <span className="text-muted-foreground"> due today.</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="rounded-2xl bg-cta-blue text-header-foreground border border-cta-blue-border px-4 py-1.5 text-sm">Refresh</button>
+              <button className="rounded-2xl bg-cta-blue text-header-foreground border border-cta-blue-border px-4 py-1.5 text-sm">New Task</button>
+            </div>
+          </div>
           <div className="mt-4 space-y-3">
             {(myWorkItems ?? []).map((w: any) => (
               <div key={w._id} className="rounded-lg border px-3 py-2">
@@ -455,6 +499,7 @@ export default async function EmployeeDashboardPage() {
                       Reassignment requested{w.reassignmentNote ? `: ${String(w.reassignmentNote)}` : ""}
                     </div>
                   ) : null}
+
                   {String(w.blockedReason || "") ? (
                     <div className="text-amber-700">Blocked reason: {String(w.blockedReason)}</div>
                   ) : null}
@@ -468,16 +513,7 @@ export default async function EmployeeDashboardPage() {
                   ) : w.relatedEvent?.title ? (
                     <div>Event: {String(w.relatedEvent.title)}</div>
                   ) : null}
-                  {w.relatedOrganization?.slug?.current ? (
-                    <div>
-                      Organization:{" "}
-                      <Link className="underline" href={`/organizations/${String(w.relatedOrganization.slug.current)}`}>
-                        {String(w.relatedOrganization.name || w.relatedOrganization.slug.current)}
-                      </Link>
-                    </div>
-                  ) : w.relatedOrganization?.name ? (
-                    <div>Organization: {String(w.relatedOrganization.name)}</div>
-                  ) : null}
+
                   {w.relatedSignup?.email ? <div>Signup: {String(w.relatedSignup.name || w.relatedSignup.email)}</div> : null}
                   {w.relatedSponsorship?.contactEmail ? (
                     <div>
@@ -601,7 +637,27 @@ export default async function EmployeeDashboardPage() {
         </div>
 
         <div className="grid gap-6">
-          <div className="rounded-xl border bg-card p-5">
+          <div className="rounded-2xl border bg-card p-5">
+            <div className="text-sm text-muted-foreground">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: '2-digit', month: 'long' })}</div>
+            <div className="mt-2 text-2xl font-medium">Schedule</div>
+            <div className="mt-4 space-y-3">
+              {(mySchedule ?? []).slice(0, 3).map((s: any) => {
+                const start = s.startsAt ? new Date(s.startsAt) : null;
+                const timeLabel = start ? start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "—";
+                return (
+                  <div key={s._id} className="rounded-xl bg-blue-50 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                      <div className="text-sm">{timeLabel}</div>
+                    </div>
+                    <div className="text-sm font-medium">{String(s.title || "")}</div>
+                  </div>
+                );
+              })}
+              {(mySchedule ?? []).length === 0 ? <div className="text-sm text-muted-foreground">No scheduled items.</div> : null}
+            </div>
+          </div>
+          <div className="rounded-2xl border bg-card p-5">
             <div className="text-sm text-muted-foreground">Profile</div>
             <div className="mt-2 text-2xl font-medium">Your details</div>
             <div className="mt-4 space-y-3">
@@ -616,8 +672,8 @@ export default async function EmployeeDashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border bg-card p-5">
-            <div className="text-sm text-muted-foreground">Messages</div>
+          <div className="rounded-2xl border bg-card p-5">
+            <div className="text-sm text-muted-foreground">{unreadThreadsCount} Unread Messages</div>
             <div className="mt-2 text-2xl font-medium">Direct messages</div>
 
             <form action={createOrOpenDmThread} className="mt-4 flex items-center gap-2">

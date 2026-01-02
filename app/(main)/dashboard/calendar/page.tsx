@@ -344,33 +344,19 @@ export default async function DashboardCalendarPage() {
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
     const item = await writeClient.fetch(
-      `*[_type == "scheduleItem" && _id == $id && visibility == "client" && $acctId in participants[]._ref][0]{_id, title, startsAt, endsAt}`,
+      `*[_type == "scheduleItem" && _id == $id && visibility == "client" && $acctId in participants[]._ref][0]{_id}`,
       { id: scheduleItemId, acctId: String(acct._id) },
     );
     if (!item?._id) return;
 
-    const subject = `Date change request: ${String(item.title || "Schedule item")}`;
-    const body = `Schedule item: ${String(item._id)}\nCurrent: ${String(item.startsAt || "")}${String(item.endsAt || "") ? ` → ${String(item.endsAt)}` : ""}\n\nRequest:\n${message}`;
-
-    await writeClient.create({
-      _type: "clientRequest",
-      subject,
-      message: body,
-      clientEmail: String(acct.email || "").toLowerCase(),
-      clientAccount: { _type: "reference", _ref: String(acct._id) },
-      status: "submitted",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      messages: [
-        {
-          _type: "clientRequestMessage",
-          author: { _type: "reference", _ref: String(acct._id) },
-          visibility: "client",
-          message: body,
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    });
+    await writeClient
+      .patch(scheduleItemId)
+      .set({
+        changeRequested: true,
+        changeRequestNote: message,
+        updatedAt: new Date().toISOString(),
+      })
+      .commit();
 
     revalidatePath("/dashboard/calendar");
     redirect("/dashboard/calendar");
@@ -380,25 +366,25 @@ export default async function DashboardCalendarPage() {
     sanityFetch({
       query: isAdmin
         ? `*[_type == "scheduleItem"] | order(startsAt asc)[0..49]{
-            _id, title, description, type, visibility, startsAt, endsAt, createdAt, updatedAt,
+            _id, title, description, type, visibility, startsAt, endsAt, createdAt, updatedAt, changeRequested, changeRequestNote,
             "createdById": createdBy->_id,
             "participants": participants[]->{_id, name, email, type}
           }`
         : isManager
           ? `*[_type == "scheduleItem" && visibility == "internal"] | order(startsAt asc)[0..49]{
-              _id, title, description, type, visibility, startsAt, endsAt, createdAt, updatedAt,
+              _id, title, description, type, visibility, startsAt, endsAt, createdAt, updatedAt, changeRequested, changeRequestNote,
               "createdById": createdBy->_id,
               "participants": participants[]->{_id, name, email, type}
             }`
           : isEmployee
             ? `*[_type == "scheduleItem" && visibility == "internal" && $acctId in participants[]._ref] | order(startsAt asc)[0..49]{
-                _id, title, description, type, visibility, startsAt, endsAt, createdAt, updatedAt,
+                _id, title, description, type, visibility, startsAt, endsAt, createdAt, updatedAt, changeRequested, changeRequestNote,
                 "createdById": createdBy->_id,
                 "participants": participants[]->{_id, name, email, type}
               }`
             : isClient
               ? `*[_type == "scheduleItem" && visibility == "client" && $acctId in participants[]._ref] | order(startsAt asc)[0..49]{
-                  _id, title, description, type, visibility, startsAt, endsAt, createdAt, updatedAt,
+                  _id, title, description, type, visibility, startsAt, endsAt, createdAt, updatedAt, changeRequested, changeRequestNote,
                   "createdById": createdBy->_id,
                   "participants": participants[]->{_id, name, email, type}
                 }`
@@ -551,6 +537,11 @@ export default async function DashboardCalendarPage() {
                       {String(i.endsAt || "") ? ` → ${new Date(String(i.endsAt)).toLocaleString()}` : ""}
                     </div>
                     {String(i.description || "") ? <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">{String(i.description)}</div> : null}
+                    {i.changeRequested ? (
+                      <div className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-700 border border-amber-200">
+                        <strong>Change Requested:</strong> {String(i.changeRequestNote || "")}
+                      </div>
+                    ) : null}
                     {Array.isArray(i.participants) && i.participants.length ? (
                       <div className="mt-2 text-xs text-muted-foreground">
                         Participants:{" "}

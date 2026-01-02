@@ -18,9 +18,9 @@ import {
 
 export function AnalyticsOverview() {
   const { user } = useCurrentUser()
-  const { data: keyMetrics, isLoading: metricsLoading } = useTodayKeyMetrics(user?.organization_id || '')
-  const { data: serviceMetrics, isLoading: servicesLoading } = useServiceMetrics(user?.organization_id || '')
-  const { data: engagementTrends, isLoading: trendsLoading } = useEngagementTrends(user?.organization_id || '', 7)
+  const { data: keyMetrics, isLoading: metricsLoading } = useTodayKeyMetrics(user?.accountId || '')
+  const { data: serviceMetrics, isLoading: servicesLoading } = useServiceMetrics(user?.accountId || '')
+  const { data: engagementTrends, isLoading: trendsLoading } = useEngagementTrends(user?.accountId || '', 7)
 
   if (metricsLoading || servicesLoading || trendsLoading) {
     return (

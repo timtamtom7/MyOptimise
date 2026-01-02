@@ -22,6 +22,7 @@ export type Enums<T extends keyof Database['public']['Enums']> = Database['publi
 export type Organization = Tables<'organizations'>
 export type User = Tables<'users'>
 export type UserCapability = Tables<'user_capabilities'>
+export type Capability = UserCapability['capability']
 export type Task = Tables<'tasks'>
 export type TaskAssignment = Tables<'task_assignments'>
 export type TaskComment = Tables<'task_comments'>
@@ -50,35 +51,36 @@ export type EventTypeBus = Enums<'event_type_bus'>
 
 export interface UserWithCapabilities extends User {
   capabilities: UserCapability[]
-  organization: Organization
+  account: Organization // Renamed from organization to account for consistency
 }
 
 export interface TaskWithDetails extends Task {
   creator: User
   assignees: (TaskAssignment & { user: User })[]
   comments: (TaskComment & { user: User })[]
-  organization: Organization
+  account: Organization // Renamed from organization to account for consistency
 }
 
 export interface CalendarEventWithDetails extends CalendarEvent {
   creator: User
   attendees: (EventAttendee & { user: User })[]
-  organization: Organization
+  account: Organization // Renamed from organization to account for consistency
 }
 
 export interface MessageThreadWithDetails extends MessageThread {
   participants: (MessageParticipant & { user: User })[]
   messages: Message[]
-  organization: Organization
+  account: Organization // Renamed from organization to account for consistency
 }
 
 export interface ClientServiceWithMetrics extends ClientService {
   metrics: ServiceMetric[]
-  organization: Organization
+  account: Organization // Renamed from organization to account for consistency
+  current_metrics?: ServiceMetric & { revenue?: number }
 }
 
 export interface AnalyticsData {
-  organizationId: string
+  accountId: string
   serviceType: ServiceType
   period: string
   metrics: {
@@ -155,7 +157,7 @@ export function getServiceHealthColor(metrics: ServiceMetric[]): string {
 
 export async function logAuditEvent(
   userId: string,
-  organizationId: string,
+  accountId: string,
   action: string,
   resourceType: string,
   resourceId?: string,
@@ -164,7 +166,7 @@ export async function logAuditEvent(
   try {
     await supabase.from('audit_logs').insert({
       user_id: userId,
-      organization_id: organizationId,
+      organization_id: accountId,
       action,
       resource_type: resourceType,
       resource_id: resourceId,
@@ -173,5 +175,29 @@ export async function logAuditEvent(
     })
   } catch (error) {
     console.error('Failed to log audit event:', error)
+  }
+}
+
+export async function getCurrentUser(): Promise<UserWithCapabilities | null> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError || !session?.user) return null
+
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select(`
+        *,
+        capabilities:user_capabilities(*),
+        account:organizations!users_organization_id_fkey(*)
+      `)
+      .eq('id', session.user.id)
+      .single()
+
+    if (userError || !user) return null
+
+    return user as UserWithCapabilities
+  } catch (error) {
+    console.error('Error getting current user:', error)
+    return null
   }
 }

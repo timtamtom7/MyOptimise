@@ -43,13 +43,6 @@ export default defineType({
       readOnly: true,
     }),
     defineField({
-      name: "organization",
-      type: "reference",
-      title: "Organization",
-      to: [{ type: "organization" }],
-      group: "client",
-    }),
-    defineField({
       name: "assignedTo",
       type: "reference",
       title: "Assigned To",

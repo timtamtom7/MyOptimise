@@ -78,17 +78,13 @@ export default defineType({
       group: "assignment",
     }),
     defineField({
-      name: "relatedOrganization",
-      title: "Related Organization",
+      name: "clientAccount",
+      title: "Client Account",
       type: "reference",
-      to: [{ type: "organization" }],
-      group: "links",
-    }),
-    defineField({
-      name: "relatedEvent",
-      title: "Related Event",
-      type: "reference",
-      to: [{ type: "event" }],
+      to: [{ type: "account" }],
+      options: {
+        filter: 'role == "client"',
+      },
       group: "links",
     }),
     defineField({

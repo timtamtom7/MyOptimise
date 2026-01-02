@@ -596,6 +596,35 @@ export type Database = {
           },
         ]
       }
+      task_tags: {
+        Row: {
+          created_at: string
+          id: string
+          tag: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          tag: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          tag?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_tags_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       task_comments: {
         Row: {
           comment: string

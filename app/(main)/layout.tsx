@@ -43,6 +43,22 @@ export default async function MainLayout({
     if (hasAccountCapability(acct, "documents.view.shared")) {
       commands.push({ id: "go_documents", label: "Go to Documents", kind: "link", href: "/dashboard/documents", keywords: "files" });
     }
+    if (
+      hasAccountCapability(acct, "analytics.view.all") ||
+      hasAccountCapability(acct, "analytics.view.client_assigned") ||
+      hasAccountCapability(acct, "analytics.view.read_only")
+    ) {
+      commands.push({ id: "go_analytics", label: "Go to Analytics", kind: "link", href: "/dashboard/analytics", keywords: "metrics stats" });
+    }
+    if (hasAccountCapability(acct, "finance.view.all")) {
+      commands.push({ id: "go_finance", label: "Go to Finance", kind: "link", href: "/dashboard/finance", keywords: "revenue money" });
+    }
+    if (hasAccountCapability(acct, "billing.manage_own")) {
+      commands.push({ id: "go_billing", label: "Go to Billing", kind: "link", href: "/dashboard/billing", keywords: "invoices payment" });
+    }
+    if (hasAccountCapability(acct, "security.audit.view")) {
+      commands.push({ id: "go_audit_logs", label: "Go to Audit Logs", kind: "link", href: "/dashboard/admin/audit", keywords: "security logs history" });
+    }
     if (type === "admin") commands.push({ id: "go_admin", label: "Go to Admin Dashboard", kind: "link", href: "/dashboard/admin", keywords: "users" });
     if (type === "manager") commands.push({ id: "go_manager", label: "Go to Manager Dashboard", kind: "link", href: "/dashboard/manager", keywords: "team" });
     if (type === "employee") commands.push({ id: "go_employee", label: "Go to Employee Dashboard", kind: "link", href: "/dashboard/employee", keywords: "tasks" });

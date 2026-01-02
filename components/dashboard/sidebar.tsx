@@ -58,12 +58,12 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-semibold text-lg">
-              {user.organization.name.charAt(0).toUpperCase()}
+              {user.account?.name.charAt(0).toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-              {user.organization.name}
+              {user.account?.name}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
               {user.role}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useTasks, useCreateTask, useUpdateTask } from '@/hooks/use-tasks'
+import { useTasks } from '@/hooks/use-tasks'
 import { useCurrentUser } from '@/hooks/use-user'
 import { useTaskPermissions } from '@/hooks/use-capabilities'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,7 +37,7 @@ export function TaskBoard() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<TaskStatus | 'all'>('all')
   const { user } = useCurrentUser()
-  const { data: tasks, isLoading } = useTasks(user?.organization_id || '')
+  const { data: tasks, isLoading } = useTasks(user?.accountId || '')
   const { createTask, isCreating } = useCreateTask()
   const { updateTask } = useUpdateTask()
   const { canCreate } = useTaskPermissions()
@@ -56,18 +56,13 @@ export function TaskBoard() {
 
     try {
       await createTask({
-        organization_id: user.organization_id,
         title: formData.title,
         description: formData.description,
-        status: formData.status,
         priority: formData.priority,
-        assignee_id: formData.assignee_id || null,
-        created_by_id: user.id,
-        due_date: formData.due_date || null,
+        dueDate: formData.due_date,
         visibility: formData.visibility,
-        tags: [],
-        metadata: null,
-      })
+        assigneeIds: formData.assignee_id ? [formData.assignee_id] : undefined,
+      }, user.id)
 
       setIsCreateDialogOpen(false)
       setFormData({
@@ -84,7 +79,8 @@ export function TaskBoard() {
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     try {
-      await updateTask({ taskId, updates: { status: newStatus } })
+      if (!user) return
+      await updateTask(taskId, { status: newStatus }, user.id)
     } catch (error) {
       console.error('Failed to update task:', error)
     }

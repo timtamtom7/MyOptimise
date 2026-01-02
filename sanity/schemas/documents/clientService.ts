@@ -39,11 +39,11 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: "organization",
+      name: "client",
       type: "reference",
-      title: "Organization",
+      title: "Client",
       group: "meta",
-      to: [{ type: "organization" }],
+      to: [{ type: "account" }],
       validation: (Rule) => Rule.required(),
     }),
     defineField({

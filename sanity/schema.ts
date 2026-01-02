@@ -3,9 +3,8 @@ import { type SchemaTypeDefinition } from "sanity";
 import navigation from "./schemas/documents/navigation";
 import settings from "./schemas/documents/settings";
 import account from "./schemas/documents/account";
-import organization from "./schemas/documents/organization";
-import event from "./schemas/documents/event";
 import signup from "./schemas/documents/signup";
+import event from "./schemas/documents/event";
 import sponsorship from "./schemas/documents/sponsorship";
 import workItem from "./schemas/documents/workItem";
 import clientRequest from "./schemas/documents/clientRequest";
@@ -15,6 +14,12 @@ import messageThread from "./schemas/documents/messageThread";
 import announcement from "./schemas/documents/announcement";
 import feedback from "./schemas/documents/feedback";
 import auditLog from "./schemas/documents/auditLog";
+import featureFlag from "./schemas/documents/featureFlag";
+import analyticsRecord from "./schemas/documents/analyticsRecord";
+import analyticsNote from "./schemas/documents/analyticsNote";
+import analyticsIngestionConfig from "./schemas/documents/analyticsIngestionConfig";
+import invoice from "./schemas/documents/invoice";
+import billingProfile from "./schemas/documents/billingProfile";
 import documentItem from "./schemas/documents/documentItem";
 import scheduleItem from "./schemas/documents/scheduleItem";
 import page from "./schemas/documents/page";
@@ -60,9 +65,8 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     navigation,
     settings,
     account,
-    organization,
-    event,
     signup,
+    event,
     sponsorship,
     workItem,
     clientRequest,
@@ -72,6 +76,12 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     announcement,
     feedback,
     auditLog,
+    featureFlag,
+    analyticsRecord,
+    analyticsNote,
+    analyticsIngestionConfig,
+    invoice,
+    billingProfile,
     documentItem,
     scheduleItem,
     // documents

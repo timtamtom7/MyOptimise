@@ -17,8 +17,8 @@ import {
 
 export function PerformanceMetrics() {
   const { user } = useCurrentUser()
-  const { data: roiData, isLoading: roiLoading } = useROIAnalysis(user?.organization_id || '')
-  const { data: demographics, isLoading: demographicsLoading } = useAudienceDemographics(user?.organization_id || '')
+  const { data: roiData, isLoading: roiLoading } = useROIAnalysis(user?.accountId || '')
+  const { data: demographics, isLoading: demographicsLoading } = useAudienceDemographics(user?.accountId || '')
 
   if (roiLoading || demographicsLoading) {
     return (

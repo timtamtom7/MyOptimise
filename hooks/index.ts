@@ -1,4 +1,4 @@
-export { useCurrentUser, useUsers, useUserById } from './use-user'
+export { useCurrentUser, useUserById } from './use-user'
 export { useTasks, useTask } from './use-tasks'
 export { useCalendarEvents, useCalendarEvent, useUpcomingEvents } from './use-calendar'
 export { useCapabilities, useUserCapabilities } from './use-capabilities'

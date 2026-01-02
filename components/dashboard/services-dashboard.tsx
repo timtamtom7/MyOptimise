@@ -27,7 +27,7 @@ import {
 export function ServicesDashboard() {
   const [selectedService, setSelectedService] = useState<string | null>(null)
   const { user } = useCurrentUser()
-  const { data: services, isLoading } = useClientServices(user?.organization_id || '', user?.id)
+  const { data: services, isLoading } = useClientServices(user?.accountId || '')
 
   const getServiceIcon = (serviceType: string) => {
     switch (serviceType) {

@@ -52,6 +52,102 @@ async function sendResendEmailWithFallback({
   }
 }
 
+async function upsertFeatureFlag(formData: FormData) {
+  "use server";
+  const admin = await requireActiveAdmin();
+  if (!admin) return;
+  if (!hasAccountCapability(admin.acct, "system.feature_flags.manage")) return;
+
+  const id = String(formData.get("id") || "").trim();
+  const keyRaw = String(formData.get("key") || "").trim();
+  const key = keyRaw.toLowerCase();
+  const enabled = String(formData.get("enabled") || "") === "on";
+  const description = String(formData.get("description") || "").trim();
+
+  if (!id && !key) return;
+  const keyOk = key ? /^[a-z0-9][a-z0-9._-]*$/i.test(key) : true;
+  if (!keyOk) return;
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  if (id) {
+    const existing = await writeClient.fetch(`*[_type == "featureFlag" && _id == $id][0]{_id, key}`, { id });
+    if (!existing?._id) return;
+    await writeClient.patch(id).set({ enabled, description: description || "" }).commit();
+    await writeAuditLog({
+      actorAccountId: String(admin.acct._id),
+      action: "featureFlag.updated",
+      targetId: String(existing._id),
+      targetType: "featureFlag",
+      targetLabel: String(existing.key || id),
+      context: { id, enabled, description },
+    });
+    revalidatePath("/dashboard/admin");
+    return;
+  }
+
+  const existingByKey = await writeClient.fetch(`*[_type == "featureFlag" && key == $key][0]{_id, key}`, { key });
+  if (existingByKey?._id) {
+    await writeClient.patch(String(existingByKey._id)).set({ enabled, description: description || "" }).commit();
+    await writeAuditLog({
+      actorAccountId: String(admin.acct._id),
+      action: "featureFlag.updated",
+      targetId: String(existingByKey._id),
+      targetType: "featureFlag",
+      targetLabel: String(existingByKey.key || key),
+      context: { id: String(existingByKey._id), key, enabled, description },
+    });
+  } else {
+    const created = await writeClient.create({
+      _type: "featureFlag",
+      key,
+      enabled,
+      description: description || "",
+    });
+    await writeAuditLog({
+      actorAccountId: String(admin.acct._id),
+      action: "featureFlag.created",
+      targetId: String(created?._id || ""),
+      targetType: "featureFlag",
+      targetLabel: String(created?.key || key),
+      context: { key, enabled, description },
+    });
+  }
+
+  revalidatePath("/dashboard/admin");
+}
+
+async function deleteFeatureFlag(formData: FormData) {
+  "use server";
+  const admin = await requireActiveAdmin();
+  if (!admin) return;
+  if (!hasAccountCapability(admin.acct, "system.feature_flags.manage")) return;
+
+  const id = String(formData.get("id") || "").trim();
+  if (!id) return;
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  const existing = await writeClient.fetch(`*[_type == "featureFlag" && _id == $id][0]{_id, key}`, { id });
+  if (!existing?._id) return;
+
+  await writeClient.delete(id);
+  await writeAuditLog({
+    actorAccountId: String(admin.acct._id),
+    action: "featureFlag.deleted",
+    targetId: String(existing._id),
+    targetType: "featureFlag",
+    targetLabel: String(existing.key || id),
+    context: { id, key: String(existing.key || "") },
+  });
+
+  revalidatePath("/dashboard/admin");
+}
+
 async function upsertAccount(formData: FormData) {
   "use server";
   const admin = await requireActiveAdmin();
@@ -266,15 +362,12 @@ async function assignSignup(formData: FormData) {
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
   const signup = await writeClient.fetch(
-    `*[_type == "signup" && _id == $id][0]{_id, name, email, event->{_id, organization}}`,
+    `*[_type == "signup" && _id == $id][0]{_id, name, email, event->{_id}}`,
     { id: signupId },
   );
   if (!signup?._id) return;
 
   const relatedEventRef = signup?.event?._id ? { _type: "reference", _ref: signup.event._id } : undefined;
-  const relatedOrgRef = signup?.event?.organization?._ref
-    ? { _type: "reference", _ref: signup.event.organization._ref }
-    : undefined;
 
   await writeClient.create({
     _type: "workItem",
@@ -283,7 +376,6 @@ async function assignSignup(formData: FormData) {
     createdBy: { _type: "reference", _ref: String(admin.acct._id) },
     relatedSignup: { _type: "reference", _ref: signupId },
     ...(relatedEventRef ? { relatedEvent: relatedEventRef } : {}),
-    ...(relatedOrgRef ? { relatedOrganization: relatedOrgRef } : {}),
     priority: "high",
     status: "todo",
     createdAt: new Date().toISOString(),
@@ -743,12 +835,12 @@ async function createClientService(formData: FormData) {
 
   const title = String(formData.get("title") || "").trim();
   const serviceType = String(formData.get("serviceType") || "other").trim();
-  const organizationId = String(formData.get("organizationId") || "").trim();
+  const clientId = String(formData.get("clientId") || "").trim();
   const status = String(formData.get("status") || "active").trim();
   const statusNote = String(formData.get("statusNote") || "").trim();
   const clientCanToggle = String(formData.get("clientCanToggle") || "") === "on";
   const clientEnabled = String(formData.get("clientEnabled") || "") === "on";
-  if (!title || !organizationId) return;
+  if (!title || !clientId) return;
   if (!["instagram", "facebook", "email", "website", "ads", "seo", "other"].includes(serviceType)) return;
   if (!["active", "paused", "cancelled"].includes(status)) return;
 
@@ -756,14 +848,14 @@ async function createClientService(formData: FormData) {
   if (!writeToken) return;
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-  const org = await writeClient.fetch(`*[_type == "organization" && _id == $id][0]{_id}`, { id: organizationId });
-  if (!org?._id) return;
+  const clientAcct = await writeClient.fetch(`*[_type == "account" && _id == $id && type == "client"][0]{_id}`, { id: clientId });
+  if (!clientAcct?._id) return;
 
   await writeClient.create({
     _type: "clientService",
     title,
     serviceType,
-    organization: { _type: "reference", _ref: organizationId },
+    client: { _type: "reference", _ref: clientId },
     status,
     statusNote: statusNote || undefined,
     clientCanToggle,
@@ -831,7 +923,7 @@ async function updateServiceRequestStatus(formData: FormData) {
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
   const req = await writeClient.fetch(
-    `*[_type == "serviceRequest" && _id == $id][0]{_id, status, requestedServiceType, organization->{_id}}`,
+    `*[_type == "serviceRequest" && _id == $id][0]{_id, status, requestedServiceType, clientAccount->{_id}}`,
     { id },
   );
   if (!req?._id) return;
@@ -839,19 +931,19 @@ async function updateServiceRequestStatus(formData: FormData) {
   const now = new Date().toISOString();
 
   if (status === "approved") {
-    const orgId = String(req.organization?._id || "");
+    const clientId = String(req.clientAccount?._id || "");
     const requestedServiceType = String(req.requestedServiceType || "other");
-    if (orgId && ["instagram", "facebook", "email", "website", "ads", "seo", "other"].includes(requestedServiceType)) {
+    if (clientId && ["instagram", "facebook", "email", "website", "ads", "seo", "other"].includes(requestedServiceType)) {
       const existingService = await writeClient.fetch(
-        `*[_type == "clientService" && organization._ref == $orgId && serviceType == $type && status != "cancelled"][0]{_id}`,
-        { orgId, type: requestedServiceType },
+        `*[_type == "clientService" && client._ref == $clientId && serviceType == $type && status != "cancelled"][0]{_id}`,
+        { clientId, type: requestedServiceType },
       );
       if (!existingService?._id) {
         await writeClient.create({
           _type: "clientService",
           title: `Service: ${requestedServiceType}`,
           serviceType: requestedServiceType,
-          organization: { _type: "reference", _ref: orgId },
+          client: { _type: "reference", _ref: clientId },
           status: "active",
           clientCanToggle: false,
           clientEnabled: true,
@@ -1144,6 +1236,7 @@ export default async function AdminDashboardPage() {
   const canSetTaskVisibility = hasAccountCapability(acct, "task.visibility.set");
   const canManageTaskTemplates = hasAccountCapability(acct, "task.templates.manage");
   const canManageServices = hasAccountCapability(acct, "client.services.manage");
+  const canManageFeatureFlags = hasAccountCapability(acct, "system.feature_flags.manage");
   const canViewLogs =
     hasAccountCapability(acct, "users.activity_logs.view") || hasAccountCapability(acct, "security.audit.view");
 
@@ -1153,7 +1246,6 @@ export default async function AdminDashboardPage() {
   const [
     accountsRes,
     employeesRes,
-    organizationsRes,
     receivedSignupsRes,
     submittedSponsorshipsRes,
     unassignedWorkItemsRes,
@@ -1162,6 +1254,7 @@ export default async function AdminDashboardPage() {
     openClientRequestsRes,
     clientServicesRes,
     openServiceRequestsRes,
+    featureFlagsRes,
     myThreadsRes,
     auditLogsRes,
     impersonatedRes,
@@ -1173,12 +1266,9 @@ export default async function AdminDashboardPage() {
       query: `*[_type == "account" && type == "employee" && status != "disabled"] | order(name asc, email asc){_id, name, email}`,
     }),
     sanityFetch({
-      query: `*[_type == "organization"] | order(name asc){_id, name, contactEmail}`,
-    }),
-    sanityFetch({
       query: `*[_type == "signup" && status == "received"] | order(createdAt desc)[0..9]{
         _id, name, email, status, createdAt,
-        event->{_id, title, "organizationName": organization->name}
+        event->{_id, title}
       }`,
     }),
     sanityFetch({
@@ -1222,7 +1312,7 @@ export default async function AdminDashboardPage() {
       ? sanityFetch({
           query: `*[_type == "clientService"] | order(coalesce(updatedAt, createdAt) desc)[0..49]{
             _id, title, serviceType, status, statusNote, clientCanToggle, clientEnabled, createdAt, updatedAt,
-            organization->{_id, name, contactEmail}
+            client->{_id, name, email}
           }`,
         })
       : Promise.resolve({ data: [] }),
@@ -1230,10 +1320,14 @@ export default async function AdminDashboardPage() {
       ? sanityFetch({
           query: `*[_type == "serviceRequest" && status in ["submitted","in_review"]] | order(createdAt desc)[0..49]{
             _id, status, requestedServiceType, details, resolutionNote, createdAt, updatedAt,
-            organization->{_id, name, contactEmail},
             clientAccount->{_id, name, email},
             attachments[]{asset->{url, originalFilename}}
           }`,
+        })
+      : Promise.resolve({ data: [] }),
+    canManageFeatureFlags
+      ? sanityFetch({
+          query: `*[_type == "featureFlag"] | order(key asc){_id, key, enabled, description, _updatedAt}`,
         })
       : Promise.resolve({ data: [] }),
     sanityFetch({
@@ -1265,7 +1359,6 @@ export default async function AdminDashboardPage() {
 
   const accounts = ((accountsRes as any)?.data ?? []) as any[];
   const employees = ((employeesRes as any)?.data ?? []) as Array<{ _id: string; name?: string; email?: string }>;
-  const organizations = ((organizationsRes as any)?.data ?? []) as any[];
   const receivedSignups = ((receivedSignupsRes as any)?.data ?? []) as any[];
   const submittedSponsorships = ((submittedSponsorshipsRes as any)?.data ?? []) as any[];
   const unassignedWorkItems = ((unassignedWorkItemsRes as any)?.data ?? []) as any[];
@@ -1274,9 +1367,12 @@ export default async function AdminDashboardPage() {
   const openClientRequests = ((openClientRequestsRes as any)?.data ?? []) as any[];
   const clientServices = ((clientServicesRes as any)?.data ?? []) as any[];
   const openServiceRequests = ((openServiceRequestsRes as any)?.data ?? []) as any[];
+  const featureFlags = ((featureFlagsRes as any)?.data ?? []) as any[];
   const myThreads = ((myThreadsRes as any)?.data ?? []) as any[];
   const auditLogs = ((auditLogsRes as any)?.data ?? []) as any[];
   const impersonatedAccount = ((impersonatedRes as any)?.data ?? null) as any;
+
+  const clients = accounts.filter((a: any) => a.type === "client");
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -1715,7 +1811,7 @@ export default async function AdminDashboardPage() {
                   <div>
                     <div className="font-medium">{String(s.name || s.email || "")}</div>
                     <div className="text-sm text-muted-foreground">
-                      {String(s.event?.title || "Event")} • {String(s.event?.organizationName || "Organization")}
+                      {String(s.event?.title || "Event")}
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground">{String(s.status || "")}</div>
@@ -2104,14 +2200,13 @@ export default async function AdminDashboardPage() {
           <div className="mt-4 rounded-lg border p-4">
             <div className="font-medium">Create service</div>
             <form action={createClientService} className="mt-3 grid gap-3 max-w-2xl">
-              <select name="organizationId" defaultValue="" className="rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
+              <select name="clientId" defaultValue="" className="rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
                 <option value="" disabled>
-                  Choose an organization…
+                  Choose a client…
                 </option>
-                {(organizations ?? []).map((o: any) => (
-                  <option key={String(o._id)} value={String(o._id)}>
-                    {String(o.name || o.contactEmail || o._id)}
-                    {o.contactEmail ? ` (${String(o.contactEmail)})` : ""}
+                {(clients ?? []).map((c: any) => (
+                  <option key={String(c._id)} value={String(c._id)}>
+                    {String(c.name || c.email || c._id)}
                   </option>
                 ))}
               </select>
@@ -2158,7 +2253,7 @@ export default async function AdminDashboardPage() {
                   <div className="min-w-0">
                     <div className="font-medium truncate">{String(s.title || "")}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {String(s.organization?.name || s.organization?.contactEmail || "")}
+                      {String(s.client?.name || s.client?.email || "")}
                       {s.serviceType ? ` • ${String(s.serviceType)}` : ""}
                       {s.status ? ` • ${String(s.status)}` : ""}
                     </div>
@@ -2218,7 +2313,7 @@ export default async function AdminDashboardPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-medium truncate">
-                      {String(r.organization?.name || r.organization?.contactEmail || "Organization")} •{" "}
+                      {String(r.clientAccount?.name || r.clientAccount?.email || "Client")} •{" "}
                       {String(r.requestedServiceType || "")}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
@@ -2268,6 +2363,95 @@ export default async function AdminDashboardPage() {
             {(openServiceRequests ?? []).length === 0 ? (
               <div className="text-sm text-muted-foreground">No open service requests.</div>
             ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {canManageFeatureFlags ? (
+        <div className="mt-8 rounded-xl border bg-card p-5">
+          <div className="text-sm text-muted-foreground">System</div>
+          <div className="mt-2 text-2xl font-medium">Feature flags</div>
+          <form action={upsertFeatureFlag} className="mt-4 grid gap-3 max-w-xl">
+            <div className="grid gap-1">
+              <label className="text-sm font-medium" htmlFor="featureFlagKey">
+                Key
+              </label>
+              <input
+                id="featureFlagKey"
+                name="key"
+                className="rounded-md border px-3 py-2 text-sm"
+                placeholder="e.g. analytics.beta"
+                disabled={!canWrite}
+                required
+              />
+            </div>
+            <div className="grid gap-1">
+              <label className="text-sm font-medium" htmlFor="featureFlagDescription">
+                Description
+              </label>
+              <input
+                id="featureFlagDescription"
+                name="description"
+                className="rounded-md border px-3 py-2 text-sm"
+                disabled={!canWrite}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input name="enabled" type="checkbox" defaultChecked className="h-4 w-4" disabled={!canWrite} />
+              Enabled
+            </label>
+            <button className="justify-self-start rounded-md border px-3 py-1 text-sm" disabled={!canWrite}>
+              Save flag
+            </button>
+          </form>
+
+          <div className="mt-6 space-y-3">
+            {(featureFlags ?? []).map((f: any) => (
+              <div key={String(f._id)} className="rounded-lg border px-3 py-3">
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{String(f.key || "")}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {String(f._updatedAt || "") ? new Date(String(f._updatedAt)).toLocaleString() : ""}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-xs text-muted-foreground">{Boolean(f.enabled) ? "enabled" : "disabled"}</div>
+                </div>
+
+                <form action={upsertFeatureFlag} className="mt-3 grid gap-2">
+                  <input type="hidden" name="id" value={String(f._id)} />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        name="enabled"
+                        type="checkbox"
+                        defaultChecked={Boolean(f.enabled)}
+                        className="h-4 w-4"
+                        disabled={!canWrite}
+                      />
+                      Enabled
+                    </label>
+                    <input
+                      name="description"
+                      defaultValue={String(f.description || "")}
+                      placeholder="Description…"
+                      className="rounded-md border px-3 py-2 text-sm"
+                      disabled={!canWrite}
+                    />
+                  </div>
+                  <button className="justify-self-start rounded-md border px-3 py-1 text-sm" disabled={!canWrite}>
+                    Update
+                  </button>
+                </form>
+                <form action={deleteFeatureFlag} className="mt-2">
+                  <input type="hidden" name="id" value={String(f._id)} />
+                  <button className="rounded-md border px-3 py-1 text-sm" disabled={!canWrite}>
+                    Delete
+                  </button>
+                </form>
+              </div>
+            ))}
+            {(featureFlags ?? []).length === 0 ? <div className="text-sm text-muted-foreground">No flags yet.</div> : null}
           </div>
         </div>
       ) : null}

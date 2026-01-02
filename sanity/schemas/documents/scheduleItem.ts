@@ -97,6 +97,20 @@ export default defineType({
       readOnly: true,
     }),
     defineField({
+      name: "changeRequested",
+      title: "Change Requested",
+      type: "boolean",
+      group: "time",
+      initialValue: false,
+    }),
+    defineField({
+      name: "changeRequestNote",
+      title: "Change Request Note",
+      type: "text",
+      group: "time",
+      hidden: ({ document }) => !document?.changeRequested,
+    }),
+    defineField({
       name: "createdAt",
       title: "Created At",
       type: "datetime",

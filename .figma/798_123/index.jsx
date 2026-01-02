@@ -8,7 +8,7 @@ const Component = () => {
       <div className={styles.frame969}>
         <div className={styles.frame973}>
           <img
-            src="../image/mjnkzx7u-l047h4g.png"
+            src="../image/mjw4xtlo-vhpgkyg.png"
             className={styles.myOptimiseLogo1}
           />
           <p className={styles.symbol}>􀯶</p>
@@ -82,7 +82,7 @@ const Component = () => {
             <div className={styles.frame9862}>
               <p className={styles.symbol6}>􀆫</p>
             </div>
-            <img src="../image/mjnkzx7v-olkrv9b.png" className={styles.frame9752} />
+            <img src="../image/mjw4xtlo-xu89occ.png" className={styles.frame9752} />
             <div className={styles.frame987}>
               <p className={styles.tommasoMauriello}>
                 Tommaso Mauriello
@@ -270,7 +270,7 @@ const Component = () => {
                   <div className={styles.ellipse120} />
                 </div>
                 <img
-                  src="../image/mjnkzx7v-olkrv9b.png"
+                  src="../image/mjw4xtlo-xu89occ.png"
                   className={styles.frame9753}
                 />
                 <div className={styles.frame9872}>
@@ -306,7 +306,7 @@ const Component = () => {
                 <div className={styles.block}>
                   <div className={styles.iconButton}>
                     <img
-                      src="../image/mjnkzx6n-0yq722g.svg"
+                      src="../image/mjw4xtkk-kazsk1i.svg"
                       className={styles.chevronLeft}
                     />
                   </div>
@@ -314,14 +314,14 @@ const Component = () => {
                     <div className={styles.select}>
                       <p className={styles.september}>Sep</p>
                       <img
-                        src="../image/mjnkzx6n-08s0ro7.svg"
+                        src="../image/mjw4xtkk-7pgoljb.svg"
                         className={styles.chevronDown}
                       />
                     </div>
                   </div>
                   <div className={styles.iconButton}>
                     <img
-                      src="../image/mjnkzx6n-whnzrpg.svg"
+                      src="../image/mjw4xtkk-expy11o.svg"
                       className={styles.chevronLeft}
                     />
                   </div>
@@ -360,7 +360,7 @@ const Component = () => {
                       </div>
                       <div className={styles.autoWrapper5}>
                         <img
-                          src="../image/mjnkzx6n-qv8cgwf.svg"
+                          src="../image/mjw4xtkl-bscfcet.svg"
                           className={styles.line3}
                         />
                       </div>
@@ -377,7 +377,7 @@ const Component = () => {
                       </div>
                       <div className={styles.autoWrapper6}>
                         <img
-                          src="../image/mjnkzx6n-qv8cgwf.svg"
+                          src="../image/mjw4xtkl-bscfcet.svg"
                           className={styles.line32}
                         />
                       </div>
@@ -394,7 +394,7 @@ const Component = () => {
                       </div>
                       <div className={styles.autoWrapper6}>
                         <img
-                          src="../image/mjnkzx6n-qv8cgwf.svg"
+                          src="../image/mjw4xtkl-bscfcet.svg"
                           className={styles.line32}
                         />
                       </div>

@@ -7,6 +7,12 @@ const TARGET_REF_TYPES = new Set<string>([
   "messageThread",
   "announcement",
   "feedback",
+  "featureFlag",
+  "analyticsRecord",
+  "analyticsNote",
+  "analyticsIngestionConfig",
+  "invoice",
+  "billingProfile",
 ]);
 
 export async function writeAuditLog(params: {

@@ -16,8 +16,8 @@ import {
 
 export function DashboardStats() {
   const { user } = useCurrentUser()
-  const { data: taskStats, isLoading: tasksLoading } = useTaskStats(user?.organization_id || '')
-  const { data: todayEvents, isLoading: eventsLoading } = useTodayCalendarEvents(user?.organization_id || '')
+  const { data: taskStats, isLoading: tasksLoading } = useTaskStats(user?.accountId || '')
+  const { data: todayEvents, isLoading: eventsLoading } = useTodayCalendarEvents(user?.accountId || '')
 
   if (tasksLoading || eventsLoading) {
     return (

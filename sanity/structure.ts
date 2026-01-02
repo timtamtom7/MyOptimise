@@ -10,6 +10,12 @@ import {
   MessageSquare,
   UserPlus,
   Utensils,
+  Flag,
+  BarChart3,
+  Receipt,
+  CreditCard,
+  StickyNote,
+  PlugZap,
 } from "lucide-react";
 
 export const structure = (S: any, context: any) =>
@@ -70,14 +76,6 @@ export const structure = (S: any, context: any) =>
             ])
         ),
       S.divider({ title: "Operations" }),
-      S.listItem()
-        .title("Organizations")
-        .icon(Building2)
-        .child(
-          S.documentTypeList("organization")
-            .title("Organizations")
-            .defaultOrdering([{ field: "name", direction: "asc" }])
-        ),
       S.listItem()
         .title("Events")
         .icon(CalendarDays)
@@ -151,5 +149,51 @@ export const structure = (S: any, context: any) =>
             .id("settings")
             .schemaType("settings")
             .documentId("settings")
+        ),
+      S.listItem()
+        .title("Feature Flags")
+        .icon(Flag)
+        .child(
+          S.documentTypeList("featureFlag")
+            .title("Feature Flags")
+            .defaultOrdering([{ field: "key", direction: "asc" }])
+        ),
+      S.divider({ title: "Analytics" }),
+      S.listItem()
+        .title("Analytics Records")
+        .icon(BarChart3)
+        .child(
+          S.documentTypeList("analyticsRecord")
+            .title("Analytics Records")
+            .defaultOrdering([{ field: "createdAt", direction: "desc" }])
+        ),
+      S.listItem()
+        .title("Analytics Notes")
+        .icon(StickyNote)
+        .child(
+          S.documentTypeList("analyticsNote")
+            .title("Analytics Notes")
+            .defaultOrdering([{ field: "createdAt", direction: "desc" }])
+        ),
+      S.listItem()
+        .title("Analytics Ingestion")
+        .icon(PlugZap)
+        .child(
+          S.documentTypeList("analyticsIngestionConfig")
+            .title("Analytics Ingestion")
+            .defaultOrdering([{ field: "updatedAt", direction: "desc" }])
+        ),
+      S.divider({ title: "Billing" }),
+      S.listItem()
+        .title("Invoices")
+        .icon(Receipt)
+        .child(S.documentTypeList("invoice").title("Invoices").defaultOrdering([{ field: "createdAt", direction: "desc" }])),
+      S.listItem()
+        .title("Billing Profiles")
+        .icon(CreditCard)
+        .child(
+          S.documentTypeList("billingProfile")
+            .title("Billing Profiles")
+            .defaultOrdering([{ field: "updatedAt", direction: "desc" }])
         ),
     ]);

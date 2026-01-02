@@ -13,19 +13,12 @@ export default defineType({
   ],
   fields: [
     defineField({
-      name: "organization",
-      type: "reference",
-      title: "Organization",
-      group: "meta",
-      to: [{ type: "organization" }],
-      validation: (Rule) => Rule.required(),
-    }),
-    defineField({
       name: "clientAccount",
       type: "reference",
       title: "Client Account",
       group: "meta",
       to: [{ type: "account" }],
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: "requestedServiceType",

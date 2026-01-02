@@ -19,10 +19,7 @@ export const SIGNUPS_BY_EMAIL_QUERY = groq`
       "title": coalesce(title_i18n[$i18nKey], title),
       slug,
       date,
-      "location": coalesce(location_i18n[$i18nKey], location),
-      organization->{
-        "name": coalesce(name_i18n[$i18nKey], name)
-      }
+      "location": coalesce(location_i18n[$i18nKey], location)
     }
   }
 `;
@@ -43,10 +40,7 @@ export const SIGNUP_BY_ID_QUERY = groq`
       "title": coalesce(title_i18n[$i18nKey], title),
       slug,
       date,
-      "location": coalesce(location_i18n[$i18nKey], location),
-      organization->{
-        "name": coalesce(name_i18n[$i18nKey], name)
-      }
+      "location": coalesce(location_i18n[$i18nKey], location)
     }
   }
 `;

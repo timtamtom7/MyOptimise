@@ -8,8 +8,8 @@ export interface CurrentUser {
   fullName: string | null
   avatarUrl: string | null
   role: 'owner' | 'manager' | 'employee' | 'client'
-  organizationId: string
-  organization: Organization | null
+  accountId: string
+  account: Organization | null
   isActive: boolean
 }
 
@@ -35,7 +35,7 @@ export function useCurrentUser() {
           .from('users')
           .select(`
             *,
-            organizations (*)
+            account:organizations (*)
           `)
           .eq('email', session.user?.email || '')
           .single()
@@ -49,8 +49,8 @@ export function useCurrentUser() {
           fullName: userData.full_name,
           avatarUrl: userData.avatar_url,
           role: userData.role,
-          organizationId: userData.organization_id,
-          organization: userData.organizations,
+          accountId: userData.organization_id,
+          account: userData.account,
           isActive: userData.is_active,
         }
 
@@ -76,14 +76,14 @@ export function useCurrentUser() {
           filter: `email=eq.${session?.user?.email}`,
         },
         (payload) => {
-          const updatedUser = payload.new as User & { organizations: Organization }
+          const updatedUser = payload.new as User
           setUser(prev => prev ? {
             ...prev,
             fullName: updatedUser.full_name,
             avatarUrl: updatedUser.avatar_url,
             role: updatedUser.role,
             isActive: updatedUser.is_active,
-            organization: updatedUser.organizations,
+            // account: prev.account - preserve existing account data as it's not in the payload
           } : null)
         }
       )
@@ -95,68 +95,6 @@ export function useCurrentUser() {
   }, [session, status])
 
   return { user, loading, error, session, status }
-}
-
-export function useUsers(organizationId: string) {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    if (!organizationId) {
-      setLoading(false)
-      return
-    }
-
-    const fetchUsers = async () => {
-      try {
-        setLoading(true)
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('organization_id', organizationId)
-          .order('full_name', { ascending: true })
-
-        if (error) throw error
-        setUsers(data || [])
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch users'))
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUsers()
-
-    // Subscribe to user changes
-    const channel = supabase
-      .channel(`users:${organizationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'users',
-          filter: `organization_id=eq.${organizationId}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setUsers(prev => [...prev, payload.new as User])
-          } else if (payload.eventType === 'DELETE') {
-            setUsers(prev => prev.filter(u => u.id !== payload.old.id))
-          } else if (payload.eventType === 'UPDATE') {
-            setUsers(prev => prev.map(u => u.id === payload.new.id ? payload.new as User : u))
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [organizationId])
-
-  return { users, loading, error }
 }
 
 export function useUserById(userId: string) {

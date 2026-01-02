@@ -10,7 +10,7 @@ interface EmployeeDashboardLayoutProps {
     fullName: string | null
     avatarUrl: string | null
     role: 'owner' | 'manager' | 'employee' | 'client'
-    organizationId: string
+    accountId: string
     organization: any
     isActive: boolean
   }

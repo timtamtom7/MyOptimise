@@ -12,10 +12,10 @@ export const EVENTS_QUERY = groq`
     image{
       asset->{url}
     },
-    organization->{
+    client->{
       _id,
-      "name": coalesce(name_i18n[$i18nKey], name),
-      slug
+      name,
+      email
     }
   }
 `;
@@ -34,13 +34,10 @@ export const EVENT_QUERY = groq`
     image{
       asset->{url}
     },
-    organization->{
+    client->{
       _id,
-      "name": coalesce(name_i18n[$i18nKey], name),
-      slug,
-      "description": coalesce(description_i18n[$i18nKey], description),
-      website,
-      contactEmail
+      name,
+      email
     }
   }
 `;

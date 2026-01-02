@@ -40,7 +40,7 @@ export function TeamChat() {
   const [selectedChannel, setSelectedChannel] = useState<string>('general')
   const [messageInput, setMessageInput] = useState('')
   const { user } = useCurrentUser()
-  const { data: members } = useOrganizationMembers(user?.organization_id)
+  const { data: members } = useOrganizationMembers(user?.accountId)
 
   // Mock data for demonstration
   const channels: Channel[] = [

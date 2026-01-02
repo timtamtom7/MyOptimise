@@ -211,15 +211,12 @@ export default async function ManagerDashboardPage() {
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
     const signup = await writeClient.fetch(
-      `*[_type == "signup" && _id == $id][0]{_id, name, email, event->{_id, organization}}`,
+      `*[_type == "signup" && _id == $id][0]{_id, name, email, event->{_id}}`,
       { id: signupId },
     );
     if (!signup?._id) return;
 
     const relatedEventRef = signup?.event?._id ? { _type: "reference", _ref: signup.event._id } : undefined;
-    const relatedOrgRef = signup?.event?.organization?._ref
-      ? { _type: "reference", _ref: signup.event.organization._ref }
-      : undefined;
 
     await writeClient.create({
       _type: "workItem",
@@ -228,7 +225,6 @@ export default async function ManagerDashboardPage() {
       createdBy: { _type: "reference", _ref: String(acct._id) },
       relatedSignup: { _type: "reference", _ref: signupId },
       ...(relatedEventRef ? { relatedEvent: relatedEventRef } : {}),
-      ...(relatedOrgRef ? { relatedOrganization: relatedOrgRef } : {}),
       priority: "high",
       status: "todo",
       createdAt: new Date().toISOString(),
@@ -323,7 +319,7 @@ export default async function ManagerDashboardPage() {
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
     const existing = await writeClient.fetch(
-      `*[_type == "clientRequest" && _id == $id && (assignedTo._ref == $acctId || organization._ref in *[_type == "organization" && $acctId in teamMembers[]._ref]._id)][0]{_id, status}`,
+      `*[_type == "clientRequest" && _id == $id && (assignedTo._ref == $acctId || clientAccount->teamMembers[]._ref match $acctId)][0]{_id, status}`,
       { id, acctId: String(acct._id) },
     );
     const fromStatus = String(existing?.status || "");
@@ -557,12 +553,12 @@ export default async function ManagerDashboardPage() {
 
     const title = String(formData.get("title") || "").trim();
     const serviceType = String(formData.get("serviceType") || "other").trim();
-    const organizationId = String(formData.get("organizationId") || "").trim();
+    const clientId = String(formData.get("clientId") || "").trim();
     const status = String(formData.get("status") || "active").trim();
     const statusNote = String(formData.get("statusNote") || "").trim();
     const clientCanToggle = String(formData.get("clientCanToggle") || "") === "on";
     const clientEnabled = String(formData.get("clientEnabled") || "") === "on";
-    if (!title || !organizationId) return;
+    if (!title || !clientId) return;
     if (!["instagram", "facebook", "email", "website", "ads", "seo", "other"].includes(serviceType)) return;
     if (!["active", "paused", "cancelled"].includes(status)) return;
 
@@ -570,17 +566,17 @@ export default async function ManagerDashboardPage() {
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-    const org = await writeClient.fetch(
-      `*[_type == "organization" && _id == $id && $acctId in teamMembers[]._ref][0]{_id}`,
-      { id: organizationId, acctId: String(acct._id) },
+    const cl = await writeClient.fetch(
+      `*[_type == "account" && _id == $id && type == "client"][0]{_id}`,
+      { id: clientId },
     );
-    if (!org?._id) return;
+    if (!cl?._id) return;
 
     await writeClient.create({
       _type: "clientService",
       title,
       serviceType,
-      organization: { _type: "reference", _ref: organizationId },
+      client: { _type: "reference", _ref: clientId },
       status,
       statusNote: statusNote || undefined,
       clientCanToggle,
@@ -616,8 +612,8 @@ export default async function ManagerDashboardPage() {
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
     const existing = await writeClient.fetch(
-      `*[_type == "clientService" && _id == $id && organization._ref in *[_type == "organization" && $acctId in teamMembers[]._ref]._id][0]{_id}`,
-      { id, acctId: String(acct._id) },
+      `*[_type == "clientService" && _id == $id][0]{_id}`,
+      { id },
     );
     if (!existing?._id) return;
 
@@ -657,27 +653,27 @@ export default async function ManagerDashboardPage() {
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
     const req = await writeClient.fetch(
-      `*[_type == "serviceRequest" && _id == $id && organization._ref in *[_type == "organization" && $acctId in teamMembers[]._ref]._id][0]{_id, status, requestedServiceType, organization->{_id}}`,
-      { id, acctId: String(acct._id) },
+      `*[_type == "serviceRequest" && _id == $id][0]{_id, status, requestedServiceType, clientAccount->{_id}}`,
+      { id },
     );
     if (!req?._id) return;
 
     const now = new Date().toISOString();
 
     if (status === "approved") {
-      const orgId = String(req.organization?._id || "");
+      const clientId = String(req.clientAccount?._id || "");
       const requestedServiceType = String(req.requestedServiceType || "other");
-      if (orgId && ["instagram", "facebook", "email", "website", "ads", "seo", "other"].includes(requestedServiceType)) {
+      if (clientId && ["instagram", "facebook", "email", "website", "ads", "seo", "other"].includes(requestedServiceType)) {
         const existingService = await writeClient.fetch(
-          `*[_type == "clientService" && organization._ref == $orgId && serviceType == $type && status != "cancelled"][0]{_id}`,
-          { orgId, type: requestedServiceType },
+          `*[_type == "clientService" && client._ref == $clientId && serviceType == $type && status != "cancelled"][0]{_id}`,
+          { clientId, type: requestedServiceType },
         );
         if (!existingService?._id) {
           await writeClient.create({
             _type: "clientService",
             title: `Service: ${requestedServiceType}`,
             serviceType: requestedServiceType,
-            organization: { _type: "reference", _ref: orgId },
+            client: { _type: "reference", _ref: clientId },
             status: "active",
             clientCanToggle: false,
             clientEnabled: true,
@@ -702,7 +698,7 @@ export default async function ManagerDashboardPage() {
 
   const [
     employeesRes,
-    organizationsRes,
+    clientsRes,
     unassignedWorkItemsRes,
     myWorkItemsRes,
     receivedSignupsRes,
@@ -717,7 +713,7 @@ export default async function ManagerDashboardPage() {
       query: `*[_type == "account" && type == "employee" && status != "disabled"] | order(name asc, email asc){_id, name, email}`,
     }),
     sanityFetch({
-      query: `*[_type == "organization" && $acctId in teamMembers[]._ref] | order(name asc){_id, name, contactEmail}`,
+      query: `*[_type == "account" && type == "client" && status != "disabled" && $acctId in teamMembers[]._ref] | order(name asc){_id, name, email}`,
       params: { acctId: effectiveAcctId },
     }),
     sanityFetch({
@@ -737,14 +733,14 @@ export default async function ManagerDashboardPage() {
     sanityFetch({
       query: `*[_type == "signup" && status == "received"] | order(createdAt desc)[0..9]{
         _id, name, email, status, createdAt,
-        event->{_id, title, "organizationName": organization->name}
+        event->{_id, title}
       }`,
     }),
     sanityFetch({
       query: `*[_type == "sponsorship" && status == "submitted"] | order(_createdAt desc)[0..9]{_id, businessName, contactEmail, mealsCount, date, location, status}`,
     }),
     sanityFetch({
-      query: `*[_type == "clientRequest" && status in ["submitted","in_review"] && (assignedTo._ref == $acctId || organization._ref in *[_type == "organization" && $acctId in teamMembers[]._ref]._id)] | order(createdAt desc)[0..9]{
+      query: `*[_type == "clientRequest" && status in ["submitted","in_review"] && (assignedTo._ref == $acctId || clientAccount->teamMembers[]._ref match $acctId)] | order(createdAt desc)[0..9]{
         _id, subject, status, createdAt, clientEmail, response, assignedTo->{name, email},
         statusHistory[]{fromStatus, toStatus, changedAt, changedBy->{name, email}},
         messages[]{
@@ -756,16 +752,15 @@ export default async function ManagerDashboardPage() {
       params: { acctId: effectiveAcctId },
     }),
     sanityFetch({
-      query: `*[_type == "clientService" && organization._ref in *[_type == "organization" && $acctId in teamMembers[]._ref]._id] | order(coalesce(updatedAt, createdAt) desc)[0..19]{
+      query: `*[_type == "clientService" && client->teamMembers[]._ref match $acctId] | order(coalesce(updatedAt, createdAt) desc)[0..19]{
         _id, title, serviceType, status, statusNote, clientCanToggle, clientEnabled, createdAt, updatedAt,
-        organization->{_id, name, contactEmail}
+        client->{_id, name, email}
       }`,
       params: { acctId: effectiveAcctId },
     }),
     sanityFetch({
-      query: `*[_type == "serviceRequest" && status in ["submitted","in_review"] && organization._ref in *[_type == "organization" && $acctId in teamMembers[]._ref]._id] | order(createdAt desc)[0..19]{
+      query: `*[_type == "serviceRequest" && status in ["submitted","in_review"] && clientAccount->teamMembers[]._ref match $acctId] | order(createdAt desc)[0..19]{
         _id, status, requestedServiceType, details, resolutionNote, createdAt, updatedAt,
-        organization->{_id, name, contactEmail},
         clientAccount->{_id, name, email},
         attachments[]{asset->{url, originalFilename}}
       }`,
@@ -790,7 +785,7 @@ export default async function ManagerDashboardPage() {
   ]);
 
   const employees = ((employeesRes as any)?.data ?? []) as Array<{ _id: string; name?: string; email?: string }>;
-  const organizations = ((organizationsRes as any)?.data ?? []) as any[];
+  const clients = ((clientsRes as any)?.data ?? []) as any[];
   const unassignedWorkItems = ((unassignedWorkItemsRes as any)?.data ?? []) as any[];
   const myWorkItems = ((myWorkItemsRes as any)?.data ?? []) as any[];
   const receivedSignups = ((receivedSignupsRes as any)?.data ?? []) as any[];
@@ -922,15 +917,14 @@ export default async function ManagerDashboardPage() {
           <div className="mt-2 text-2xl font-medium">Create client service</div>
           <form action={createClientService} className="mt-4 grid gap-3 max-w-2xl">
             <div className="grid gap-1">
-              <div className="text-sm font-medium">Organization</div>
-              <select name="organizationId" defaultValue="" className="rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
+              <div className="text-sm font-medium">Client</div>
+              <select name="clientId" defaultValue="" className="rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
                 <option value="" disabled>
-                  Choose an organization…
+                  Choose a client…
                 </option>
-                {(organizations ?? []).map((o: any) => (
-                  <option key={String(o._id)} value={String(o._id)}>
-                    {String(o.name || o.contactEmail || o._id)}
-                    {o.contactEmail ? ` (${String(o.contactEmail)})` : ""}
+                {(clients ?? []).map((c: any) => (
+                  <option key={String(c._id)} value={String(c._id)}>
+                    {String(c.name || c.email || c._id)}
                   </option>
                 ))}
               </select>
@@ -990,8 +984,7 @@ export default async function ManagerDashboardPage() {
                   <div className="min-w-0">
                     <div className="font-medium truncate">{String(s.title || "")}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {String(s.organization?.name || s.organization?.contactEmail || "")}
-                      {s.organization?.contactEmail ? ` • ${String(s.organization.contactEmail)}` : ""}
+                      {String(s.client?.name || s.client?.email || "")}
                       {s.serviceType ? ` • ${String(s.serviceType)}` : ""}
                     </div>
                   </div>
@@ -1050,7 +1043,7 @@ export default async function ManagerDashboardPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-medium truncate">
-                      {String(r.organization?.name || r.organization?.contactEmail || "Organization")} •{" "}
+                      {String(r.clientAccount?.name || r.clientAccount?.email || "Client")} •{" "}
                       {String(r.requestedServiceType || "")}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
@@ -1303,7 +1296,7 @@ export default async function ManagerDashboardPage() {
                   <div>
                     <div className="font-medium">{String(s.name || s.email || "")}</div>
                     <div className="text-sm text-muted-foreground">
-                      {String(s.event?.title || "Event")} • {String(s.event?.organizationName || "Organization")}
+                      {String(s.event?.title || "Event")}
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground">{String(s.status || "")}</div>

@@ -5,6 +5,7 @@ import { client } from "@/sanity/lib/client";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,12 @@ function normalizeIdList(input: unknown): string[] {
     .filter(Boolean);
 }
 
-export default async function DashboardDocumentsPage() {
+export default async function DashboardDocumentsPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const folderParam = typeof searchParams.folder === "string" ? searchParams.folder : "";
+
   const session = await safeGetServerSession();
   if (!session) redirect("/login?next=/dashboard/documents");
 
@@ -221,6 +227,8 @@ export default async function DashboardDocumentsPage() {
   const internalTargets = accounts.filter((a: any) => ["admin", "manager", "employee"].includes(String(a.type || "")));
   const clientTargets = accounts.filter((a: any) => String(a.type || "") === "client");
 
+  const folders = Array.from(new Set(documents.map((d: any) => d.folder).filter(Boolean))).sort() as string[];
+
   return (
     <div className="container mx-auto px-4 py-10 max-w-4xl">
       <div className="flex items-center justify-between gap-4">
@@ -233,6 +241,24 @@ export default async function DashboardDocumentsPage() {
           {isImpersonating ? `Impersonation mode (${effectiveType}): actions are read-only.` : "Missing SANITY_API_WRITE_TOKEN: document updates are disabled."}
         </div>
       ) : null}
+
+      <div className="mt-6 flex flex-wrap gap-2">
+        <Link
+          href="/dashboard/documents"
+          className={`rounded-full border px-3 py-1 text-sm ${!folderParam ? "bg-primary text-primary-foreground" : "bg-card hover:bg-accent"}`}
+        >
+          All
+        </Link>
+        {folders.map((f) => (
+          <Link
+            key={f}
+            href={`/dashboard/documents?folder=${encodeURIComponent(f)}`}
+            className={`rounded-full border px-3 py-1 text-sm ${folderParam === f ? "bg-primary text-primary-foreground" : "bg-card hover:bg-accent"}`}
+          >
+            {f}
+          </Link>
+        ))}
+      </div>
 
       {canUpload ? (
         <div className="mt-6 rounded-xl border bg-card p-5">
@@ -248,7 +274,19 @@ export default async function DashboardDocumentsPage() {
               <label className="text-sm font-medium" htmlFor="docFolder">
                 Folder
               </label>
-              <input id="docFolder" name="folder" className="rounded-md border px-3 py-2 text-sm" disabled={!canWrite} />
+              <input
+                id="docFolder"
+                name="folder"
+                list="folderOptions"
+                className="rounded-md border px-3 py-2 text-sm"
+                disabled={!canWrite}
+                placeholder="Select or create new folder"
+              />
+              <datalist id="folderOptions">
+                {folders.map((f) => (
+                  <option key={f} value={f} />
+                ))}
+              </datalist>
             </div>
             <div className="grid gap-1">
               <label className="text-sm font-medium" htmlFor="docFile">

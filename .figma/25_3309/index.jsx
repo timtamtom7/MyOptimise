@@ -6,11 +6,11 @@ const Component = () => {
   return (
     <div className={styles.macBookPro142}>
       <div className={styles.rectangle22009}>
-        <img src="../image/mjnl1p91-e4va6z5.png" className={styles.optimiseLogo2} />
+        <img src="../image/mjw4y9ci-4mcxyec.png" className={styles.optimiseLogo2} />
         <div className={styles.group1000002786}>
           <div className={styles.rectangle22010} />
           <div className={styles.sidebarItemTrueFalse}>
-            <img src="../image/mjnl1p91-mpu26e1.png" className={styles.ratings} />
+            <img src="../image/mjw4y9ci-byz2yxg.png" className={styles.ratings} />
             <p className={styles.marketingDashboard}>
               Marketing <br />
               Dashboard
@@ -18,16 +18,16 @@ const Component = () => {
           </div>
         </div>
         <div className={styles.sidebarItemTrueFalse2}>
-          <img src="../image/mjnl1p8v-p3if0wb.svg" className={styles.activity} />
+          <img src="../image/mjw4y9bo-kfl6dg6.svg" className={styles.activity} />
           <p className={styles.analytics}>Analytics</p>
           <div className={styles.ellipse118} />
         </div>
         <div className={styles.group1000002785}>
           <p className={styles.yourServices}>Your Services</p>
-          <img src="../image/mjnl1p8v-hq63jfi.svg" className={styles.arrow1} />
+          <img src="../image/mjw4y9bo-6ex94xh.svg" className={styles.arrow1} />
         </div>
         <div className={styles.sidebarItemTrueFalse4}>
-          <img src="../image/mjnl1p91-kl05row.png" className={styles.instagram} />
+          <img src="../image/mjw4y9ci-f9ay7kf.png" className={styles.instagram} />
           <div className={styles.sidebarItemTrueFalse3}>
             <p className={styles.instagram2}>Instagram&nbsp;</p>
           </div>
@@ -35,59 +35,59 @@ const Component = () => {
           <p className={styles.aOptimiseoperations2}>@optimiseoperations</p>
         </div>
         <div className={styles.sidebarItemTrueFalse6}>
-          <img src="../image/mjnl1p91-0zwb7u9.png" className={styles.facebook} />
+          <img src="../image/mjw4y9ci-edt8zpz.png" className={styles.facebook} />
           <div className={styles.sidebarItemTrueFalse5}>
             <p className={styles.instagram2}>Facebook</p>
           </div>
           <p className={styles.aOptimiseoperations3}>@optimiseoperations</p>
         </div>
         <div className={styles.sidebarItemTrueFalse8}>
-          <img src="../image/mjnl1p91-kl05row.png" className={styles.instagram} />
+          <img src="../image/mjw4y9ci-f9ay7kf.png" className={styles.instagram} />
           <div className={styles.sidebarItemTrueFalse7}>
             <p className={styles.instagram2}>Pinterest</p>
           </div>
           <p className={styles.aOptimiseoperations3}>@optimiseoperations</p>
         </div>
         <div className={styles.sidebarItemTrueFalse10}>
-          <img src="../image/mjnl1p91-wenj2g5.png" className={styles.sendEmail} />
+          <img src="../image/mjw4y9ci-e00sety.png" className={styles.sendEmail} />
           <div className={styles.sidebarItemTrueFalse9}>
             <p className={styles.instagram2}>Emails</p>
           </div>
           <p className={styles.mailchimp}>Mailchimp</p>
         </div>
         <div className={styles.sidebarItemTrueFalse12}>
-          <img src="../image/mjnl1p91-g5abt64.png" className={styles.sendEmail} />
+          <img src="../image/mjw4y9ci-sdkzw9w.png" className={styles.sendEmail} />
           <div className={styles.sidebarItemTrueFalse11}>
             <p className={styles.instagram2}>SMS</p>
           </div>
           <p className={styles.mailchimp}>Mailchimp</p>
         </div>
-        <img src="../image/mjnl1p91-ki9bm6v.png" className={styles.logoP51Png1} />
+        <img src="../image/mjw4y9ci-j1e7i0h.png" className={styles.logoP51Png1} />
         <div className={styles.group1000002719}>
           <img
-            src="../image/mjnl1p8v-q8osao4.svg"
+            src="../image/mjw4y9bo-sgqx70s.svg"
             className={styles.mdiCogOutline}
           />
           <p className={styles.text}>Settings</p>
         </div>
         <div className={styles.group1000002720}>
-          <img src="../image/mjnl1p8v-z2vkr0r.png" className={styles.signOutIcon} />
+          <img src="../image/mjw4y9bo-l1a3ipb.png" className={styles.signOutIcon} />
           <p className={styles.signOut}>Sign Out</p>
         </div>
       </div>
       <div className={styles.rectangle22011} />
       <div className={styles.frame966}>
-        <img src="../image/mjnl1p91-24x3skz.png" className={styles.plusMath} />
+        <img src="../image/mjw4y9ci-60h3emr.png" className={styles.plusMath} />
         <p className={styles.addNew}>Add New</p>
       </div>
       <div className={styles.autoWrapper6}>
         <div className={styles.frame451}>
           <div className={styles.frame458}>
-            <img src="../image/mjnl1p91-pjdtild.png" className={styles.ratings2} />
+            <img src="../image/mjw4y9ci-op6d34v.png" className={styles.ratings2} />
             <p className={styles.overview}>Overview</p>
           </div>
           <div className={styles.frame452}>
-            <img src="../image/mjnl1p8v-f2x88u3.svg" className={styles.calendar} />
+            <img src="../image/mjw4y9bo-pj9o49s.svg" className={styles.calendar} />
             <p className={styles.calendar2}>Calendar</p>
           </div>
         </div>
@@ -99,7 +99,7 @@ const Component = () => {
         </div>
         <div className={styles.frame965}>
           <div className={styles.searchInput}>
-            <img src="../image/mjnl1p8v-xexfj04.svg" className={styles.calendar} />
+            <img src="../image/mjw4y9bo-k2erznt.svg" className={styles.calendar} />
             <p className={styles.search}>Search</p>
           </div>
           <div className={styles.frame936}>
@@ -124,7 +124,7 @@ const Component = () => {
             <div className={styles.rectangle22012}>
               <p className={styles.aParallel51}>@parallel51</p>
               <img
-                src="../image/mjnl1p91-cxdyrxl.png"
+                src="../image/mjw4y9ci-yo1khku.png"
                 className={styles.instagram3}
               />
             </div>
@@ -135,7 +135,7 @@ const Component = () => {
                   <p className={styles.a95K}>9.5k</p>
                 </div>
                 <img
-                  src="../image/mjnl1p8v-5ka6763.svg"
+                  src="../image/mjw4y9bo-lgfam3y.svg"
                   className={styles.activity}
                 />
               </div>
@@ -145,7 +145,7 @@ const Component = () => {
                   <p className={styles.a95K}>592k</p>
                 </div>
                 <img
-                  src="../image/mjnl1p8v-mwxtcwp.svg"
+                  src="../image/mjw4y9bo-kjd9n2i.svg"
                   className={styles.activity}
                 />
               </div>
@@ -155,7 +155,7 @@ const Component = () => {
                   <p className={styles.a95K}>2.9k</p>
                 </div>
                 <img
-                  src="../image/mjnl1p8v-cnypihq.svg"
+                  src="../image/mjw4y9bo-8paywqr.svg"
                   className={styles.activity}
                 />
               </div>
@@ -173,7 +173,7 @@ const Component = () => {
                 </div>
                 <div className={styles.moreCircle}>
                   <img
-                    src="../image/mjnl1p8v-f0oveib.svg"
+                    src="../image/mjw4y9bo-0jz35d6.svg"
                     className={styles.frame666}
                   />
                 </div>
@@ -185,24 +185,24 @@ const Component = () => {
                     <p className={styles.a25}>+8.5%</p>
                     <div className={styles.autoWrapper}>
                       <img
-                        src="../image/mjnl1p8v-ocb61xm.png"
+                        src="../image/mjw4y9bo-yk15rvi.png"
                         className={styles.shape}
                       />
                     </div>
                   </div>
                 </div>
                 <img
-                  src="../image/mjnl1p8v-ryb3410.svg"
+                  src="../image/mjw4y9bo-iawtibp.svg"
                   className={styles.group39766}
                 />
                 <img
-                  src="../image/mjnl1p8v-xs24w6l.svg"
+                  src="../image/mjw4y9bo-uzju3y3.svg"
                   className={styles.frame463}
                 />
                 <div className={styles.othersTooltip}>
                   <div className={styles.rectangle101} />
                   <img
-                    src="../image/mjnl1p8v-sh8ecuz.svg"
+                    src="../image/mjw4y9bo-1lu672r.svg"
                     className={styles.rectangle102}
                   />
                   <p className={styles.a23May}>23. May</p>
@@ -216,7 +216,7 @@ const Component = () => {
               <div className={styles.autoWrapper3}>
                 <p className={styles.aParallel51}>parallel51.co</p>
                 <img
-                  src="../image/mjnl1p91-w6amjg0.png"
+                  src="../image/mjw4y9ci-usy8o3k.png"
                   className={styles.sendEmail2}
                 />
               </div>
@@ -233,7 +233,7 @@ const Component = () => {
                   </div>
                   <div className={styles.moreCircle}>
                     <img
-                      src="../image/mjnl1p8v-f0oveib.svg"
+                      src="../image/mjw4y9bo-0jz35d6.svg"
                       className={styles.frame666}
                     />
                   </div>
@@ -245,24 +245,24 @@ const Component = () => {
                       <p className={styles.a25}>+8.5%</p>
                       <div className={styles.autoWrapper}>
                         <img
-                          src="../image/mjnl1p8v-ocb61xm.png"
+                          src="../image/mjw4y9bo-yk15rvi.png"
                           className={styles.shape}
                         />
                       </div>
                     </div>
                   </div>
                   <img
-                    src="../image/mjnl1p8v-7zi4awl.svg"
+                    src="../image/mjw4y9bo-v4347lb.svg"
                     className={styles.group39766}
                   />
                   <img
-                    src="../image/mjnl1p8v-h259ozu.svg"
+                    src="../image/mjw4y9bo-tf5rcps.svg"
                     className={styles.frame463}
                   />
                   <div className={styles.othersTooltip}>
                     <div className={styles.rectangle101} />
                     <img
-                      src="../image/mjnl1p8v-sh8ecuz.svg"
+                      src="../image/mjw4y9bo-1lu672r.svg"
                       className={styles.rectangle102}
                     />
                     <p className={styles.a23May}>23. May</p>
@@ -278,7 +278,7 @@ const Component = () => {
                   <p className={styles.a95K}>9.5k</p>
                 </div>
                 <img
-                  src="../image/mjnl1p8v-5ka6763.svg"
+                  src="../image/mjw4y9bo-lgfam3y.svg"
                   className={styles.activity}
                 />
               </div>
@@ -288,7 +288,7 @@ const Component = () => {
                   <p className={styles.a95K}>592k</p>
                 </div>
                 <img
-                  src="../image/mjnl1p8v-mwxtcwp.svg"
+                  src="../image/mjw4y9bo-kjd9n2i.svg"
                   className={styles.activity}
                 />
               </div>
@@ -298,7 +298,7 @@ const Component = () => {
                   <p className={styles.a95K}>2.9k</p>
                 </div>
                 <img
-                  src="../image/mjnl1p8v-cnypihq.svg"
+                  src="../image/mjw4y9bo-8paywqr.svg"
                   className={styles.activity}
                 />
               </div>

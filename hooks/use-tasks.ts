@@ -9,13 +9,13 @@ export interface TaskFilters {
   visibility?: TaskVisibility[]
 }
 
-export function useTasks(organizationId: string, filters?: TaskFilters) {
+export function useTasks(accountId: string, filters?: TaskFilters) {
   const [tasks, setTasks] = useState<TaskWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    if (!organizationId) {
+    if (!accountId) {
       setLoading(false)
       return
     }
@@ -29,7 +29,7 @@ export function useTasks(organizationId: string, filters?: TaskFilters) {
           .select(`
             *,
             creator:users!tasks_created_by_fkey(*),
-            organization:organizations(*),
+            account:organizations(*),
             assignees:task_assignments!task_assignments_task_id_fkey(
               *,
               user:users!task_assignments_user_id_fkey(*)
@@ -39,7 +39,7 @@ export function useTasks(organizationId: string, filters?: TaskFilters) {
               user:users!task_comments_user_id_fkey(*)
             )
           `)
-          .eq('organization_id', organizationId)
+          .eq('organization_id', accountId)
           .order('created_at', { ascending: false })
 
         // Apply filters
@@ -80,14 +80,14 @@ export function useTasks(organizationId: string, filters?: TaskFilters) {
 
     // Subscribe to task changes
     const channel = supabase
-      .channel(`tasks:${organizationId}`)
+      .channel(`tasks:${accountId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'tasks',
-          filter: `organization_id=eq.${organizationId}`,
+          filter: `organization_id=eq.${accountId}`,
         },
         () => {
           fetchTasks() // Refetch all tasks on any change
@@ -120,7 +120,7 @@ export function useTasks(organizationId: string, filters?: TaskFilters) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [organizationId, JSON.stringify(filters)])
+  }, [accountId, JSON.stringify(filters)])
 
   const createTask = async (task: {
     title: string
@@ -139,7 +139,7 @@ export function useTasks(organizationId: string, filters?: TaskFilters) {
           priority: task.priority,
           due_date: task.dueDate,
           visibility: task.visibility,
-          organization_id: organizationId,
+          organization_id: accountId,
           created_by: userId,
           status: 'pending',
         })
@@ -163,22 +163,22 @@ export function useTasks(organizationId: string, filters?: TaskFilters) {
         if (assignmentError) throw assignmentError
       }
 
-      // Log audit event
-      await supabase.from('audit_logs').insert({
-        user_id: userId,
-        organization_id: organizationId,
-        action: 'task_created',
-        resource_type: 'task',
-        resource_id: taskData.id,
-      })
-
-      // Emit event
-      await supabase.from('event_bus').insert({
-        organization_id: organizationId,
-        user_id: userId,
-        event_type: 'task_created',
-        data: { task_id: taskData.id, title: task.title },
-      })
+      // Log audit event and emit event
+      await Promise.all([
+        supabase.from('audit_logs').insert({
+          user_id: userId,
+          organization_id: accountId,
+          action: 'task_created',
+          resource_type: 'task',
+          resource_id: taskData.id,
+        }),
+        supabase.from('event_bus').insert({
+          organization_id: accountId,
+          user_id: userId,
+          event_type: 'task_created',
+          data: { task_id: taskData.id, title: task.title },
+        }),
+      ])
 
       return taskData
     } catch (err) {
@@ -200,7 +200,7 @@ export function useTasks(organizationId: string, filters?: TaskFilters) {
       // Log audit event
       await supabase.from('audit_logs').insert({
         user_id: userId,
-        organization_id: organizationId,
+        organization_id: accountId,
         action: 'task_updated',
         resource_type: 'task',
         resource_id: taskId,
@@ -210,7 +210,7 @@ export function useTasks(organizationId: string, filters?: TaskFilters) {
       // Emit event if status changed to completed
       if (updates.status === 'completed') {
         await supabase.from('event_bus').insert({
-          organization_id: organizationId,
+          organization_id: accountId,
           user_id: userId,
           event_type: 'task_completed',
           data: { task_id: taskId },
@@ -235,7 +235,7 @@ export function useTasks(organizationId: string, filters?: TaskFilters) {
       // Log audit event
       await supabase.from('audit_logs').insert({
         user_id: userId,
-        organization_id: organizationId,
+        organization_id: accountId,
         action: 'task_deleted',
         resource_type: 'task',
         resource_id: taskId,
@@ -328,7 +328,7 @@ export function useTask(taskId: string) {
           .select(`
             *,
             creator:users!tasks_created_by_fkey(*),
-            organization:organizations(*),
+            account:organizations(*),
             assignees:task_assignments!task_assignments_task_id_fkey(
               *,
               user:users!task_assignments_user_id_fkey(*)
@@ -403,4 +403,92 @@ export function useTask(taskId: string) {
   }, [taskId])
 
   return { task, loading, error }
+}
+
+export function useTaskStats(accountId: string) {
+  const [stats, setStats] = useState<{
+    total: number
+    overdue: number
+    byStatus: {
+      todo: number
+      in_progress: number
+      review: number
+      completed: number
+    }
+    byPriority: {
+      urgent: number
+      high: number
+      medium: number
+      low: number
+    }
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!accountId) {
+      setLoading(false)
+      return
+    }
+
+    const fetchStats = async () => {
+      try {
+        setLoading(true)
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('organization_id', accountId)
+
+        if (error) throw error
+
+        const total = data.length
+        const now = new Date()
+        const overdue = data.filter(t => t.due_date && new Date(t.due_date) < now && t.status !== 'completed').length
+        
+        const byStatus = {
+          todo: data.filter(t => t.status === 'todo').length,
+          in_progress: data.filter(t => t.status === 'in_progress').length,
+          review: data.filter(t => t.status === 'review').length,
+          completed: data.filter(t => t.status === 'completed').length,
+        }
+
+        const byPriority = {
+          urgent: data.filter(t => t.priority === 'urgent').length,
+          high: data.filter(t => t.priority === 'high').length,
+          medium: data.filter(t => t.priority === 'medium').length,
+          low: data.filter(t => t.priority === 'low').length,
+        }
+
+        setStats({ total, overdue, byStatus, byPriority })
+      } catch (err) {
+        console.error('Failed to fetch task stats', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+
+    // Subscribe to task changes
+    const channel = supabase
+      .channel(`task_stats:${accountId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `organization_id=eq.${accountId}`,
+        },
+        () => {
+          fetchStats()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [accountId])
+
+  return { data: stats, isLoading: loading }
 }

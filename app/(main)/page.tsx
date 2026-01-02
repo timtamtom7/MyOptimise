@@ -57,7 +57,7 @@ export default async function IndexPage() {
   const firstName = fullName.includes(" ") ? fullName.split(" ")[0] : fullName;
   const email = String((session as any)?.user?.email || "");
   const [clientsCountRes, teamCountRes, requestsCountRes] = await Promise.all([
-    sanityFetch({ query: 'count(*[_type == "organization"])' }),
+    sanityFetch({ query: 'count(*[_type == "account" && type == "client"])' }),
     sanityFetch({ query: 'count(*[_type == "account" && status != "disabled"])' }),
     sanityFetch({ query: 'count(*[_type == "signup"])' }),
   ]);

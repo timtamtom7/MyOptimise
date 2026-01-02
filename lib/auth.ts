@@ -272,7 +272,6 @@ const ADMIN_CAPABILITIES = [
   "users.activity_logs.view",
   "users.impersonate.read_only",
   "users.sessions.reset",
-  "organization.manage",
   "clients.manage",
   "client.services.manage",
   "client.services.settings.configure",

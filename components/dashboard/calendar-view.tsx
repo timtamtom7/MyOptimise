@@ -36,7 +36,7 @@ export function CalendarView() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const { user } = useCurrentUser()
-  const { data: events, isLoading } = useWeekCalendarEvents(user?.organization_id || '')
+  const { data: events, isLoading } = useWeekCalendarEvents(user?.accountId || '')
   const { createEvent, isCreating } = useCreateCalendarEvent()
   const { canCreate } = useCalendarPermissions()
 
@@ -58,19 +58,13 @@ export function CalendarView() {
 
     try {
       await createEvent({
-        organization_id: user.organization_id,
         title: formData.title,
         description: formData.description,
-        start_time: new Date(formData.start_time).toISOString(),
-        end_time: new Date(formData.end_time).toISOString(),
-        timezone: formData.timezone,
-        location: formData.location || null,
-        meeting_link: formData.meeting_link || null,
-        created_by_id: user.id,
-        attendees: [],
-        visibility: formData.visibility,
-        metadata: null,
-      })
+        startTime: new Date(formData.start_time).toISOString(),
+        endTime: new Date(formData.end_time).toISOString(),
+        location: formData.location,
+        type: 'meeting',
+      }, user.id)
 
       setIsCreateDialogOpen(false)
       setFormData({
