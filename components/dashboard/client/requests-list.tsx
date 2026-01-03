@@ -16,18 +16,96 @@ interface Request {
   response?: string;
 }
 
+import { Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 interface RequestsListProps {
   requests: Request[];
   canWrite: boolean;
   addMessageAction: (formData: FormData) => Promise<void>;
+  submitRequestAction?: (formData: FormData) => Promise<void>;
 }
 
-export function RequestsList({ requests, canWrite, addMessageAction }: RequestsListProps) {
+export function RequestsList({ requests, canWrite, addMessageAction, submitRequestAction }: RequestsListProps) {
   return (
     <Card className="h-full border-none shadow-none">
-      <CardHeader className="px-0 pt-0">
-        <CardTitle className="text-xl">Recent Requests</CardTitle>
-        <CardDescription>Status of your support tickets.</CardDescription>
+      <CardHeader className="px-0 pt-0 flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-xl">Recent Requests</CardTitle>
+          <CardDescription>Status of your support tickets.</CardDescription>
+        </div>
+        {canWrite && submitRequestAction && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New Request
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Submit Support Request</DialogTitle>
+                <DialogDescription>
+                  Describe your issue or request and we'll get back to you shortly.
+                </DialogDescription>
+              </DialogHeader>
+              <form action={async (formData) => {
+                await submitRequestAction(formData);
+                // Close dialog logic would ideally go here, but with server actions we rely on revalidation
+                // A toast would be good too.
+              }} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input id="subject" name="subject" placeholder="Brief summary of the issue" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="type">Type</Label>
+                  <Select name="type" defaultValue="support">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="support">General Support</SelectItem>
+                      <SelectItem value="bug">Report a Bug</SelectItem>
+                      <SelectItem value="feature">Feature Request</SelectItem>
+                      <SelectItem value="billing">Billing Question</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select name="priority" defaultValue="medium">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea 
+                    id="message" 
+                    name="message" 
+                    placeholder="Detailed description..." 
+                    required 
+                    className="min-h-[100px]"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Submit Request</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardHeader>
       <CardContent className="px-0">
         {requests.length === 0 && (

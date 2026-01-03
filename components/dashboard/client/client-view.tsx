@@ -151,6 +151,7 @@ export function ClientView({ data, actions, capabilities }: ClientViewProps) {
               requests={data.myRequests} 
               canWrite={capabilities.canWrite} 
               addMessageAction={actions.addClientRequestMessage} 
+              submitRequestAction={actions.submitClientRequest}
             />
         </TabsContent>
 

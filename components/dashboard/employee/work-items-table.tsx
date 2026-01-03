@@ -29,6 +29,7 @@ import { format } from "date-fns";
 interface WorkItem {
   _id: string;
   title: string;
+  description?: string;
   status: string;
   priority: string;
   dueDate: string;
@@ -54,9 +55,6 @@ export function WorkItemsTable({ items, onUpdateStatus }: WorkItemsTableProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-medium">My Tasks</CardTitle>
-        <div className="flex gap-2">
-            {/* Filter chips could go here */}
-        </div>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
@@ -75,24 +73,49 @@ export function WorkItemsTable({ items, onUpdateStatus }: WorkItemsTableProps) {
               <TableRow key={item._id}>
                 <TableCell className="font-medium">
                   <div>{item.title}</div>
+                  {item.description && (
+                    <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{item.description}</div>
+                  )}
                   {item.blockedReason && (
                      <div className="text-xs text-destructive mt-0.5">Blocked: {item.blockedReason}</div>
                   )}
                 </TableCell>
                 <TableCell>
-                  <Badge 
-                    variant="secondary" 
-                    className={cn(
-                      "rounded-full font-normal capitalize",
-                      item.status === "todo" && "bg-slate-100 text-slate-700",
-                      item.status === "in_progress" && "bg-blue-50 text-blue-700",
-                      item.status === "review" && "bg-purple-50 text-purple-700",
-                      item.status === "blocked" && "bg-red-50 text-red-700",
-                      item.status === "done" && "bg-green-50 text-green-700"
-                    )}
-                  >
-                    {item.status.replace("_", " ")}
-                  </Badge>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-auto p-0 hover:bg-transparent">
+                        <Badge 
+                          variant="secondary" 
+                          className={cn(
+                            "rounded-full font-normal capitalize cursor-pointer hover:opacity-80 transition-opacity",
+                            item.status === "todo" && "bg-slate-100 text-slate-700",
+                            item.status === "in_progress" && "bg-blue-50 text-blue-700",
+                            item.status === "review" && "bg-purple-50 text-purple-700",
+                            item.status === "blocked" && "bg-red-50 text-red-700",
+                            item.status === "done" && "bg-green-50 text-green-700"
+                          )}
+                        >
+                          {item.status.replace("_", " ")}
+                        </Badge>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleStatusChange(item._id, "todo")}>
+                        <Circle className="mr-2 h-4 w-4 text-slate-500" /> To Do
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange(item._id, "in_progress")}>
+                        <Clock className="mr-2 h-4 w-4 text-blue-500" /> In Progress
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange(item._id, "blocked")}>
+                        <AlertCircle className="mr-2 h-4 w-4 text-red-500" /> Blocked
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange(item._id, "done")}>
+                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Done
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
                 <TableCell>
                    <div className={cn(
