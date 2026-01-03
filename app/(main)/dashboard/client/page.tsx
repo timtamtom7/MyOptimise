@@ -5,7 +5,7 @@ import { client } from "@/sanity/lib/client";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { ClientView } from "@/components/dashboard/client/client-view";
 
 export const dynamic = "force-dynamic";
 
@@ -364,336 +364,34 @@ export default async function ClientDashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="rounded-2xl border bg-card overflow-hidden">
-        <div className="p-6 bg-secondary">
-          <div className="flex items-center justify-between">
-            <div className="text-3xl font-semibold">What’s on your mind?</div>
-            <div className="hidden md:flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <button className="rounded-full bg-cta-blue border border-cta-blue-border px-4 py-1.5 text-sm">Overview</button>
-                <button className="rounded-full bg-cta-blue border border-cta-blue-border px-4 py-1.5 text-sm">Calendar</button>
-              </div>
-            </div>
-          </div>
-          <div className="mt-2 text-muted-foreground">any work you need, any question you have, anything.</div>
-          <form action={submitClientRequest} className="mt-4 flex items-center gap-3" encType="multipart/form-data">
-            <input
-              name="subject"
-              className="flex-1 rounded-xl border px-4 py-3 text-sm"
-              placeholder="Search"
-              required
-              disabled={!canWrite}
-            />
-            <button className="rounded-xl bg-primary text-primary-foreground px-6 py-3 text-sm" disabled={!canWrite}>
-              Submit
-            </button>
-            <input name="attachment" type="file" className="text-sm" />
-          </form>
-        </div>
-      </div>
-
       {!canWrite ? (
-        <div className="mt-6 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
+        <div className="mb-6 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
           {isImpersonating ? "Impersonation mode: actions are read-only." : "Missing SANITY_API_WRITE_TOKEN: messaging updates are disabled."}
         </div>
       ) : null}
 
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl border bg-card p-5">
-          <div className="text-sm text-muted-foreground">Requests</div>
-          <div className="mt-2 text-2xl font-medium">Your latest</div>
-          <div className="mt-4 space-y-3">
-            {(myRequests ?? []).map((r: any) => (
-              <div key={r._id} className="rounded-lg border px-3 py-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="font-medium">{r.subject}</div>
-                  <div className="text-xs text-muted-foreground">{String(r.status || "")}</div>
-                </div>
-                {Array.isArray(r.statusHistory) && r.statusHistory.length ? (
-                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                    {r.statusHistory.slice(-4).map((h: any, idx: number) => (
-                      <div key={idx}>
-                        {String(h.toStatus || "")}
-                        {h.changedAt ? ` • ${String(h.changedAt)}` : ""}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-                {Array.isArray(r.messages) && r.messages.length ? (
-                  <div className="mt-3 space-y-2">
-                    {r.messages
-                      .filter((m: any) => String(m.visibility || "client") === "client")
-                      .slice(-4)
-                      .map((m: any, idx: number) => (
-                        <div key={idx} className="rounded-md border px-3 py-2">
-                          <div className="text-xs text-muted-foreground">
-                            {String(m.author?.name || m.author?.email || "Support")} • {String(m.createdAt || "")}
-                          </div>
-                          <div className="mt-1 text-sm">{String(m.message || "")}</div>
-                          {Array.isArray(m.attachments) && m.attachments.length ? (
-                            <div className="mt-2 space-y-1">
-                              {m.attachments.map((a: any, i: number) => (
-                                <div key={i} className="text-sm">
-                                  <a className="underline" href={String(a.asset?.url || "#")} target="_blank" rel="noreferrer">
-                                    {String(a.asset?.originalFilename || "Attachment")}
-                                  </a>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      ))}
-                  </div>
-                ) : r.response ? (
-                  <div className="mt-2 text-sm text-muted-foreground">{String(r.response)}</div>
-                ) : null}
-
-                <form action={addClientRequestMessage} className="mt-3 grid gap-2" encType="multipart/form-data">
-                  <input type="hidden" name="id" value={String(r._id)} />
-                  <textarea
-                    name="message"
-                    className="min-h-[70px] rounded-md border px-3 py-2 text-sm"
-                    placeholder="Send a follow-up…"
-                    required
-                  />
-                  <input name="attachment" type="file" className="text-sm" />
-                  <button className="justify-self-start rounded-md border px-3 py-1 text-sm" disabled={!canWrite}>
-                    Send message
-                  </button>
-                </form>
-              </div>
-            ))}
-            {(myRequests ?? []).length === 0 ? (
-              <div className="text-sm text-muted-foreground">No requests yet.</div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 rounded-xl border bg-card p-5">
-        <div className="text-sm text-muted-foreground">Tasks</div>
-        <div className="mt-2 text-2xl font-medium">Client-visible</div>
-        <div className="mt-4 space-y-3">
-          {(clientWorkItems ?? []).map((w: any) => (
-            <div key={w._id} className="rounded-lg border px-3 py-2">
-              <div className="flex items-start justify-between gap-3">
-                <div className="font-medium">{String(w.title || "")}</div>
-                <div className="text-xs text-muted-foreground">{String(w.status || "")}</div>
-              </div>
-              {w.description ? <div className="mt-1 text-sm text-muted-foreground">{String(w.description)}</div> : null}
-              <div className="mt-2 text-xs text-muted-foreground">
-                {w.dueDate ? `Due: ${String(w.dueDate)}` : "No due date"}
-                {w.priority ? ` • ${String(w.priority)}` : ""}
-                {Number(w.commentsCount || 0) ? ` • ${Number(w.commentsCount || 0)} comments` : ""}
-              </div>
-              {Array.isArray(w.attachments) && w.attachments.length ? (
-                <div className="mt-2 space-y-1">
-                  {w.attachments.map((a: any, idx: number) => (
-                    <div key={idx} className="text-sm">
-                      <a className="underline" href={String(a.asset?.url || "#")} target="_blank" rel="noreferrer">
-                        {String(a.asset?.originalFilename || "Attachment")}
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ))}
-          {(clientWorkItems ?? []).length === 0 ? (
-            <div className="text-sm text-muted-foreground">No client-visible tasks yet.</div>
-          ) : null}
-        </div>
-      </div>
-
-      {canViewServices || canRequestServices ? (
-        <div className="mt-8 rounded-xl border bg-card p-5">
-          <div className="text-sm text-muted-foreground">Services</div>
-          <div className="mt-2 text-2xl font-medium">Your services</div>
-
-          {canRequestServices ? (
-            <div className="mt-4 rounded-lg border p-4">
-              <div className="font-medium">Request a new service</div>
-              <form action={submitServiceRequest} className="mt-3 grid gap-3" encType="multipart/form-data">
-                <select name="requestedServiceType" defaultValue="other" className="rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
-                  <option value="instagram">Instagram</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="email">Email</option>
-                  <option value="website">Website</option>
-                  <option value="ads">Ads</option>
-                  <option value="seo">SEO</option>
-                  <option value="other">Other</option>
-                </select>
-                <textarea
-                  name="details"
-                  className="min-h-[90px] rounded-md border px-3 py-2 text-sm"
-                  placeholder="Details (optional)"
-                  disabled={!canWrite}
-                />
-                <input name="attachment" type="file" className="text-sm" />
-                <button className="justify-self-start rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
-                  Submit request
-                </button>
-              </form>
-            </div>
-          ) : null}
-
-          <div className="mt-4 space-y-3">
-            {(clientServices ?? []).map((s: any) => (
-              <div key={String(s._id)} className="rounded-lg border px-3 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{String(s.title || "")}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {String(s.serviceType || "")} • {String(s.status || "")}
-                      {s.statusNote ? ` • ${String(s.statusNote)}` : ""}
-                    </div>
-                  </div>
-                  {canToggleServices && s.clientCanToggle ? (
-                    <form action={setClientServiceEnabled} className="shrink-0 flex items-center gap-2">
-                      <input type="hidden" name="id" value={String(s._id)} />
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          name="enabled"
-                          type="checkbox"
-                          className="h-4 w-4"
-                          defaultChecked={Boolean(s.clientEnabled)}
-                          disabled={!canWrite}
-                        />
-                        Enabled
-                      </label>
-                      <button className="rounded-md border px-3 py-1 text-sm" disabled={!canWrite}>
-                        Save
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="shrink-0 text-xs text-muted-foreground">{s.clientEnabled ? "Enabled" : "Disabled"}</div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {!clientServices.length ? <div className="text-sm text-muted-foreground">No services yet.</div> : null}
-          </div>
-
-          <div className="mt-8 text-2xl font-medium">Service requests</div>
-          <div className="mt-4 space-y-3">
-            {(myServiceRequests ?? []).map((r: any) => (
-              <div key={String(r._id)} className="rounded-lg border px-3 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{String(r.requestedServiceType || "")}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {String(r.status || "")}
-                      {r.createdAt ? ` • ${String(r.createdAt)}` : ""}
-                    </div>
-                  </div>
-                </div>
-                {r.details ? <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">{String(r.details)}</div> : null}
-                {r.resolutionNote ? (
-                  <div className="mt-2 text-sm">
-                    <span className="text-muted-foreground">Resolution: </span>
-                    {String(r.resolutionNote)}
-                  </div>
-                ) : null}
-                {Array.isArray(r.attachments) && r.attachments.length ? (
-                  <div className="mt-2 space-y-1">
-                    {r.attachments.map((a: any, i: number) => (
-                      <div key={i} className="text-sm">
-                        <a className="underline" href={String(a.asset?.url || "#")} target="_blank" rel="noreferrer">
-                          {String(a.asset?.originalFilename || "Attachment")}
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-            {!myServiceRequests.length ? <div className="text-sm text-muted-foreground">No service requests yet.</div> : null}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="mt-8 rounded-xl border bg-card p-5">
-        <div className="text-sm text-muted-foreground">Messages</div>
-        <div className="mt-2 text-2xl font-medium">Chat with support</div>
-
-        <form action={createOrOpenSupportThread} className="mt-4 flex items-center gap-2">
-          <select name="recipientId" className="w-full rounded-md border px-3 py-2 text-sm" defaultValue="">
-            <option value="" disabled>
-              Choose a support contact…
-            </option>
-            {(supportStaff ?? []).map((s: any) => (
-              <option key={s._id} value={String(s._id)}>
-                {String(s.name || s.email || s._id)} ({String(s.type || "")})
-              </option>
-            ))}
-          </select>
-          <button className="shrink-0 rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
-            Start
-          </button>
-        </form>
-
-        <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {(myThreads ?? []).map((t: any) => {
-            const lastMessageAt = String(t?.lastMessage?.createdAt || t?.updatedAt || t?.createdAt || "");
-            const effectiveAccountId = String(effectiveAcct?._id || "");
-            const lastReadAt = Array.isArray(t?.readStates)
-              ? String(t.readStates.find((rs: any) => String(rs?.user?._ref || "") === effectiveAccountId)?.lastReadAt || "")
-              : "";
-            const isUnread = Boolean(lastMessageAt && (!lastReadAt || lastReadAt < lastMessageAt));
-
-            return (
-              <div key={t._id} className="rounded-lg border p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{String(t.title || "Thread")}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {Array.isArray(t.participants)
-                        ? t.participants
-                            .filter((p: any) => String(p?._id || "") !== String(effectiveAcct?._id || ""))
-                            .map((p: any) => String(p?.name || p?.email || "Support"))
-                            .join(", ")
-                        : ""}
-                      {Number(t.messageCount || 0) ? ` • ${Number(t.messageCount || 0)} messages` : ""}
-                    </div>
-                    {Array.isArray(t.recentMessages) && t.recentMessages.length ? (
-                      <div className="mt-2 space-y-2">
-                        {t.recentMessages.map((m: any, idx: number) => (
-                          <div key={idx}>
-                            <div className="text-xs text-muted-foreground">
-                              {String(m.author?.name || m.author?.email || "Support")} • {String(m.createdAt || "")}
-                            </div>
-                            {m.message ? (
-                              <div className="mt-1 text-sm text-muted-foreground line-clamp-2">{String(m.message)}</div>
-                            ) : null}
-                            {Array.isArray(m.attachments) && m.attachments.length ? (
-                              <div className="mt-1 space-y-1">
-                                {m.attachments.map((a: any, aIdx: number) => (
-                                  <div key={aIdx} className="text-sm">
-                                    <a className="underline" href={String(a.asset?.url || "#")} target="_blank" rel="noreferrer">
-                                      {String(a.asset?.originalFilename || "Attachment")}
-                                    </a>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="shrink-0 text-right">
-                    {isUnread ? <div className="text-xs text-amber-700">Unread</div> : null}
-                    <Link className="text-sm underline" href={`/dashboard/client/threads/${String(t._id)}`}>
-                      Open
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {(myThreads ?? []).length === 0 ? <div className="text-sm text-muted-foreground">No message threads yet.</div> : null}
-        </div>
-      </div>
+      <ClientView
+        data={{
+          user: { name, email: emailLower },
+          myRequests,
+          supportStaff,
+          myThreads,
+          clientWorkItems,
+          clientServices,
+          myServiceRequests,
+        }}
+        actions={{
+          submitClientRequest,
+          addClientRequestMessage,
+          createOrOpenSupportThread,
+          setClientServiceEnabled,
+          submitServiceRequest,
+        }}
+        capabilities={{
+          canWrite,
+          canViewServices,
+        }}
+      />
     </div>
   );
 }

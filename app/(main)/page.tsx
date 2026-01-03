@@ -4,8 +4,8 @@ import { safeGetServerSession } from "@/lib/auth";
 import { t, getLocale } from "@/lib/i18n";
 import { fetchSanitySettings } from "@/sanity/lib/fetch";
 import Logo from "@/components/logo";
-import { sanityFetch } from "@/sanity/lib/live";
 import { ExternalLink } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,6 @@ export default async function IndexPage() {
   const session = await safeGetServerSession();
   const locale = await getLocale();
   const role = String((session as any)?.type || "");
-  const canAccessStudio = role === "admin";
   const settings = await fetchSanitySettings();
 
   if (!session) {
@@ -53,74 +52,16 @@ export default async function IndexPage() {
     );
   }
 
-  const fullName = String((session as any)?.user?.name || "");
-  const firstName = fullName.includes(" ") ? fullName.split(" ")[0] : fullName;
-  const email = String((session as any)?.user?.email || "");
-  const [clientsCountRes, teamCountRes, requestsCountRes] = await Promise.all([
-    sanityFetch({ query: 'count(*[_type == "account" && type == "client"])' }),
-    sanityFetch({ query: 'count(*[_type == "account" && status != "disabled"])' }),
-    sanityFetch({ query: 'count(*[_type == "signup"])' }),
-  ]);
-  const clientsCount = Number((clientsCountRes as any)?.data ?? 0);
-  const teamCount = Number((teamCountRes as any)?.data ?? 0);
-  const requestsCount = Number((requestsCountRes as any)?.data ?? 0);
-
-  return (
-    <div className="min-h-[calc(100vh-4rem)] bg-background">
-      <div className="container py-12">
-        <div className="flex items-start justify-between gap-6">
-          <div>
-            <div className="text-sm text-muted-foreground">
-              {email ? `Signed in as ${email}` : "Signed in"}
-            </div>
-            <h1 className="mt-2 text-4xl font-semibold tracking-tight">
-              Hey{firstName ? `, ${firstName}` : ""} 👋
-            </h1>
-            <p className="mt-3 text-muted-foreground">{t("heroSubLoggedIn", locale)}</p>
-          </div>
-          <div className="hidden md:flex items-center gap-3">
-            <Button asChild className="rounded-2xl px-6">
-              <Link href="/dashboard">Dashboard</Link>
-            </Button>
-            {canAccessStudio ? (
-              <Button asChild variant="outline" className="rounded-2xl px-6">
-                <Link href="/studio">Studio</Link>
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border p-5">
-            <div className="text-sm text-muted-foreground">Tasks</div>
-            <div className="mt-2 text-3xl font-semibold">—</div>
-            <div className="mt-2 text-sm text-muted-foreground">Dashboard is next.</div>
-          </div>
-          <div className="rounded-2xl border p-5">
-            <div className="text-sm text-muted-foreground">Clients</div>
-            <div className="mt-2 text-3xl font-semibold">{clientsCount}</div>
-            <div className="mt-2 text-sm text-muted-foreground">From Sanity</div>
-          </div>
-          <div className="rounded-2xl border p-5">
-            <div className="text-sm text-muted-foreground">Requests</div>
-            <div className="mt-2 text-3xl font-semibold">{requestsCount}</div>
-            <div className="mt-2 text-sm text-muted-foreground">From Sanity</div>
-          </div>
-        </div>
-
-        <div className="mt-4 text-sm text-muted-foreground">Active team members: {teamCount}</div>
-
-        <div className="mt-8 flex flex-col gap-3 md:hidden">
-          <Button asChild className="rounded-2xl px-6">
-            <Link href="/dashboard">Dashboard</Link>
-          </Button>
-          {canAccessStudio ? (
-            <Button asChild variant="outline" className="rounded-2xl px-6">
-              <Link href="/studio">Studio</Link>
-            </Button>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
+  const dest =
+    role === "client"
+      ? "/dashboard/client"
+      : role === "admin"
+        ? "/dashboard/admin"
+        : role === "manager"
+          ? "/dashboard/manager"
+          : role === "employee"
+            ? "/dashboard/employee"
+            : "/dashboard";
+  
+  redirect(dest);
 }

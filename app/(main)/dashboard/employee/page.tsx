@@ -5,7 +5,8 @@ import { client } from "@/sanity/lib/client";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { EmployeeView } from "@/components/dashboard/employee/employee-view";
+import { Resend } from "resend";
 
 export const dynamic = "force-dynamic";
 
@@ -438,333 +439,32 @@ export default async function EmployeeDashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="rounded-2xl bg-header border border-input px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3 w-full max-w-xl">
-          <div className="relative flex-1">
-            <input
-              className="w-full h-11 pl-10 pr-16 rounded-full border border-input bg-white text-sm"
-              placeholder="Search & Command"
-            />
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">⌕</div>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-input bg-white px-2 py-0.5 text-xs text-muted-foreground">⌘M</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full border border-input flex items-center justify-center text-muted-foreground">🔔</div>
-          <div className="h-9 w-9 rounded-full border border-input flex items-center justify-center text-muted-foreground">⚙️</div>
-          <div className="flex items-center gap-3 rounded-2xl border border-input px-3 py-2 bg-white">
-            <div className="h-8 w-8 rounded-full bg-secondary"></div>
-            <div className="min-w-0">
-              <div className="text-sm font-medium truncate">{name || "—"}</div>
-              <div className="text-xs text-muted-foreground truncate">{email}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {!canWrite ? (
-        <div className="mt-6 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
+        <div className="mb-6 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
           {isImpersonating ? "Impersonation mode: actions are read-only." : "Missing SANITY_API_WRITE_TOKEN: messaging updates are disabled."}
         </div>
       ) : null}
 
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-2xl border bg-card p-5">
-          <div className="text-sm text-muted-foreground">Work Items</div>
-          <div className="mt-2 text-2xl font-medium">Assigned to you</div>
-          <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm">
-              <span className="text-muted-foreground">You have </span>
-              <span className="text-blue-600 font-semibold">{dueTodayCount} tasks</span>
-              <span className="text-muted-foreground"> due today.</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="rounded-2xl bg-cta-blue text-header-foreground border border-cta-blue-border px-4 py-1.5 text-sm">Refresh</button>
-              <button className="rounded-2xl bg-cta-blue text-header-foreground border border-cta-blue-border px-4 py-1.5 text-sm">New Task</button>
-            </div>
-          </div>
-          <div className="mt-4 space-y-3">
-            {(myWorkItems ?? []).map((w: any) => (
-              <div key={w._id} className="rounded-lg border px-3 py-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="font-medium">{w.title}</div>
-                  <div className="text-xs text-muted-foreground">{String(w.priority || "medium")}</div>
-                </div>
-                {String(w.description || "") ? (
-                  <div className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{String(w.description)}</div>
-                ) : null}
-                <div className="mt-1 space-y-1 text-sm text-muted-foreground">
-                  {String(w.reassignmentRequestedAt || "") ? (
-                    <div className="text-amber-700">
-                      Reassignment requested{w.reassignmentNote ? `: ${String(w.reassignmentNote)}` : ""}
-                    </div>
-                  ) : null}
-
-                  {String(w.blockedReason || "") ? (
-                    <div className="text-amber-700">Blocked reason: {String(w.blockedReason)}</div>
-                  ) : null}
-                  {w.relatedEvent?.slug?.current ? (
-                    <div>
-                      Event:{" "}
-                      <Link className="underline" href={`/events/${String(w.relatedEvent.slug.current)}`}>
-                        {String(w.relatedEvent.title || w.relatedEvent.slug.current)}
-                      </Link>
-                    </div>
-                  ) : w.relatedEvent?.title ? (
-                    <div>Event: {String(w.relatedEvent.title)}</div>
-                  ) : null}
-
-                  {w.relatedSignup?.email ? <div>Signup: {String(w.relatedSignup.name || w.relatedSignup.email)}</div> : null}
-                  {w.relatedSponsorship?.contactEmail ? (
-                    <div>
-                      Sponsorship: {String(w.relatedSponsorship.businessName || w.relatedSponsorship.contactEmail)}
-                    </div>
-                  ) : null}
-                  {w.createdByName ? <div>Created by: {String(w.createdByName)}</div> : null}
-                  {w.dueDate ? <div>Due: {String(w.dueDate)}</div> : null}
-                </div>
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <div className="text-sm text-muted-foreground">{String(w.status || "")}</div>
-                  <div className="flex items-center gap-2">
-                    <form action={updateWorkItemStatus} className="flex items-center gap-2">
-                      <input type="hidden" name="id" value={w._id} />
-                      <select name="status" defaultValue={String(w.status || "todo")} className="rounded-md border px-2 py-1 text-sm">
-                        <option value="todo">To Do</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="blocked">Blocked</option>
-                        <option value="done">Done</option>
-                      </select>
-                      <button className="rounded-md border px-3 py-1 text-sm">Update</button>
-                    </form>
-                    <form action={createOrOpenTaskThread}>
-                      <input type="hidden" name="workItemId" value={String(w._id)} />
-                      <button className="rounded-md border px-3 py-1 text-sm" disabled={!canWrite}>
-                        Start thread
-                      </button>
-                    </form>
-                  </div>
-                </div>
-
-                <div className="mt-3 grid gap-3">
-                  <form action={updateWorkItemDescription} className="grid gap-2">
-                    <input type="hidden" name="id" value={w._id} />
-                    <textarea
-                      name="description"
-                      className="min-h-[70px] rounded-md border px-3 py-2 text-sm"
-                      placeholder="Update description…"
-                      defaultValue={String(w.description || "")}
-                    />
-                    <button className="justify-self-start rounded-md border px-3 py-1 text-sm">Save description</button>
-                  </form>
-
-                  <form action={addWorkItemComment} className="grid gap-2">
-                    <input type="hidden" name="id" value={w._id} />
-                    <textarea
-                      name="message"
-                      className="min-h-[70px] rounded-md border px-3 py-2 text-sm"
-                      placeholder="Add a comment…"
-                      required
-                    />
-                    <button className="justify-self-start rounded-md border px-3 py-1 text-sm">Post comment</button>
-                  </form>
-
-                  <form action={markWorkItemBlocked} className="grid gap-2">
-                    <input type="hidden" name="id" value={w._id} />
-                    <textarea
-                      name="blockedReason"
-                      className="min-h-[70px] rounded-md border px-3 py-2 text-sm"
-                      placeholder="Mark blocked (reason)…"
-                      required
-                    />
-                    <button className="justify-self-start rounded-md border px-3 py-1 text-sm">Mark blocked</button>
-                  </form>
-
-                  <form action={requestReassignment} className="grid gap-2">
-                    <input type="hidden" name="id" value={w._id} />
-                    <textarea
-                      name="note"
-                      className="min-h-[70px] rounded-md border px-3 py-2 text-sm"
-                      placeholder="Request reassignment (optional note)…"
-                    />
-                    <button className="justify-self-start rounded-md border px-3 py-1 text-sm">Request reassignment</button>
-                  </form>
-
-                  <form action={uploadWorkItemAttachment} className="grid gap-2" encType="multipart/form-data">
-                    <input type="hidden" name="id" value={w._id} />
-                    <input name="attachment" type="file" className="text-sm" disabled={!canWrite} />
-                    <button className="justify-self-start rounded-md border px-3 py-1 text-sm" disabled={!canWrite}>
-                      Upload attachment
-                    </button>
-                  </form>
-
-                  {Array.isArray(w.attachments) && w.attachments.length ? (
-                    <div className="rounded-md border p-3">
-                      <div className="text-sm font-medium">Attachments</div>
-                      <div className="mt-2 space-y-1">
-                        {w.attachments.slice(-5).map((a: any, idx: number) => (
-                          <div key={idx} className="text-sm">
-                            <a className="underline" href={String(a?.asset?.url || "#")} target="_blank" rel="noreferrer">
-                              {String(a?.asset?.originalFilename || "Attachment")}
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {Array.isArray(w.comments) && w.comments.length ? (
-                    <div className="rounded-md border p-3">
-                      <div className="text-sm font-medium">Comments</div>
-                      <div className="mt-2 space-y-2">
-                        {w.comments.slice(-3).map((c: any, idx: number) => (
-                          <div key={idx} className="rounded-md border px-3 py-2">
-                            <div className="text-xs text-muted-foreground">
-                              {String(c.author?.name || c.author?.email || "Unknown")} • {String(c.createdAt || "")}
-                            </div>
-                            <div className="mt-1 text-sm">{String(c.message || "")}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-            {(myWorkItems ?? []).length === 0 ? (
-              <div className="text-sm text-muted-foreground">No work items assigned right now.</div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="grid gap-6">
-          <div className="rounded-2xl border bg-card p-5">
-            <div className="text-sm text-muted-foreground">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: '2-digit', month: 'long' })}</div>
-            <div className="mt-2 text-2xl font-medium">Schedule</div>
-            <div className="mt-4 space-y-3">
-              {(mySchedule ?? []).slice(0, 3).map((s: any) => {
-                const start = s.startsAt ? new Date(s.startsAt) : null;
-                const timeLabel = start ? start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "—";
-                return (
-                  <div key={s._id} className="rounded-xl bg-blue-50 px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                      <div className="text-sm">{timeLabel}</div>
-                    </div>
-                    <div className="text-sm font-medium">{String(s.title || "")}</div>
-                  </div>
-                );
-              })}
-              {(mySchedule ?? []).length === 0 ? <div className="text-sm text-muted-foreground">No scheduled items.</div> : null}
-            </div>
-          </div>
-          <div className="rounded-2xl border bg-card p-5">
-            <div className="text-sm text-muted-foreground">Profile</div>
-            <div className="mt-2 text-2xl font-medium">Your details</div>
-            <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
-                <div className="text-sm text-muted-foreground">Email</div>
-                <div className="font-medium">{email}</div>
-              </div>
-              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
-                <div className="text-sm text-muted-foreground">Role</div>
-                <div className="font-medium">{type}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border bg-card p-5">
-            <div className="text-sm text-muted-foreground">{unreadThreadsCount} Unread Messages</div>
-            <div className="mt-2 text-2xl font-medium">Direct messages</div>
-
-            <form action={createOrOpenDmThread} className="mt-4 flex items-center gap-2">
-              <select name="recipientId" className="w-full rounded-md border px-3 py-2 text-sm" defaultValue="">
-                <option value="" disabled>
-                  Choose a teammate…
-                </option>
-                {(staff ?? [])
-                  .filter((s: any) => String(s._id || "") !== String(acct?._id || "") && String(s.type || "") !== "client")
-                  .map((s: any) => (
-                    <option key={s._id} value={String(s._id)}>
-                      {String(s.name || s.email || s._id)} ({String(s.type || "")})
-                    </option>
-                  ))}
-              </select>
-              <button className="shrink-0 rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
-                Start
-              </button>
-            </form>
-
-            <div className="mt-4 space-y-3">
-              {(myThreads ?? []).map((t: any) => {
-                const lastMessageAt = String(t?.lastMessage?.createdAt || t?.updatedAt || t?.createdAt || "");
-                const effectiveAccountId = String(effectiveAcct?._id || "");
-                const lastReadAt = Array.isArray(t?.readStates)
-                  ? String(t.readStates.find((rs: any) => String(rs?.user?._ref || "") === effectiveAccountId)?.lastReadAt || "")
-                  : "";
-                const isUnread = Boolean(lastMessageAt && (!lastReadAt || lastReadAt < lastMessageAt));
-
-                return (
-                  <div key={t._id} className="rounded-lg border px-3 py-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{String(t.title || "Thread")}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {Array.isArray(t.participants)
-                            ? t.participants
-                                .filter((p: any) => String(p?._id || "") !== String(acct?._id || ""))
-                                .map((p: any) => String(p?.name || p?.email || "Unknown"))
-                                .join(", ")
-                            : ""}
-                          {Number(t.messageCount || 0) ? ` • ${Number(t.messageCount || 0)} messages` : ""}
-                        </div>
-                        {Array.isArray(t.recentMessages) && t.recentMessages.length ? (
-                          <div className="mt-2 space-y-2">
-                            {t.recentMessages.map((m: any, idx: number) => (
-                              <div key={idx}>
-                                <div className="text-xs text-muted-foreground">
-                                  {String(m.author?.name || m.author?.email || "Unknown")} • {String(m.createdAt || "")}
-                                </div>
-                                {m.message ? (
-                                  <div className="mt-1 text-sm text-muted-foreground line-clamp-2">{String(m.message)}</div>
-                                ) : null}
-                                {Array.isArray(m.attachments) && m.attachments.length ? (
-                                  <div className="mt-1 space-y-1">
-                                    {m.attachments.map((a: any, aIdx: number) => (
-                                      <div key={aIdx} className="text-sm">
-                                        <a
-                                          className="underline"
-                                          href={String(a.asset?.url || "#")}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                        >
-                                          {String(a.asset?.originalFilename || "Attachment")}
-                                        </a>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="shrink-0 text-right">
-                        {isUnread ? <div className="text-xs text-amber-700">Unread</div> : null}
-                        <Link className="text-sm underline" href={`/dashboard/employee/threads/${String(t._id)}`}>
-                          Open
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {(myThreads ?? []).length === 0 ? (
-                <div className="text-sm text-muted-foreground">No messages yet.</div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
+      <EmployeeView
+        data={{
+          user: { name, email: emailLower },
+          myWorkItems,
+          staff,
+          myThreads,
+          mySchedule,
+          stats: { dueTodayCount, unreadThreadsCount },
+        }}
+        actions={{
+          updateWorkItemStatus,
+          addWorkItemComment,
+          requestReassignment,
+          updateWorkItemDescription,
+          markWorkItemBlocked,
+          uploadWorkItemAttachment,
+          createOrOpenDmThread,
+          createOrOpenTaskThread,
+        }}
+      />
     </div>
   );
 }
