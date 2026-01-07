@@ -738,54 +738,70 @@ export type Database = {
       }
       user_capabilities: {
         Row: {
-          capability: string
-          created_at: string
-          granted_at: string
-          granted_by: string | null
-          id: string
-          organization_id: string
           user_id: string
+          content_view_drafts: boolean | null
+          content_create: boolean | null
+          content_delete: boolean | null
+          content_approve_internal: boolean | null
+          content_approve_client: boolean | null
+          chat_internal_access: boolean | null
+          chat_client_access: boolean | null
+          chat_ghost_mode: boolean | null
+          sales_access: boolean | null
+          sales_lead_gen: boolean | null
+          sales_contracts: boolean | null
+          analytics_view_financials: boolean | null
+          admin_impersonate: boolean | null
+          admin_billing: boolean | null
+          created_at: string | null
+          updated_at: string | null
         }
         Insert: {
-          capability: string
-          created_at?: string
-          granted_at?: string
-          granted_by?: string | null
-          id?: string
-          organization_id: string
           user_id: string
+          content_view_drafts?: boolean | null
+          content_create?: boolean | null
+          content_delete?: boolean | null
+          content_approve_internal?: boolean | null
+          content_approve_client?: boolean | null
+          chat_internal_access?: boolean | null
+          chat_client_access?: boolean | null
+          chat_ghost_mode?: boolean | null
+          sales_access?: boolean | null
+          sales_lead_gen?: boolean | null
+          sales_contracts?: boolean | null
+          analytics_view_financials?: boolean | null
+          admin_impersonate?: boolean | null
+          admin_billing?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Update: {
-          capability?: string
-          created_at?: string
-          granted_at?: string
-          granted_by?: string | null
-          id?: string
-          organization_id?: string
           user_id?: string
+          content_view_drafts?: boolean | null
+          content_create?: boolean | null
+          content_delete?: boolean | null
+          content_approve_internal?: boolean | null
+          content_approve_client?: boolean | null
+          chat_internal_access?: boolean | null
+          chat_client_access?: boolean | null
+          chat_ghost_mode?: boolean | null
+          sales_access?: boolean | null
+          sales_lead_gen?: boolean | null
+          sales_contracts?: boolean | null
+          analytics_view_financials?: boolean | null
+          admin_impersonate?: boolean | null
+          admin_billing?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "user_capabilities_granted_by_fkey"
-            columns: ["granted_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_capabilities_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "user_capabilities_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       users: {

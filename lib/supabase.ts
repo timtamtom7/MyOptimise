@@ -22,7 +22,6 @@ export type Enums<T extends keyof Database['public']['Enums']> = Database['publi
 export type Organization = Tables<'organizations'>
 export type User = Tables<'users'>
 export type UserCapability = Tables<'user_capabilities'>
-export type Capability = UserCapability['capability']
 export type Task = Tables<'tasks'>
 export type TaskAssignment = Tables<'task_assignments'>
 export type TaskComment = Tables<'task_comments'>
@@ -50,7 +49,7 @@ export type TicketStatus = Enums<'ticket_status'>
 export type EventTypeBus = Enums<'event_type_bus'>
 
 export interface UserWithCapabilities extends User {
-  capabilities: UserCapability[]
+  capabilities: UserCapability | null
   account: Organization // Renamed from organization to account for consistency
 }
 
