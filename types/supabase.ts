@@ -165,6 +165,8 @@ export type Database = {
           service_type: Database["public"]["Enums"]["service_type"]
           status: string
           updated_at: string
+          monthly_budget: number | null
+          start_date: string | null
         }
         Insert: {
           created_at?: string
@@ -175,6 +177,8 @@ export type Database = {
           service_type: Database["public"]["Enums"]["service_type"]
           status: string
           updated_at?: string
+          monthly_budget?: number | null
+          start_date?: string | null
         }
         Update: {
           created_at?: string
@@ -185,6 +189,8 @@ export type Database = {
           service_type?: Database["public"]["Enums"]["service_type"]
           status?: string
           updated_at?: string
+          monthly_budget?: number | null
+          start_date?: string | null
         }
         Relationships: [
           {
@@ -453,6 +459,7 @@ export type Database = {
           created_at: string
           ctr: number
           engagement_rate: number
+          id: string
           impressions: number
           likes: number
           metric_date: string
@@ -460,6 +467,8 @@ export type Database = {
           service_id: string
           shares: number
           updated_at: string
+          revenue?: number
+          spend?: number
         }
         Insert: {
           clicks: number
@@ -467,6 +476,7 @@ export type Database = {
           created_at?: string
           ctr: number
           engagement_rate: number
+          id?: string
           impressions: number
           likes: number
           metric_date: string
@@ -474,6 +484,8 @@ export type Database = {
           service_id: string
           shares: number
           updated_at?: string
+          revenue?: number
+          spend?: number
         }
         Update: {
           clicks?: number
@@ -481,6 +493,7 @@ export type Database = {
           created_at?: string
           ctr?: number
           engagement_rate?: number
+          id?: string
           impressions?: number
           likes?: number
           metric_date?: string
@@ -488,6 +501,8 @@ export type Database = {
           service_id?: string
           shares?: number
           updated_at?: string
+          revenue?: number
+          spend?: number
         }
         Relationships: [
           {
@@ -832,7 +847,7 @@ export type Database = {
       event_type_bus: "task_created" | "task_updated" | "task_completed" | "event_created" | "event_updated" | "message_sent" | "user_joined" | "user_left" | "service_metric_updated" | "ticket_created" | "ticket_updated"
       message_visibility: "public" | "private" | "team" | "client"
       metric_type: "impressions" | "engagement" | "conversions" | "ctr" | "reach" | "likes" | "shares" | "comments" | "followers" | "clicks"
-      service_type: "instagram" | "facebook" | "pinterest" | "email" | "website" | "linkedin" | "twitter" | "youtube"
+      service_type: "instagram" | "facebook" | "pinterest" | "email" | "website" | "linkedin" | "twitter" | "youtube" | "sms" | "seo" | "ads" | "other"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "pending" | "in_progress" | "completed" | "cancelled"
       task_visibility: "private" | "team" | "client" | "public"

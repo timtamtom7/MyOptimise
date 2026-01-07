@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useCurrentUser } from '@/hooks/use-user'
 import { useOrganizationMembers } from '@/hooks/use-user'
+import { useChannels, useMessages } from '@/hooks/use-chat'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,89 +18,24 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 
-interface Message {
-  id: string
-  user_id: string
-  content: string
-  created_at: string
-  user: {
-    full_name: string
-    avatar_url?: string
-  }
-}
-
-interface Channel {
-  id: string
-  name: string
-  type: 'general' | 'task' | 'client' | 'announcement'
-  participants: string[]
-  unread_count: number
-}
-
 export function TeamChat() {
-  const [selectedChannel, setSelectedChannel] = useState<string>('general')
-  const [messageInput, setMessageInput] = useState('')
   const { user } = useCurrentUser()
   const { data: members } = useOrganizationMembers(user?.accountId)
+  const { channels, loading: channelsLoading } = useChannels(user?.accountId)
+  
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null)
 
-  // Mock data for demonstration
-  const channels: Channel[] = [
-    {
-      id: 'general',
-      name: 'general',
-      type: 'general',
-      participants: [],
-      unread_count: 0,
-    },
-    {
-      id: 'tasks',
-      name: 'tasks',
-      type: 'task',
-      participants: [],
-      unread_count: 2,
-    },
-    {
-      id: 'announcements',
-      name: 'announcements',
-      type: 'announcement',
-      participants: [],
-      unread_count: 1,
-    },
-  ]
+  const { messages, loading: messagesLoading, sendMessage } = useMessages(selectedChannel || undefined)
+  const [messageInput, setMessageInput] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const now = new Date()
-  const messages: Message[] = [
-    {
-      id: '1',
-      user_id: '1',
-      content: 'Good morning team! Ready for the sprint planning?',
-      created_at: new Date(now.getTime() - 3600000).toISOString(),
-      user: {
-        full_name: 'Sarah Johnson',
-        avatar_url: undefined,
-      },
-    },
-    {
-      id: '2',
-      user_id: '2',
-      content: 'Yes! I\'ve prepared the backlog items.',
-      created_at: new Date(now.getTime() - 3000000).toISOString(),
-      user: {
-        full_name: 'Mike Chen',
-        avatar_url: undefined,
-      },
-    },
-    {
-      id: '3',
-      user_id: '3',
-      content: 'Great! Let\'s start at 10 AM.',
-      created_at: new Date(now.getTime() - 1800000).toISOString(),
-      user: {
-        full_name: 'Emma Davis',
-        avatar_url: undefined,
-      },
-    },
-  ]
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const getChannelIcon = (type: string) => {
     switch (type) {
@@ -119,13 +55,20 @@ export function TeamChat() {
       .slice(0, 2)
   }
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!messageInput.trim()) return
+    if (!messageInput.trim() || !selectedChannel || !user) return
 
-    // Here you would send the message to your backend
-    console.log('Sending message:', messageInput)
-    setMessageInput('')
+    try {
+      await sendMessage(messageInput, user.id, user.accountId)
+      setMessageInput('')
+    } catch (error) {
+      console.error('Failed to send message:', error)
+    }
+  }
+
+  if (channelsLoading) {
+    return <div className="p-4">Loading chat...</div>
   }
 
   return (
@@ -137,25 +80,29 @@ export function TeamChat() {
             Channels
           </h3>
           <div className="space-y-1">
-            {channels.map((channel) => (
-              <button
-                key={channel.id}
-                onClick={() => setSelectedChannel(channel.id)}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  selectedChannel === channel.id
-                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {getChannelIcon(channel.type)}
-                <span className="flex-1">{channel.name}</span>
-                {channel.unread_count > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {channel.unread_count}
-                  </Badge>
-                )}
-              </button>
-            ))}
+            {channels.length === 0 ? (
+                <div className="text-sm text-gray-500 px-3">No channels found</div>
+            ) : (
+                channels.map((channel) => (
+                <button
+                    key={channel.id}
+                    onClick={() => setSelectedChannel(channel.id)}
+                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    selectedChannel === channel.id
+                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}
+                >
+                    {getChannelIcon(channel.type)}
+                    <span className="flex-1">{channel.name}</span>
+                    {channel.unread_count && channel.unread_count > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                        {channel.unread_count}
+                    </Badge>
+                    )}
+                </button>
+                ))
+            )}
           </div>
         </div>
 
@@ -188,10 +135,14 @@ export function TeamChat() {
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              {getChannelIcon(channels.find(c => c.id === selectedChannel)?.type || 'general')}
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {channels.find(c => c.id === selectedChannel)?.name}
-              </h2>
+              {selectedChannel && channels.find(c => c.id === selectedChannel) && (
+                  <>
+                    {getChannelIcon(channels.find(c => c.id === selectedChannel)?.type || 'general')}
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {channels.find(c => c.id === selectedChannel)?.name}
+                    </h2>
+                  </>
+              )}
             </div>
             <div className="flex items-center space-x-2">
               <Button variant="ghost" size="sm">
@@ -207,13 +158,13 @@ export function TeamChat() {
             <div key={message.id} className="flex space-x-3">
               <Avatar className="h-8 w-8 flex-shrink-0">
                 <AvatarFallback className="text-xs">
-                  {getInitials(message.user.full_name)}
+                  {getInitials(message.sender.full_name)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
                   <span className="font-medium text-sm text-gray-900 dark:text-white">
-                    {message.user.full_name}
+                    {message.sender.full_name}
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     {format(new Date(message.created_at), 'h:mm a')}
@@ -225,6 +176,7 @@ export function TeamChat() {
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Message Input */}
@@ -232,12 +184,13 @@ export function TeamChat() {
           <form onSubmit={handleSendMessage} className="flex space-x-2">
             <Input
               type="text"
-              placeholder={`Message #${channels.find(c => c.id === selectedChannel)?.name}`}
+              placeholder={selectedChannel ? `Message #${channels.find(c => c.id === selectedChannel)?.name}` : 'Select a channel'}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               className="flex-1"
+              disabled={!selectedChannel}
             />
-            <Button type="submit" size="icon">
+            <Button type="submit" size="icon" disabled={!selectedChannel || !messageInput.trim()}>
               <Send className="h-4 w-4" />
             </Button>
           </form>

@@ -15,6 +15,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
+import { useRouter } from "next/navigation";
+
 interface MessagesTabProps {
   threads: any[];
   employees: any[];
@@ -25,6 +27,8 @@ interface MessagesTabProps {
 }
 
 export function MessagesTab({ threads, employees, basePath = "/dashboard/admin", actions }: MessagesTabProps) {
+  const router = useRouter();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -69,7 +73,7 @@ export function MessagesTab({ threads, employees, basePath = "/dashboard/admin",
         {threads.map((thread) => (
           <Card key={thread._id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => {
             // Navigate to thread
-            window.location.href = `${basePath}/threads/${thread._id}`;
+            router.push(`${basePath}/threads/${thread._id}`);
           }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">

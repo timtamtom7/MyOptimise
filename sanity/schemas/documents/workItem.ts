@@ -4,7 +4,7 @@ import { ClipboardList } from "lucide-react";
 export default defineType({
   name: "workItem",
   type: "document",
-  title: "Work Item",
+  title: "Task",
   icon: ClipboardList,
   groups: [
     { name: "content", title: "Content" },
@@ -50,6 +50,29 @@ export default defineType({
       initialValue: false,
     }),
     defineField({
+      name: "defaultDueOffset",
+      title: "Default Due Offset (Days)",
+      description: "For templates: how many days from creation is this due?",
+      type: "number",
+      group: "content",
+      hidden: ({ parent }) => !parent?.isTemplate,
+    }),
+    defineField({
+      name: "checklist",
+      title: "Checklist",
+      type: "array",
+      group: "content",
+      of: [
+        {
+          type: "object",
+          fields: [
+            { name: "item", type: "string", title: "Item" },
+            { name: "completed", type: "boolean", title: "Completed", initialValue: false },
+          ],
+        },
+      ],
+    }),
+    defineField({
       name: "attachments",
       title: "Attachments",
       type: "array",
@@ -88,17 +111,17 @@ export default defineType({
       group: "links",
     }),
     defineField({
-      name: "relatedSignup",
-      title: "Related Signup",
+      name: "relatedCampaign",
+      title: "Related Campaign",
       type: "reference",
-      to: [{ type: "signup" }],
+      to: [{ type: "campaign" }],
       group: "links",
     }),
     defineField({
-      name: "relatedSponsorship",
-      title: "Related Sponsorship",
+      name: "relatedDeliverable",
+      title: "Related Deliverable",
       type: "reference",
-      to: [{ type: "sponsorship" }],
+      to: [{ type: "deliverable" }],
       group: "links",
     }),
     defineField({

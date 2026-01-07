@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { format } from 'date-fns'
 import { useClientServices } from '@/hooks/use-analytics'
 import { useCurrentUser } from '@/hooks/use-user'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { 
   Plus, 
@@ -14,20 +14,18 @@ import {
   TrendingUp,
   Users,
   DollarSign,
-  Calendar,
-  Instagram,
-  Facebook,
   Mail,
   Globe,
   Share2,
   Target,
   Briefcase
 } from 'lucide-react'
+import { Instagram, Facebook } from '@/components/icons/brands'
 
 export function ServicesDashboard() {
   const [selectedService, setSelectedService] = useState<string | null>(null)
   const { user } = useCurrentUser()
-  const { data: services, isLoading } = useClientServices(user?.accountId || '')
+  const { services, loading: isLoading } = useClientServices(user?.accountId || '')
 
   const getServiceIcon = (serviceType: string) => {
     switch (serviceType) {
@@ -47,15 +45,6 @@ export function ServicesDashboard() {
       case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
     }
-  }
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
   }
 
   if (isLoading) {
@@ -114,7 +103,7 @@ export function ServicesDashboard() {
                     {getServiceIcon(service.service_type)}
                   </div>
                   <div>
-                    <CardTitle className="text-lg">{service.service_name}</CardTitle>
+                    <CardTitle className="text-lg">{service.name}</CardTitle>
                     <CardDescription className="capitalize">
                       {service.service_type} Marketing
                     </CardDescription>
@@ -134,9 +123,9 @@ export function ServicesDashboard() {
                     <Users className="h-4 w-4 text-blue-500" />
                   </div>
                   <div className="text-2xl font-bold">
-                    {service.current_metrics.followers?.toLocaleString() || 0}
+                    {((service.current_metrics as any)?.impressions || (service.current_metrics as any)?.visitors || (service.current_metrics as any)?.opens || 0).toLocaleString()}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Followers</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Reach / Views</div>
                 </div>
                 
                 <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -144,21 +133,21 @@ export function ServicesDashboard() {
                     <TrendingUp className="h-4 w-4 text-green-500" />
                   </div>
                   <div className="text-2xl font-bold">
-                    {service.current_metrics.engagement_rate?.toFixed(1) || 0}%
+                    {((service.current_metrics as any)?.engagement || (service.current_metrics as any)?.clicks || 0).toLocaleString()}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Engagement</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Engagement / Clicks</div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center justify-center mb-1">
-                    <DollarSign className="h-4 w-4 text-purple-500" />
+                    <Users className="h-4 w-4 text-purple-500" />
                   </div>
                   <div className="text-2xl font-bold">
-                    ${service.current_metrics.revenue?.toLocaleString() || 0}
+                    {((service.current_metrics as any)?.followers || 0).toLocaleString()}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Revenue</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Total Followers</div>
                 </div>
                 
                 <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -166,7 +155,7 @@ export function ServicesDashboard() {
                     <Target className="h-4 w-4 text-orange-500" />
                   </div>
                   <div className="text-2xl font-bold">
-                    {service.current_metrics.conversions?.toLocaleString() || 0}
+                    {((service.current_metrics as any)?.conversions || 0).toLocaleString()}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">Conversions</div>
                 </div>
@@ -176,12 +165,12 @@ export function ServicesDashboard() {
               <div className="flex items-center justify-between text-sm">
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Monthly Budget:</span>
-                  <span className="font-medium ml-1">${service.monthly_budget.toLocaleString()}</span>
+                  <span className="font-medium ml-1">${(service.monthly_budget || 0).toLocaleString()}</span>
                 </div>
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Started:</span>
                   <span className="font-medium ml-1">
-                    {format(new Date(service.start_date), 'MMM d, yyyy')}
+                    {format(new Date(service.start_date || service.created_at), 'MMM d, yyyy')}
                   </span>
                 </div>
               </div>
@@ -253,7 +242,7 @@ export function ServicesDashboard() {
                 <div>
                   <label className="text-sm font-medium">Monthly Budget</label>
                   <div className="text-2xl font-bold">
-                    ${services?.find(s => s.id === selectedService)?.monthly_budget.toLocaleString()}
+                    ${(services?.find(s => s.id === selectedService)?.monthly_budget || 0).toLocaleString()}
                   </div>
                 </div>
               </div>

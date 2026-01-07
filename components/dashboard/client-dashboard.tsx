@@ -14,8 +14,9 @@ import { Alert, AlertDescription } from '../ui/alert'
 
 export function ClientDashboard() {
   const [activeView, setActiveView] = useState<'overview' | 'services' | 'performance' | 'reports'>('overview')
-  const { user, isLoading, error } = useCurrentUser()
-  const { hasCapability, isClient } = useCapabilities()
+  const { user, loading: isLoading, error } = useCurrentUser()
+  const { hasCapability } = useCapabilities()
+  const isClient = hasCapability("client.access"); // Assuming this is how we check, or just check user role
 
   if (isLoading) {
     return (

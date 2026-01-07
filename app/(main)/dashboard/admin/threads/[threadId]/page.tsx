@@ -1,11 +1,10 @@
-import { hasAccountCapability, safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
-import { client } from "@/sanity/lib/client";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import crypto from "crypto";
+import { markThreadRead, postThreadMessage, togglePinMessage } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -34,162 +33,11 @@ export default async function AdminThreadPage(props: { params: Promise<{ threadI
   const canMarkRead = hasAccountCapability(acct, "message.read");
   const canPin = hasAccountCapability(acct, "message.pin");
 
-  async function markThreadRead(formData: FormData) {
-    "use server";
-    const session = await safeGetServerSession();
-    const email = String((session as any)?.user?.email || "");
-    if (!email) return;
-    const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "admin") return;
-    if (!hasAccountCapability(acct, "message.read")) return;
 
-    const threadId = String(formData.get("threadId") || "").trim();
-    if (!threadId) return;
 
-    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
-    if (!writeToken) return;
-    const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-    const thread = await writeClient.fetch(
-      `*[_type == "messageThread" && _id == $id][0]{
-        _id,
-        participants[]._ref,
-        "readStates": readStates[]{user, lastReadAt},
-        "messages": messages[]{createdAt}
-      }`,
-      { id: threadId },
-    );
-    if (!thread?._id) return;
-    if (!Array.isArray(thread.participants) || !thread.participants.includes(String(acct._id))) return;
 
-    const lastMessageAt =
-      Array.isArray(thread.messages) && thread.messages.length
-        ? thread.messages
-            .map((m: any) => String(m?.createdAt || ""))
-            .filter(Boolean)
-            .sort()
-            .slice(-1)[0]
-        : new Date().toISOString();
 
-    const existingReadStates = Array.isArray(thread.readStates) ? thread.readStates : [];
-    const updatedReadStates = [
-      ...existingReadStates.filter((rs: any) => String(rs?.user?._ref || "") !== String(acct._id)),
-      { _type: "threadReadState", user: { _type: "reference", _ref: String(acct._id) }, lastReadAt: lastMessageAt },
-    ];
-
-    await writeClient.patch(threadId).set({ readStates: updatedReadStates }).commit();
-    revalidatePath(`/dashboard/admin/threads/${threadId}`);
-    redirect(`/dashboard/admin/threads/${threadId}`);
-  }
-
-  async function postThreadMessage(formData: FormData) {
-    "use server";
-    const session = await safeGetServerSession();
-    const email = String((session as any)?.user?.email || "");
-    if (!email) return;
-    const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "admin") return;
-    if (!hasAccountCapability(acct, "message.create")) return;
-
-    const threadId = String(formData.get("threadId") || "").trim();
-    const message = String(formData.get("message") || "").trim();
-    if (!threadId || !message) return;
-    const attachment = formData.get("attachment");
-
-    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
-    if (!writeToken) return;
-    const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-
-    const thread = await writeClient.fetch(
-      `*[_type == "messageThread" && _id == $id][0]{_id, visibility, participants[]._ref, "readStates": readStates[]{user, lastReadAt}}`,
-      { id: threadId },
-    );
-    if (!thread?._id) return;
-    if (!Array.isArray(thread.participants) || !thread.participants.includes(String(acct._id))) return;
-
-    const now = new Date().toISOString();
-    const messageVisibility = String(thread.visibility || "") === "client" ? "client" : "internal";
-    const existingReadStates = Array.isArray(thread.readStates) ? thread.readStates : [];
-    const updatedReadStates = [
-      ...existingReadStates.filter((rs: any) => String(rs?.user?._ref || "") !== String(acct._id)),
-      { _type: "threadReadState", user: { _type: "reference", _ref: String(acct._id) }, lastReadAt: now },
-    ];
-
-    let uploadedAssetId: string | null = null;
-    if (attachment && typeof attachment !== "string") {
-      const file = attachment as File;
-      if (file.size > 0) {
-        const asset = await writeClient.assets.upload("file", file, { filename: file.name });
-        uploadedAssetId = String(asset?._id || "");
-      }
-    }
-
-    await writeClient
-      .patch(threadId)
-      .setIfMissing({ messages: [], readStates: [] })
-      .set({ updatedAt: now, readStates: updatedReadStates })
-      .append("messages", [
-        {
-          _type: "threadMessage",
-          author: { _type: "reference", _ref: String(acct._id) },
-          visibility: messageVisibility,
-          message,
-          createdAt: now,
-          ...(uploadedAssetId
-            ? { attachments: [{ _type: "file", asset: { _type: "reference", _ref: uploadedAssetId } }] }
-            : {}),
-        },
-      ])
-      .commit();
-
-    revalidatePath(`/dashboard/admin/threads/${threadId}`);
-    redirect(`/dashboard/admin/threads/${threadId}`);
-  }
-
-  async function togglePinMessage(formData: FormData) {
-    "use server";
-    const session = await safeGetServerSession();
-    const email = String((session as any)?.user?.email || "");
-    if (!email) return;
-    const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "admin") return;
-    if (!hasAccountCapability(acct, "message.pin")) return;
-
-    const threadId = String(formData.get("threadId") || "").trim();
-    const messageKey = String(formData.get("messageKey") || "").trim();
-    if (!threadId || !messageKey) return;
-
-    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
-    if (!writeToken) return;
-    const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-
-    const thread = await writeClient.fetch(
-      `*[_type == "messageThread" && _id == $id][0]{
-        _id,
-        participants[]._ref,
-        pinnedMessageKeys,
-        "hasMessage": count(messages[_key == $messageKey]) > 0
-      }`,
-      { id: threadId, messageKey },
-    );
-    if (!thread?._id) return;
-    if (!Array.isArray(thread.participants) || !thread.participants.includes(String(acct._id))) return;
-    if (!thread.hasMessage) return;
-
-    const existing = Array.isArray(thread.pinnedMessageKeys) ? thread.pinnedMessageKeys.map((v: any) => String(v || "")) : [];
-    const set = new Set(existing.filter(Boolean));
-    if (set.has(messageKey)) set.delete(messageKey);
-    else set.add(messageKey);
-    const next = Array.from(set).slice(0, 50);
-
-    await writeClient
-      .patch(threadId)
-      .set({ pinnedMessageKeys: next, updatedAt: new Date().toISOString() })
-      .commit();
-
-    revalidatePath(`/dashboard/admin/threads/${threadId}`);
-    redirect(`/dashboard/admin/threads/${threadId}`);
-  }
 
   const threadRes = await sanityFetch({
     query: `*[_type == "messageThread" && _id == $id][0]{

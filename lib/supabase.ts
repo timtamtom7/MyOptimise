@@ -195,7 +195,7 @@ export async function getCurrentUser(): Promise<UserWithCapabilities | null> {
 
     if (userError || !user) return null
 
-    return user as UserWithCapabilities
+    return user as unknown as UserWithCapabilities
   } catch (error) {
     console.error('Error getting current user:', error)
     return null

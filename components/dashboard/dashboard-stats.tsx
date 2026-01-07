@@ -73,7 +73,7 @@ export function DashboardStats() {
           <CardContent>
             <div className="text-2xl font-bold">{taskStats?.byStatus?.in_progress || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {taskStats?.byStatus?.todo || 0} pending
+              {taskStats?.byStatus?.pending || 0} pending
             </p>
           </CardContent>
         </Card>
@@ -158,9 +158,9 @@ export function DashboardStats() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">To Do</span>
+                <span className="text-sm font-medium">Pending</span>
                 <span className="text-sm text-muted-foreground">
-                  {taskStats?.byStatus?.todo || 0}
+                  {taskStats?.byStatus?.pending || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -170,15 +170,15 @@ export function DashboardStats() {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Review</span>
-                <span className="text-sm text-muted-foreground">
-                  {taskStats?.byStatus?.review || 0}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Completed</span>
                 <span className="text-sm text-muted-foreground">
                   {taskStats?.byStatus?.completed || 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Cancelled</span>
+                <span className="text-sm text-muted-foreground">
+                  {taskStats?.byStatus?.cancelled || 0}
                 </span>
               </div>
             </div>

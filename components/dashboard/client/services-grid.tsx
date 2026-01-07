@@ -3,7 +3,8 @@
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Facebook, Instagram, Globe, Mail, BarChart, Megaphone } from "lucide-react";
+import { Globe, Mail, BarChart, Megaphone } from "lucide-react";
+import { Instagram, Facebook } from "@/components/icons/brands";
 
 interface ClientService {
   _id: string;
@@ -40,7 +41,9 @@ export function ServicesGrid({ services, toggleAction }: ServicesGridProps) {
       </CardHeader>
       <CardContent className="px-0">
         {services.length === 0 ? (
-           <div className="text-sm text-muted-foreground py-8 text-center border rounded-lg bg-muted/20">No active services.</div>
+           <div className="text-sm text-muted-foreground py-8 text-center border rounded-lg bg-muted/20">
+             No active services. Enable a service to get started.
+           </div>
         ) : (
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {services.map(svc => (

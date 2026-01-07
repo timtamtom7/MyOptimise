@@ -9,7 +9,9 @@ import {
   Users, 
   BarChart3,
   Settings,
-  LogOut
+  LogOut,
+  FileText,
+  Briefcase
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -38,8 +40,10 @@ interface EmployeeSidebarProps {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard/employee', icon: LayoutDashboard },
   { name: 'Tasks', href: '/dashboard/employee/tasks', icon: CheckSquare },
+  { name: 'Clients', href: '/dashboard/employee/clients', icon: Briefcase },
   { name: 'Schedule', href: '/dashboard/employee/schedule', icon: Calendar },
   { name: 'Messages', href: '/dashboard/employee/messages', icon: MessageSquare },
+  { name: 'Documents', href: '/dashboard/employee/documents', icon: FileText },
   { name: 'Team', href: '/dashboard/employee/team', icon: Users },
   { name: 'Analytics', href: '/dashboard/employee/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/dashboard/employee/settings', icon: Settings },

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
+import { GlobalLoadingCursor } from "@/components/ui/global-loading-cursor";
 
 const isProduction = process.env.NEXT_PUBLIC_SITE_ENV === "production";
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ||
@@ -65,6 +66,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <GlobalLoadingCursor />
           {children}
         </ThemeProvider>
         <Toaster position="top-center" richColors />

@@ -89,6 +89,14 @@ export default defineType({
       group: "links",
     }),
     defineField({
+      name: "relatedClient",
+      title: "Related Client",
+      type: "reference",
+      to: [{ type: "account" }],
+      group: "links",
+      description: "If set, this item will appear on the client's calendar (if visibility is 'Client Visible')",
+    }),
+    defineField({
       name: "createdBy",
       title: "Created By",
       type: "reference",

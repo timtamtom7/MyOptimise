@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,6 +37,8 @@ export function TasksTab({
   capabilities, 
   actions 
 }: TasksTabProps) {
+  const [activeTab, setActiveTab] = React.useState("active");
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -45,14 +48,14 @@ export function TasksTab({
         </div>
         {capabilities.canCreate && (
           <div className="flex gap-2">
-             <Button onClick={() => document.getElementById("create-trigger")?.click()}>
+             <Button onClick={() => setActiveTab("create")}>
               <Plus className="mr-2 h-4 w-4" /> New Task
              </Button>
           </div>
         )}
       </div>
 
-      <Tabs defaultValue="active" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="active">Active ({openWorkItems.length})</TabsTrigger>
           <TabsTrigger value="unassigned">Unassigned ({unassignedWorkItems.length})</TabsTrigger>

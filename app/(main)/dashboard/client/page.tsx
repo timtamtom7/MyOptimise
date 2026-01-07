@@ -1,4 +1,5 @@
-import { hasAccountCapability, safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { client } from "@/sanity/lib/client";
@@ -6,6 +7,9 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ClientView } from "@/components/dashboard/client/client-view";
+import { approveDeliverable, rejectDeliverable } from "@/app/actions/deliverables";
+import { sendEmail } from "@/lib/email";
+import { clientRequestSubmittedEmail, clientRequestReplyEmail } from "@/lib/email-templates";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +75,8 @@ export default async function ClientDashboardPage() {
 
     const subject = String(formData.get("subject") || "").trim();
     const message = String(formData.get("message") || "").trim();
+    const category = String(formData.get("type") || "support").trim();
+    const priority = String(formData.get("priority") || "medium").trim();
     if (!subject || !message) return;
     const attachment = formData.get("attachment");
 
@@ -91,6 +97,8 @@ export default async function ClientDashboardPage() {
       _type: "clientRequest",
       subject,
       message,
+      category,
+      priority,
       clientEmail: email.toLowerCase(),
       clientAccount: { _type: "reference", _ref: String(acct._id) },
       status: "submitted",
@@ -109,6 +117,21 @@ export default async function ClientDashboardPage() {
         },
       ],
     });
+
+    // Notify admins
+    const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(Boolean);
+    if (adminEmails.length > 0) {
+      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/admin/intake`;
+      await sendEmail({
+        to: adminEmails,
+        subject: `New Request from ${acct.name}: ${subject}`,
+        html: clientRequestSubmittedEmail({
+          clientName: String(acct.name || "Client"),
+          subject,
+          link,
+        }),
+      });
+    }
 
     revalidatePath("/dashboard/client");
   }
@@ -132,7 +155,7 @@ export default async function ClientDashboardPage() {
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
     const canUpdate = await writeClient.fetch(
-      `*[_type == "clientRequest" && _id == $id && clientEmail != null && lower(clientEmail) == $email][0]{_id}`,
+      `*[_type == "clientRequest" && _id == $id && clientEmail != null && lower(clientEmail) == $email][0]{_id, subject}`,
       { id, email: email.toLowerCase() },
     );
     if (!canUpdate?._id) return;
@@ -163,6 +186,22 @@ export default async function ClientDashboardPage() {
         },
       ])
       .commit();
+
+    // Notify admins of reply
+    const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(Boolean);
+    if (adminEmails.length > 0) {
+      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/admin/intake`;
+      await sendEmail({
+        to: adminEmails,
+        subject: `New Reply from ${acct.name}: ${canUpdate.subject}`,
+        html: clientRequestReplyEmail({
+          clientName: String(acct.name || "Client"),
+          subject: canUpdate.subject || "Request",
+          message,
+          link,
+        }),
+      });
+    }
 
     revalidatePath("/dashboard/client");
   }
@@ -301,10 +340,12 @@ export default async function ClientDashboardPage() {
     clientWorkItemsRes,
     clientServicesRes,
     myServiceRequestsRes,
+    myDeliverablesRes,
+    activeCampaignRes,
   ] = await Promise.all([
     sanityFetch({
       query: `*[_type == "clientRequest" && clientEmail != null && lower(clientEmail) == $email] | order(createdAt desc)[0..9]{
-        _id, subject, status, createdAt, response,
+        _id, subject, status, createdAt, response, category, priority,
         statusHistory[]{fromStatus, toStatus, changedAt},
         messages[visibility == "client"]{
           message, createdAt, visibility,
@@ -353,7 +394,21 @@ export default async function ClientDashboardPage() {
       }`,
       params: { acctId },
     }),
-  ]);
+    sanityFetch({
+        query: `*[_type == "deliverable" && campaign->client._ref == $acctId] | order(createdAt desc) {
+          _id, title, status, type, dueDate, createdAt,
+          "campaignTitle": campaign->title,
+          "latestAsset": versionHistory[-1].asset->{url, originalFilename, mimeType, extension}
+        }`,
+        params: { acctId },
+      }),
+      sanityFetch({
+        query: `*[_type == "campaign" && client._ref == $acctId && status in ["active", "planned"]] | order(startDate asc){
+          _id, title, description, startDate, endDate, status
+        }`,
+        params: { acctId },
+      }),
+    ]);
 
   const myRequests = ((myRequestsRes as any)?.data ?? []) as any[];
   const supportStaff = ((supportStaffRes as any)?.data ?? []) as any[];
@@ -361,6 +416,30 @@ export default async function ClientDashboardPage() {
   const clientWorkItems = ((clientWorkItemsRes as any)?.data ?? []) as any[];
   const clientServices = ((clientServicesRes as any)?.data ?? []) as any[];
   const myServiceRequests = ((myServiceRequestsRes as any)?.data ?? []) as any[];
+  const myDeliverables = ((myDeliverablesRes as any)?.data ?? []) as any[];
+  const campaigns = ((activeCampaignRes as any)?.data ?? []) as any[];
+  const activeCampaign = campaigns.find((c: any) => c.status === "active") || campaigns[0];
+
+  // Prepare calendar events
+  const calendarEvents: any[] = [
+    ...campaigns.map((c: any) => ({
+      id: c._id,
+      title: c.title,
+      date: c.startDate || new Date().toISOString(),
+      endDate: c.endDate,
+      type: "campaign",
+      status: c.status,
+      description: c.description
+    })),
+    ...myDeliverables.map((d: any) => ({
+      id: d._id,
+      title: d.title,
+      date: d.dueDate || d.createdAt,
+      type: "deliverable",
+      status: d.status,
+      description: d.campaignTitle
+    })).filter((e: any) => e.date) // Ensure date exists
+  ];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -379,6 +458,9 @@ export default async function ClientDashboardPage() {
           clientWorkItems,
           clientServices,
           myServiceRequests,
+          myDeliverables,
+          activeCampaign,
+          calendarEvents,
         }}
         actions={{
           submitClientRequest,
@@ -386,6 +468,8 @@ export default async function ClientDashboardPage() {
           createOrOpenSupportThread,
           setClientServiceEnabled,
           submitServiceRequest,
+          approveDeliverable,
+          rejectDeliverable,
         }}
         capabilities={{
           canWrite,

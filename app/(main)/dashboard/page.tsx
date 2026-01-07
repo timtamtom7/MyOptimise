@@ -11,7 +11,7 @@ export default async function DashboardRouterPage() {
   }
   const email = String((session as any)?.user?.email || "");
   const acct = email ? await fetchSanityAccountByEmail({ email }) : null;
-  const type = String(acct?.type || (session as any)?.type || "");
+  const type = String(acct?.type || (session as any)?.type || "").toLowerCase();
   const dest =
     type === "client"
       ? "/dashboard/client"

@@ -1,4 +1,5 @@
-import { hasAccountCapability, safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { client } from "@/sanity/lib/client";
@@ -10,6 +11,7 @@ import bcrypt from "bcryptjs";
 import { Resend } from "resend";
 import { writeAuditLog } from "@/lib/audit";
 import { AdminView } from "@/components/dashboard/admin/admin-view";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,7 @@ async function requireActiveAdmin() {
   const acct = await fetchSanityAccountByEmail({ email });
   if (!acct) return null;
   if (acct.status === "disabled") return null;
-  if (acct.type !== "admin") return null;
+  if (String(acct.type || "").toLowerCase() !== "admin") return null;
   return { session, acct, email };
 }
 
@@ -347,94 +349,6 @@ async function removeAccount(formData: FormData) {
   revalidatePath("/dashboard/admin");
 }
 
-async function assignSignup(formData: FormData) {
-  "use server";
-  const admin = await requireActiveAdmin();
-  if (!admin) return;
-  if (!hasAccountCapability(admin.acct, "task.create")) return;
-  if (!hasAccountCapability(admin.acct, "task.assign")) return;
-
-  const signupId = String(formData.get("signupId") || "");
-  const assigneeId = String(formData.get("assigneeId") || "");
-  if (!signupId || !assigneeId) return;
-
-  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
-  if (!writeToken) return;
-  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-
-  const signup = await writeClient.fetch(
-    `*[_type == "signup" && _id == $id][0]{_id, name, email, event->{_id}}`,
-    { id: signupId },
-  );
-  if (!signup?._id) return;
-
-  const relatedEventRef = signup?.event?._id ? { _type: "reference", _ref: signup.event._id } : undefined;
-
-  await writeClient.create({
-    _type: "workItem",
-    title: `Handle signup: ${String(signup.name || signup.email || "Unknown")}`,
-    assignedTo: { _type: "reference", _ref: assigneeId },
-    createdBy: { _type: "reference", _ref: String(admin.acct._id) },
-    relatedSignup: { _type: "reference", _ref: signupId },
-    ...(relatedEventRef ? { relatedEvent: relatedEventRef } : {}),
-    priority: "high",
-    status: "todo",
-    createdAt: new Date().toISOString(),
-  });
-  await writeAuditLog({
-    actorAccountId: String(admin.acct._id),
-    action: "workItem.created_from_signup",
-    targetType: "signup",
-    targetId: String(signupId),
-    targetLabel: String(signup.name || signup.email || ""),
-    context: { signupId, assigneeId },
-  });
-
-  revalidatePath("/dashboard/admin");
-}
-
-async function assignSponsorship(formData: FormData) {
-  "use server";
-  const admin = await requireActiveAdmin();
-  if (!admin) return;
-  if (!hasAccountCapability(admin.acct, "task.create")) return;
-  if (!hasAccountCapability(admin.acct, "task.assign")) return;
-
-  const sponsorshipId = String(formData.get("sponsorshipId") || "");
-  const assigneeId = String(formData.get("assigneeId") || "");
-  if (!sponsorshipId || !assigneeId) return;
-
-  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
-  if (!writeToken) return;
-  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-
-  const sponsorship = await writeClient.fetch(
-    `*[_type == "sponsorship" && _id == $id][0]{_id, businessName, contactEmail}`,
-    { id: sponsorshipId },
-  );
-  if (!sponsorship?._id) return;
-
-  const created = await writeClient.create({
-    _type: "workItem",
-    title: `Handle sponsorship: ${String(sponsorship.businessName || sponsorship.contactEmail || "Unknown")}`,
-    assignedTo: { _type: "reference", _ref: assigneeId },
-    createdBy: { _type: "reference", _ref: String(admin.acct._id) },
-    relatedSponsorship: { _type: "reference", _ref: sponsorshipId },
-    priority: "high",
-    status: "todo",
-    createdAt: new Date().toISOString(),
-  });
-  await writeAuditLog({
-    actorAccountId: String(admin.acct._id),
-    action: "workItem.created_from_sponsorship",
-    targetId: String(created?._id || ""),
-    targetType: "workItem",
-    targetLabel: String(created?.title || ""),
-    context: { sponsorshipId, assigneeId },
-  });
-
-  revalidatePath("/dashboard/admin");
-}
 
 async function updateWorkItemStatus(formData: FormData) {
   "use server";
@@ -951,6 +865,27 @@ async function updateServiceRequestStatus(formData: FormData) {
           createdAt: now,
           updatedAt: now,
         });
+
+        // Sync to Supabase
+        const clientEmail = await writeClient.fetch(`*[_type == "account" && _id == $id][0].email`, { id: clientId });
+        if (clientEmail) {
+            const { data: userData } = await supabaseAdmin
+            .from("users")
+            .select("organization_id")
+            .eq("email", clientEmail)
+            .single();
+
+            if (userData?.organization_id) {
+            await supabaseAdmin.from("client_services").insert({
+                organization_id: userData.organization_id,
+                name: `Service: ${requestedServiceType}`,
+                service_type: requestedServiceType as any,
+                status: "active",
+                start_date: now.split("T")[0],
+                monthly_budget: 0,
+            });
+            }
+        }
       }
     }
   }
@@ -1247,8 +1182,6 @@ export default async function AdminDashboardPage() {
   const [
     accountsRes,
     employeesRes,
-    receivedSignupsRes,
-    submittedSponsorshipsRes,
     unassignedWorkItemsRes,
     openWorkItemsRes,
     workItemTemplatesRes,
@@ -1265,15 +1198,6 @@ export default async function AdminDashboardPage() {
     }),
     sanityFetch({
       query: `*[_type == "account" && type == "employee" && status != "disabled"] | order(name asc, email asc){_id, name, email}`,
-    }),
-    sanityFetch({
-      query: `*[_type == "signup" && status == "received"] | order(createdAt desc)[0..9]{
-        _id, name, email, status, createdAt,
-        event->{_id, title}
-      }`,
-    }),
-    sanityFetch({
-      query: `*[_type == "sponsorship" && status == "submitted"] | order(_createdAt desc)[0..9]{_id, businessName, contactEmail, mealsCount, date, location, status}`,
     }),
     sanityFetch({
       query: `*[_type == "workItem" && (!defined(isTemplate) || isTemplate != true) && status != "done" && !defined(assignedTo)] | order(priority desc, dueDate asc, createdAt desc)[0..9]{
@@ -1360,8 +1284,6 @@ export default async function AdminDashboardPage() {
 
   const accounts = ((accountsRes as any)?.data ?? []) as any[];
   const employees = ((employeesRes as any)?.data ?? []) as Array<{ _id: string; name?: string; email?: string }>;
-  const receivedSignups = ((receivedSignupsRes as any)?.data ?? []) as any[];
-  const submittedSponsorships = ((submittedSponsorshipsRes as any)?.data ?? []) as any[];
   const unassignedWorkItems = ((unassignedWorkItemsRes as any)?.data ?? []) as any[];
   const openWorkItems = ((openWorkItemsRes as any)?.data ?? []) as any[];
   const workItemTemplates = ((workItemTemplatesRes as any)?.data ?? []) as any[];
@@ -1386,8 +1308,6 @@ export default async function AdminDashboardPage() {
       data={{
         accounts,
         employees,
-        receivedSignups,
-        submittedSponsorships,
         openWorkItems,
         unassignedWorkItems,
         workItemTemplates,
@@ -1438,8 +1358,6 @@ export default async function AdminDashboardPage() {
         addWorkItemComment,
         clearReassignmentRequest,
         resetAccountSessions,
-        assignSignup,
-        assignSponsorship,
       }}
     />
   );

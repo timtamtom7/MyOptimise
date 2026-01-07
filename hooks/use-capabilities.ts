@@ -61,7 +61,6 @@ export function useCapabilities() {
   const [error, setError] = useState<Error | null>(null);
 
   const capabilitySet = useMemo(() => new Set(capabilities), [capabilities]);
-  const accountType = String(account?.type || "");
 
   const hasCapability = useCallback(
     (capability: string) => {
@@ -98,140 +97,77 @@ export function useCapabilities() {
         "calendar.create": ["calendar.create", "calendar.team.create", "calendar.create.own"],
         "calendar.update": ["calendar.update", "calendar.team.update", "calendar.update.own"],
         "messages.read": ["message.read", "message.view.all"],
-        "messages.create": ["message.create"],
-        "services.read": ["client.services.view", "client.services.manage"],
-        "services.manage": ["client.services.manage"],
-        "services.toggle": ["client.services.toggle"],
-        "services.request": ["client.services.request_new"],
       };
+      
       const aliases = aliasChecks[normalized];
-      if (!aliases?.length) return false;
-      return aliases.some((c) => capabilitySet.has(c));
+      if (aliases) {
+        return aliases.some((alias) => capabilitySet.has(alias));
+      }
+
+      return false;
     },
-    [capabilitySet],
+    [capabilitySet]
   );
 
   useEffect(() => {
     if (status === "loading") return;
-
-    if (status !== "authenticated") {
-      setCapabilities([]);
-      setAccount(null);
-      setError(null);
-      setLoading(false);
-      return;
+    if (status === "unauthenticated") {
+        setLoading(false);
+        return;
     }
 
-    let cancelled = false;
-    const run = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await fetch("/api/capabilities", { method: "GET", cache: "no-store" });
-        const body = (await res.json()) as CapabilitiesApiResponse;
-        if (cancelled) return;
-        if (!res.ok || !body || (body as any).ok !== true) {
-          const message = String((body as any)?.error || `capabilities_fetch_failed_${res.status}`);
-          throw new Error(message);
+    let mounted = true;
+    async function fetchCapabilities() {
+        try {
+            console.log('[useCapabilities] Fetching capabilities...');
+            const res = await fetch("/api/capabilities");
+            if (!res.ok) {
+                console.error('[useCapabilities] Failed to fetch:', res.status, res.statusText);
+                throw new Error("Failed to fetch capabilities");
+            }
+            const data: CapabilitiesApiResponse = await res.json();
+            console.log('[useCapabilities] Data received:', data);
+            if (mounted) {
+                if (data.ok) {
+                    setCapabilities(data.capabilities);
+                    setAccount(data.account);
+                } else {
+                    console.error('[useCapabilities] API returned error:', data.error);
+                    setError(new Error(data.error));
+                }
+            }
+        } catch (err) {
+            console.error('[useCapabilities] Error:', err);
+            if (mounted) {
+                setError(err instanceof Error ? err : new Error("Unknown error"));
+            }
+        } finally {
+            if (mounted) setLoading(false);
         }
-        setCapabilities(Array.isArray(body.capabilities) ? body.capabilities : []);
-        setAccount(body.account);
-      } catch (e) {
-        if (cancelled) return;
-        setCapabilities([]);
-        setAccount(null);
-        setError(e instanceof Error ? e : new Error("Failed to load capabilities"));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
+    }
+    fetchCapabilities();
+    return () => { mounted = false; };
   }, [status]);
 
-  const isOwner = accountType === "admin";
-  const isManager = accountType === "manager";
-  const isEmployee = accountType === "employee";
-  const isClient = accountType === "client";
-
-  return { capabilities, hasCapability, account, loading, error, isOwner, isManager, isEmployee, isClient };
+  return { capabilities, account, loading, error, hasCapability };
 }
 
-export function useUserCapabilities() {
-  const { capabilities, account, loading, error, hasCapability } = useCapabilities();
-
-  const caps = useMemo<UserCapabilities>(() => {
-    const type = String((account as any)?.type || "");
-    const isOwner = type === "admin";
-    const isManager = type === "manager";
-    const isEmployee = type === "employee";
-    const isClient = type === "client";
-
-    const canCreateTasks = hasCapability("task.create");
-    const canUpdateTasks =
-      hasCapability("task.update.all") ||
-      hasCapability("task.update.team") ||
-      hasCapability("task.update.description.own") ||
-      hasCapability("task.status.change.own") ||
-      hasCapability("task.status.change.team");
-    const canDeleteTasks = hasCapability("task.delete.all");
-    const canViewAllTasks = hasCapability("task.view.all");
-
-    const canCreateEvents = hasCapability("calendar.create") || hasCapability("calendar.team.create") || hasCapability("calendar.create.own");
-    const canUpdateEvents =
-      hasCapability("calendar.update") ||
-      hasCapability("calendar.team.update") ||
-      hasCapability("calendar.update.own");
-    const canDeleteEvents = hasCapability("calendar.delete");
-    const canViewAllEvents = hasCapability("calendar.view.all");
-
-    const canSendMessages = hasCapability("message.create");
-    const canViewAllMessages = hasCapability("message.view.all");
-
-    const canManageUsers = hasCapability("users.invite") || hasCapability("users.invite.limited");
-    const canViewAnalytics =
-      hasCapability("analytics.view.all") ||
-      hasCapability("analytics.view.client_assigned") ||
-      hasCapability("analytics.view.relevant") ||
-      hasCapability("analytics.view.read_only");
-    const canManageServices = hasCapability("client.services.manage");
-    const canViewReports = hasCapability("documents.reports.view") || hasCapability("analytics.export.all") || hasCapability("analytics.export.scoped");
-
-    return {
-      ...DEFAULT_CAPABILITIES,
-      canCreateTasks,
-      canUpdateTasks,
-      canDeleteTasks,
-      canViewAllTasks,
-      canCreateEvents,
-      canUpdateEvents,
-      canDeleteEvents,
-      canViewAllEvents,
-      canSendMessages,
-      canViewAllMessages,
-      canManageUsers,
-      canViewAnalytics,
-      canManageServices,
-      canViewReports,
-      isOwner,
-      isManager,
-      isEmployee,
-      isClient,
-    };
-  }, [account, capabilities, hasCapability]);
-
-  return { capabilities: caps, loading, error };
+export function useCalendarPermissions() {
+  const { hasCapability } = useCapabilities();
+  return {
+    canCreate: hasCapability("calendar.create"),
+    canUpdate: hasCapability("calendar.update"),
+    canDelete: hasCapability("calendar.delete"),
+    canViewAll: hasCapability("calendar.view.all"),
+  };
 }
 
-export function hasCapability(capabilities: UserCapabilities, capability: keyof UserCapabilities): boolean {
-  return capabilities[capability] || false
-}
-
-export function requireCapability(capabilities: UserCapabilities, capability: keyof UserCapabilities): void {
-  if (!hasCapability(capabilities, capability)) {
-    throw new Error(`Missing required capability: ${capability}`)
-  }
+export function useTaskPermissions() {
+  const { hasCapability } = useCapabilities();
+  return {
+    canCreate: hasCapability("task.create"),
+    canUpdate: hasCapability("task.update.all"), // Or task.update depending on granular logic, but admin has update.all
+    canDelete: hasCapability("task.delete.all"),
+    canViewAll: hasCapability("task.view.all"),
+  };
 }

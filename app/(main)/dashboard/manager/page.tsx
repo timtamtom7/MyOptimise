@@ -1,4 +1,5 @@
-import { hasAccountCapability, safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { client } from "@/sanity/lib/client";
@@ -8,6 +9,7 @@ import { redirect } from "next/navigation";
 import { Resend } from "resend";
 import { ManagerView } from "@/components/dashboard/manager/manager-view";
 import { writeAuditLog } from "@/lib/audit";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +50,7 @@ export default async function ManagerDashboardPage() {
 
   const email = String((session as any)?.user?.email || "");
   const acct = email ? await fetchSanityAccountByEmail({ email }) : null;
-  const type = String(acct?.type || (session as any)?.type || "");
+  const type = String(acct?.type || (session as any)?.type || "").toLowerCase();
   if (!type) {
     redirect("/login?error=no_account&next=/dashboard/manager");
   }
@@ -61,8 +63,6 @@ export default async function ManagerDashboardPage() {
 
   let effectiveAcct: any = acct;
   let effectiveType = type;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let isImpersonating = false;
 
   if (impersonateId && canImpersonate) {
     const targetRes = await sanityFetch({
@@ -73,17 +73,15 @@ export default async function ManagerDashboardPage() {
     const target = (targetRes as any)?.data as any;
     if (target?._id && String(target.status || "") !== "disabled") {
       effectiveAcct = target;
-      effectiveType = String(target.type || "");
-      isImpersonating = true;
+      effectiveType = String(target.type || "").toLowerCase();
     }
   }
 
-  if (effectiveType !== "manager") {
+  if (effectiveType !== "manager" && effectiveType !== "admin") {
     redirect("/dashboard");
   }
 
   const name = String((session as any)?.user?.name || "");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const emailLower = String(effectiveAcct?.email || email || "").toLowerCase();
   const effectiveAcctId = String(effectiveAcct?._id || "");
 
@@ -98,8 +96,6 @@ export default async function ManagerDashboardPage() {
     clientsRes,
     unassignedWorkItemsRes,
     myWorkItemsRes,
-    receivedSignupsRes,
-    submittedSponsorshipsRes,
     openClientRequestsRes,
     clientServicesRes,
     openServiceRequestsRes,
@@ -118,10 +114,6 @@ export default async function ManagerDashboardPage() {
         query: `*[_type == "workItem" && assignedTo._ref == $id && status != "completed" && status != "cancelled"]{_id, title, priority, status, dueDate, visibility}|order(dueDate asc)`,
         params: { id: effectiveAcctId }
     }),
-    // Received Signups
-    sanityFetch({ query: `*[_type == "signup" && status == "received"]{_id, name, email, company, status, createdAt}|order(createdAt desc)` }),
-    // Submitted Sponsorships
-    sanityFetch({ query: `*[_type == "sponsorship" && status == "submitted"]{_id, name, email, company, status, createdAt}|order(createdAt desc)` }),
     // Open Client Requests (Support)
     sanityFetch({ 
         query: `*[_type == "clientRequest" && status in ["submitted", "in_progress"]] {
@@ -168,8 +160,6 @@ export default async function ManagerDashboardPage() {
   const clients = (clientsRes as any)?.data || [];
   const unassignedWorkItems = (unassignedWorkItemsRes as any)?.data || [];
   const myWorkItems = (myWorkItemsRes as any)?.data || [];
-  const receivedSignups = (receivedSignupsRes as any)?.data || [];
-  const submittedSponsorships = (submittedSponsorshipsRes as any)?.data || [];
   const openClientRequests = (openClientRequestsRes as any)?.data || [];
   const clientServices = (clientServicesRes as any)?.data || [];
   const openServiceRequests = (openServiceRequestsRes as any)?.data || [];
@@ -177,7 +167,7 @@ export default async function ManagerDashboardPage() {
 
   const stats = {
     myActiveTasks: myWorkItems.length,
-    pendingRequests: openClientRequests.length + openServiceRequests.length + receivedSignups.length + submittedSponsorships.length,
+    pendingRequests: openClientRequests.length + openServiceRequests.length,
     teamSize: employees.length
   };
 
@@ -188,7 +178,8 @@ export default async function ManagerDashboardPage() {
     const email = String((session as any)?.user?.email || "");
     if (!email) return;
     const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "manager") return;
+    if (!acct || acct.status === "disabled") return;
+    if (acct.type !== "manager" && acct.type !== "admin") return;
     if (!hasAccountCapability(acct, "users.invite.limited")) return;
 
     const inviteEmail = String(formData.get("email") || "").trim().toLowerCase();
@@ -338,7 +329,8 @@ export default async function ManagerDashboardPage() {
 
     const id = String(formData.get("id") || "").trim();
     const status = String(formData.get("status") || "").trim();
-    const type = String(formData.get("type") || "").trim(); // workItem, signup, sponsorship
+    // type is only workItem now
+    // const type = String(formData.get("type") || "").trim();
 
     if (!id || !status) return;
 
@@ -346,59 +338,8 @@ export default async function ManagerDashboardPage() {
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-    if (type === "signup" || type === "sponsorship") {
-        if (!hasAccountCapability(acct, "client.intake.process")) return;
-        await writeClient.patch(id).set({ status }).commit();
-    } else {
-        await writeClient.patch(id).set({ status }).commit();
-    }
-    revalidatePath("/dashboard/manager");
-  }
+    await writeClient.patch(id).set({ status }).commit();
 
-  async function assignSignup(formData: FormData) {
-    "use server";
-    const session = await safeGetServerSession();
-    const email = String((session as any)?.user?.email || "");
-    if (!email) return;
-    const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "manager") return;
-    if (!hasAccountCapability(acct, "client.intake.process")) return;
-
-    const id = String(formData.get("id") || "").trim();
-    const assigneeId = String(formData.get("assigneeId") || "").trim();
-    if (!id || !assigneeId) return;
-
-    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
-    if (!writeToken) return;
-    const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-
-    await writeClient.patch(id).set({
-        assignedTo: { _type: "reference", _ref: assigneeId }
-    }).commit();
-    revalidatePath("/dashboard/manager");
-  }
-
-  async function assignSponsorship(formData: FormData) {
-    "use server";
-    // Same logic as signup assignment
-    const session = await safeGetServerSession();
-    const email = String((session as any)?.user?.email || "");
-    if (!email) return;
-    const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "manager") return;
-    if (!hasAccountCapability(acct, "client.intake.process")) return;
-
-    const id = String(formData.get("id") || "").trim();
-    const assigneeId = String(formData.get("assigneeId") || "").trim();
-    if (!id || !assigneeId) return;
-
-    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
-    if (!writeToken) return;
-    const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-
-    await writeClient.patch(id).set({
-        assignedTo: { _type: "reference", _ref: assigneeId }
-    }).commit();
     revalidatePath("/dashboard/manager");
   }
 
@@ -518,6 +459,28 @@ export default async function ManagerDashboardPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
     });
+
+    // Sync to Supabase
+    const clientEmail = await writeClient.fetch(`*[_type == "account" && _id == $id][0].email`, { id: clientId });
+    if (clientEmail) {
+       const { data: userData } = await supabaseAdmin
+           .from("users")
+           .select("organization_id")
+           .eq("email", clientEmail)
+           .single();
+
+       if (userData?.organization_id) {
+           await supabaseAdmin.from("client_services").insert({
+               organization_id: userData.organization_id,
+               name: title,
+               service_type: serviceType as any,
+               status: status,
+               start_date: new Date().toISOString().split("T")[0],
+               monthly_budget: 0,
+           });
+       }
+    }
+
     revalidatePath("/dashboard/manager");
   }
 
@@ -573,6 +536,62 @@ export default async function ManagerDashboardPage() {
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
+    // Fetch request details to handle approval sync
+    const req = await writeClient.fetch(
+        `*[_type == "serviceRequest" && _id == $id][0]{_id, status, requestedServiceType, clientAccount->{_id}}`,
+        { id }
+    );
+    if (!req?._id) return;
+
+    const now = new Date().toISOString();
+
+    if (status === "approved") {
+        const clientId = String(req.clientAccount?._id || "");
+        const requestedServiceType = String(req.requestedServiceType || "other");
+
+        if (clientId && ["instagram", "facebook", "email", "website", "ads", "seo", "other"].includes(requestedServiceType)) {
+             const existingService = await writeClient.fetch(
+                `*[_type == "clientService" && client._ref == $clientId && serviceType == $type && status != "cancelled"][0]{_id}`,
+                { clientId, type: requestedServiceType },
+             );
+
+             if (!existingService?._id) {
+                 await writeClient.create({
+                    _type: "clientService",
+                    title: `Service: ${requestedServiceType}`,
+                    serviceType: requestedServiceType,
+                    client: { _type: "reference", _ref: clientId },
+                    status: "active",
+                    clientCanToggle: false,
+                    clientEnabled: true,
+                    createdAt: now,
+                    updatedAt: now
+                 });
+
+                 // Sync to Supabase
+                 const clientEmail = await writeClient.fetch(`*[_type == "account" && _id == $id][0].email`, { id: clientId });
+                 if (clientEmail) {
+                    const { data: userData } = await supabaseAdmin
+                        .from("users")
+                        .select("organization_id")
+                        .eq("email", clientEmail)
+                        .single();
+
+                    if (userData?.organization_id) {
+                        await supabaseAdmin.from("client_services").insert({
+                            organization_id: userData.organization_id,
+                            name: `Service: ${requestedServiceType}`,
+                            service_type: requestedServiceType as any,
+                            status: "active",
+                            start_date: now.split("T")[0],
+                            monthly_budget: 0,
+                        });
+                    }
+                 }
+             }
+        }
+    }
+
     await writeClient.patch(id).set({ status }).commit();
     revalidatePath("/dashboard/manager");
   }
@@ -626,8 +645,6 @@ export default async function ManagerDashboardPage() {
         clients,
         unassignedWorkItems,
         myWorkItems,
-        receivedSignups,
-        submittedSponsorships,
         openClientRequests,
         clientServices,
         openServiceRequests,
@@ -649,17 +666,15 @@ export default async function ManagerDashboardPage() {
         inviteEmployee,
         createWorkItem,
         assignWorkItem,
-        updateStatus,
-        assignSignup,
-        assignSponsorship,
-        assignClientRequest,
+              updateStatus,
+              assignClientRequest,
         addClientRequestMessage,
         updateClientRequest,
         createClientService,
         updateClientService,
         updateServiceRequestStatus,
-        createOrOpenDmThread
-      }}
-    />
+    createOrOpenDmThread
+  }}
+/>
   );
 }

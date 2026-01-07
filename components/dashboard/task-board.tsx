@@ -37,15 +37,23 @@ export function TaskBoard() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState<TaskStatus | 'all'>('all')
   const { user } = useCurrentUser()
-  const { data: tasks, isLoading } = useTasks(user?.accountId || '')
-  const { createTask, isCreating } = useCreateTask()
-  const { updateTask } = useUpdateTask()
+  const { tasks, loading: isLoading, createTask, updateTask } = useTasks(user?.accountId || '')
   const { canCreate } = useTaskPermissions()
+  
+  // Debug logging
+  console.log('[TaskBoard] Render:', { 
+    userId: user?.id, 
+    userRole: user?.role, 
+    canCreate, 
+    isCreateDialogOpen 
+  });
+
+  const [isCreating, setIsCreating] = useState(false)
 
   const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
-    status: 'todo',
+    status: 'pending',
     priority: 'medium',
     visibility: 'team',
   })
@@ -55,6 +63,7 @@ export function TaskBoard() {
     if (!user) return
 
     try {
+      setIsCreating(true)
       await createTask({
         title: formData.title,
         description: formData.description,
@@ -68,12 +77,14 @@ export function TaskBoard() {
       setFormData({
         title: '',
         description: '',
-        status: 'todo',
+        status: 'pending',
         priority: 'medium',
         visibility: 'team',
       })
     } catch (error) {
       console.error('Failed to create task:', error)
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -98,10 +109,10 @@ export function TaskBoard() {
 
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
-      case 'todo': return <Clock className="h-4 w-4" />
+      case 'pending': return <Clock className="h-4 w-4" />
       case 'in_progress': return <AlertCircle className="h-4 w-4" />
-      case 'review': return <Flag className="h-4 w-4" />
       case 'completed': return <CheckCircle2 className="h-4 w-4" />
+      case 'cancelled': return <Flag className="h-4 w-4" />
       default: return <Clock className="h-4 w-4" />
     }
   }
@@ -111,10 +122,10 @@ export function TaskBoard() {
   ) || []
 
   const tasksByStatus = {
-    todo: filteredTasks.filter(task => task.status === 'todo'),
+    pending: filteredTasks.filter(task => task.status === 'pending'),
     in_progress: filteredTasks.filter(task => task.status === 'in_progress'),
-    review: filteredTasks.filter(task => task.status === 'review'),
     completed: filteredTasks.filter(task => task.status === 'completed'),
+    cancelled: filteredTasks.filter(task => task.status === 'cancelled'),
   }
 
   if (isLoading) {
@@ -155,10 +166,10 @@ export function TaskBoard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="todo">To Do</SelectItem>
+              <SelectItem value="pending">To Do</SelectItem>
               <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="review">Review</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
 
@@ -172,7 +183,7 @@ export function TaskBoard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
-        {(['todo', 'in_progress', 'review', 'completed'] as TaskStatus[]).map((status) => {
+        {(['pending', 'in_progress', 'completed', 'cancelled'] as TaskStatus[]).map((status) => {
           const statusTasks = tasksByStatus[status]
           const statusLabel = status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
 
@@ -209,10 +220,10 @@ export function TaskBoard() {
 
                     <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                       <div className="flex items-center space-x-2">
-                        {task.assignee && (
+                        {task.assignees?.[0]?.user && (
                           <div className="flex items-center space-x-1">
                             <User className="h-3 w-3" />
-                            <span>{task.assignee.full_name}</span>
+                            <span>{task.assignees[0].user.full_name}</span>
                           </div>
                         )}
                         {task.due_date && (
@@ -281,10 +292,10 @@ export function TaskBoard() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todo">To Do</SelectItem>
+                    <SelectItem value="pending">To Do</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="review">Review</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -345,10 +356,15 @@ export function TaskBoard() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isCreating}>
+              <Button type="submit" disabled={isCreating || !user}>
                 {isCreating ? 'Creating...' : 'Create Task'}
               </Button>
             </div>
+            {!user && (
+                <p className="text-xs text-red-500 mt-2 text-right">
+                    Error: User not synced. Please reload or contact support.
+                </p>
+            )}
           </form>
         </DialogContent>
       </Dialog>

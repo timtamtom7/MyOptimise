@@ -8,13 +8,17 @@ import { useState } from "react";
 export default function SignOutButton({
   variant = "outline",
   size = "lg",
+  className,
   triggerClassName,
   showLogoutAll = true,
+  children,
 }: {
   variant?: React.ComponentProps<typeof Button>["variant"];
   size?: React.ComponentProps<typeof Button>["size"];
+  className?: string;
   triggerClassName?: string;
   showLogoutAll?: boolean;
+  children?: React.ReactNode;
 }) {
   const [busy, setBusy] = useState<null | "signout" | "logoutAll">(null);
   const [error, setError] = useState<string>("");
@@ -48,9 +52,9 @@ export default function SignOutButton({
     <Dialog.Root>
       <Dialog.Trigger asChild>
         <button
-          className={cn(buttonVariants({ variant, size }), "justify-center", triggerClassName)}
+          className={cn(buttonVariants({ variant, size }), "justify-center", triggerClassName, className)}
         >
-          Sign Out
+          {children || "Sign Out"}
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>

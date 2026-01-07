@@ -197,7 +197,7 @@ export function PerformanceMetrics() {
                   {Object.entries(demographics?.age_groups || {}).map(([age, count]) => (
                     <div key={age} className="flex items-center justify-between">
                       <span className="text-sm">{age}</span>
-                      <span className="text-sm font-medium">{count.toLocaleString()}</span>
+                      <span className="text-sm font-medium">{(count as number).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -210,7 +210,7 @@ export function PerformanceMetrics() {
                   {Object.entries(demographics?.gender || {}).map(([gender, count]) => (
                     <div key={gender} className="flex items-center justify-between">
                       <span className="text-sm capitalize">{gender}</span>
-                      <span className="text-sm font-medium">{count.toLocaleString()}</span>
+                      <span className="text-sm font-medium">{(count as number).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -218,15 +218,18 @@ export function PerformanceMetrics() {
 
               {/* Locations */}
               <div>
-                <h4 className="font-medium mb-3">Top Locations</h4>
+                <h4 className="font-medium mb-3 flex items-center">
+                  <PieChart className="h-4 w-4 mr-2" />
+                  Top Locations
+                </h4>
                 <div className="space-y-2">
                   {Object.entries(demographics?.locations || {})
-                    .sort(([,a], [,b]) => b - a)
+                    .sort(([,a], [,b]) => (b as number) - (a as number))
                     .slice(0, 5)
                     .map(([location, count]) => (
                       <div key={location} className="flex items-center justify-between">
                         <span className="text-sm">{location}</span>
-                        <span className="text-sm font-medium">{count.toLocaleString()}</span>
+                        <span className="text-sm font-medium">{(count as number).toLocaleString()}</span>
                       </div>
                     ))}
                 </div>
@@ -246,7 +249,7 @@ export function PerformanceMetrics() {
           <CardContent>
             <div className="space-y-3">
               {Object.entries(demographics?.interests || {})
-                .sort(([,a], [,b]) => b - a)
+                .sort(([,a], [,b]) => (b as number) - (a as number))
                 .slice(0, 10)
                 .map(([interest, count], index) => (
                   <div key={interest} className="flex items-center justify-between">
@@ -258,7 +261,7 @@ export function PerformanceMetrics() {
                       </div>
                       <span className="text-sm">{interest}</span>
                     </div>
-                    <span className="text-sm font-medium">{count.toLocaleString()}</span>
+                    <span className="text-sm font-medium">{(count as number).toLocaleString()}</span>
                   </div>
                 ))}
             </div>

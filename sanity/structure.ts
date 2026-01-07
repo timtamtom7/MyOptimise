@@ -77,30 +77,6 @@ export const structure = (S: any, context: any) =>
         ),
       S.divider({ title: "Operations" }),
       S.listItem()
-        .title("Events")
-        .icon(CalendarDays)
-        .child(
-          S.documentTypeList("event")
-            .title("Events")
-            .defaultOrdering([{ field: "date", direction: "desc" }])
-        ),
-      S.listItem()
-        .title("Signups")
-        .icon(UserPlus)
-        .child(
-          S.documentTypeList("signup")
-            .title("Signups")
-            .defaultOrdering([{ field: "createdAt", direction: "desc" }])
-        ),
-      S.listItem()
-        .title("Sponsorships")
-        .icon(Utensils)
-        .child(
-          S.documentTypeList("sponsorship")
-            .title("Sponsorships")
-            .defaultOrdering([{ field: "_createdAt", direction: "desc" }])
-        ),
-      S.listItem()
         .title("Work Items")
         .icon(ClipboardList)
         .child(

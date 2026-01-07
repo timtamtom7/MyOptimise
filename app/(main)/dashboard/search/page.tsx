@@ -1,4 +1,5 @@
-import { hasAccountCapability, safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { cookies } from "next/headers";
@@ -56,7 +57,7 @@ export default async function DashboardSearchPage(props: { searchParams?: Promis
   const safeQuery = q.length > 100 ? q.slice(0, 100) : q;
   const matchQuery = safeQuery ? `${safeQuery}*` : "";
 
-  const [workItemsRes, clientRequestsRes, threadsRes, signupsRes, sponsorshipsRes, accountsRes] = await Promise.all([
+  const [workItemsRes, clientRequestsRes, threadsRes, accountsRes] = await Promise.all([
     sanityFetch({
       query: isClient
         ? `[]`
@@ -92,22 +93,6 @@ export default async function DashboardSearchPage(props: { searchParams?: Promis
     }),
     sanityFetch({
       query: isAdmin
-        ? `*[_type == "signup" && (name match $q || email match $q)] | order(createdAt desc)[0..19]{_id, name, email, status, createdAt}`
-        : isManager
-          ? `*[_type == "signup" && status == "received" && (name match $q || email match $q)] | order(createdAt desc)[0..19]{_id, name, email, status, createdAt}`
-          : `[]`,
-      params: { q: matchQuery },
-    }),
-    sanityFetch({
-      query: isAdmin
-        ? `*[_type == "sponsorship" && (businessName match $q || contactEmail match $q)] | order(_createdAt desc)[0..19]{_id, businessName, contactEmail, status, _createdAt}`
-        : isManager
-          ? `*[_type == "sponsorship" && status == "submitted" && (businessName match $q || contactEmail match $q)] | order(_createdAt desc)[0..19]{_id, businessName, contactEmail, status, _createdAt}`
-          : `[]`,
-      params: { q: matchQuery },
-    }),
-    sanityFetch({
-      query: isAdmin
         ? `*[_type == "account" && (email match $q || name match $q)] | order(_createdAt desc)[0..19]{_id, email, name, type, status}`
         : `[]`,
       params: { q: matchQuery },
@@ -117,9 +102,8 @@ export default async function DashboardSearchPage(props: { searchParams?: Promis
   const workItems = ((workItemsRes as any)?.data ?? []) as any[];
   const clientRequests = ((clientRequestsRes as any)?.data ?? []) as any[];
   const threads = ((threadsRes as any)?.data ?? []) as any[];
-  const signups = ((signupsRes as any)?.data ?? []) as any[];
-  const sponsorships = ((sponsorshipsRes as any)?.data ?? []) as any[];
   const accounts = ((accountsRes as any)?.data ?? []) as any[];
+
 
   const threadBase =
     isClient ? "/dashboard/client/threads" : isEmployee ? "/dashboard/employee/threads" : isManager ? "/dashboard/manager/threads" : "/dashboard/admin/threads";
@@ -186,58 +170,6 @@ export default async function DashboardSearchPage(props: { searchParams?: Promis
                     <div className="text-xs text-muted-foreground">{String(r.status || "")}</div>
                     {r.clientEmail ? <div className="text-xs text-muted-foreground">{String(r.clientEmail || "")}</div> : null}
                     <div className="text-xs text-muted-foreground break-all">{String(r._id || "")}</div>
-                  </div>
-                ))}
-                {clientRequests.length === 0 ? <div className="text-sm text-muted-foreground">No client requests found.</div> : null}
-              </div>
-            </div>
-          ) : null}
-
-          {isAdmin || isManager ? (
-            <div className="rounded-xl border bg-card p-5">
-              <div className="text-lg font-medium">Signups</div>
-              <div className="mt-3 space-y-2">
-                {signups.map((s) => (
-                  <div key={String(s._id)} className="rounded-md border px-3 py-2">
-                    <div className="font-medium">{String(s.name || s.email || "")}</div>
-                    <div className="text-xs text-muted-foreground">{String(s.email || "")}</div>
-                    <div className="text-xs text-muted-foreground">{String(s.status || "")}</div>
-                    <div className="text-xs text-muted-foreground break-all">{String(s._id || "")}</div>
-                  </div>
-                ))}
-                {signups.length === 0 ? <div className="text-sm text-muted-foreground">No signups found.</div> : null}
-              </div>
-            </div>
-          ) : null}
-
-          {isAdmin || isManager ? (
-            <div className="rounded-xl border bg-card p-5">
-              <div className="text-lg font-medium">Sponsorships</div>
-              <div className="mt-3 space-y-2">
-                {sponsorships.map((s) => (
-                  <div key={String(s._id)} className="rounded-md border px-3 py-2">
-                    <div className="font-medium">{String(s.businessName || s.contactEmail || "")}</div>
-                    <div className="text-xs text-muted-foreground">{String(s.contactEmail || "")}</div>
-                    <div className="text-xs text-muted-foreground">{String(s.status || "")}</div>
-                    <div className="text-xs text-muted-foreground break-all">{String(s._id || "")}</div>
-                  </div>
-                ))}
-                {sponsorships.length === 0 ? <div className="text-sm text-muted-foreground">No sponsorships found.</div> : null}
-              </div>
-            </div>
-          ) : null}
-
-          {isAdmin ? (
-            <div className="rounded-xl border bg-card p-5">
-              <div className="text-lg font-medium">Accounts</div>
-              <div className="mt-3 space-y-2">
-                {accounts.map((a) => (
-                  <div key={String(a._id)} className="rounded-md border px-3 py-2">
-                    <div className="font-medium">{String(a.email || "")}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {String(a.type || "")} • {String(a.status || "")}
-                    </div>
-                    <div className="text-xs text-muted-foreground break-all">{String(a._id || "")}</div>
                   </div>
                 ))}
                 {accounts.length === 0 ? <div className="text-sm text-muted-foreground">No accounts found.</div> : null}

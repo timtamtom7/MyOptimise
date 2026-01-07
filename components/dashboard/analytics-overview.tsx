@@ -9,12 +9,11 @@ import {
   TrendingUp, 
   DollarSign, 
   Target,
-  Instagram,
-  Facebook,
   Mail,
   Globe,
   Share2
 } from 'lucide-react'
+import { Instagram, Facebook } from '@/components/icons/brands'
 
 export function AnalyticsOverview() {
   const { user } = useCurrentUser()

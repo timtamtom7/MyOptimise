@@ -410,10 +410,10 @@ export function useTaskStats(accountId: string) {
     total: number
     overdue: number
     byStatus: {
-      todo: number
+      pending: number
       in_progress: number
-      review: number
       completed: number
+      cancelled: number
     }
     byPriority: {
       urgent: number
@@ -445,10 +445,10 @@ export function useTaskStats(accountId: string) {
         const overdue = data.filter(t => t.due_date && new Date(t.due_date) < now && t.status !== 'completed').length
         
         const byStatus = {
-          todo: data.filter(t => t.status === 'todo').length,
+          pending: data.filter(t => t.status === 'pending').length,
           in_progress: data.filter(t => t.status === 'in_progress').length,
-          review: data.filter(t => t.status === 'review').length,
           completed: data.filter(t => t.status === 'completed').length,
+          cancelled: data.filter(t => t.status === 'cancelled').length,
         }
 
         const byPriority = {

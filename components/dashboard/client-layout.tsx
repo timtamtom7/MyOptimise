@@ -25,14 +25,13 @@ export function ClientDashboardLayout({
         user={user} 
         isOpen={sidebarOpen} 
         onToggle={() => setSidebarOpen(!sidebarOpen)} 
+        activeView="overview"
+        onViewChange={() => {}}
       />
       
       <div className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
         <ClientHeader 
           user={user} 
-          onSearch={onSearch}
-          notifications={notifications}
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         />
         
         <main className="p-6">

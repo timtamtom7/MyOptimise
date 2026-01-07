@@ -36,22 +36,39 @@ export function useClientServices(accountId: string) {
         if (error) throw error
         
         const servicesWithMetrics = (data || []).map((service: any) => {
-          // Sort metrics by date descending
-          const sortedMetrics = (service.metrics || []).sort((a: ServiceMetric, b: ServiceMetric) => 
-            new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime()
-          )
+          // Group metrics by name and find the latest value for each
+          const latestMetrics: Record<string, number> = {};
           
-          const currentMetric = sortedMetrics[0] || {}
-          // Mock revenue calculation: conversions * $50
-          const revenue = (currentMetric.conversions || 0) * 50
+          (service.metrics || []).forEach((m: any) => {
+            // If we haven't seen this metric yet, or this one is newer
+            // Note: In a real app we might want to sum over a period, but for "current status" latest is fine
+            if (!latestMetrics[m.metric_name]) {
+               latestMetrics[m.metric_name] = Number(m.metric_value);
+            } else {
+               // Since the array isn't sorted yet, we can't assume order. 
+               // But wait, let's sort first to be safe.
+            }
+          });
+
+          // Actually, let's just grab the metrics from the last 24h or just the absolute latest entry for each type
+          const sortedMetrics = (service.metrics || []).sort((a: any, b: any) => 
+            new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
+          );
+
+          const currentMetrics: Record<string, number> = {};
+          const distinctMetricNames = new Set<string>(sortedMetrics.map((m: any) => String(m.metric_name)));
+          
+          distinctMetricNames.forEach((name) => {
+             const latest = sortedMetrics.find((m: any) => m.metric_name === name);
+             if (latest) {
+                currentMetrics[name] = Number(latest.metric_value);
+             }
+          });
           
           return {
             ...service,
             metrics: sortedMetrics,
-            current_metrics: {
-              ...currentMetric,
-              revenue
-            }
+            current_metrics: currentMetrics
           }
         })
         
@@ -193,6 +210,8 @@ export function useClientServices(accountId: string) {
     shares: number
     clicks: number
     metricDate: string
+    revenue?: number
+    spend?: number
   }) => {
     try {
       const { data, error } = await supabase
@@ -209,6 +228,8 @@ export function useClientServices(accountId: string) {
           clicks: metric.clicks,
           metric_date: metric.metricDate,
           engagement_rate: metric.engagement / (metric.impressions || 1),
+          revenue: metric.revenue,
+          spend: metric.spend,
         })
         .select()
         .single()
@@ -270,7 +291,7 @@ export function useClientService(serviceId: string) {
           new Date(b.metric_date).getTime() - new Date(a.metric_date).getTime()
         )
         const currentMetric = sortedMetrics[0] || {}
-        const revenue = (currentMetric.conversions || 0) * 50
+        const revenue = currentMetric.revenue || 0
         
         setService({
           ...data,
@@ -493,7 +514,13 @@ export function useAnalyticsSummary(accountId: string, serviceTypes?: ServiceTyp
 }
 
 export function useROIAnalysis(accountId: string) {
-  const [data, setData] = useState<{ total_budget: number; total_revenue: number; roi: number } | null>(null)
+  const [data, setData] = useState<{ 
+    total_budget: number; 
+    total_revenue: number; 
+    total_profit: number;
+    overall_roi: number;
+    services: any[];
+  } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -505,45 +532,64 @@ export function useROIAnalysis(accountId: string) {
     const fetchData = async () => {
       try {
         setLoading(true)
-        // Fetch services for budget
-        const { data: services } = await supabase
-          .from('client_services')
-          .select('monthly_budget')
-          .eq('organization_id', accountId)
-          .eq('status', 'active')
-
-        // Fetch metrics for revenue (mock: conversions * 50)
-        const { data: metrics } = await supabase
-          .from('service_metrics')
-          .select('conversions')
-          .eq('service_id', (await supabase.from('client_services').select('id').eq('organization_id', accountId)).data?.map(s => s.id) || [])
-
-        // Actually we need to join or do separate queries correctly. 
-        // Simplest: get all services with metrics
+        
+        // Fetch services with metrics
         const { data: servicesWithMetrics } = await supabase
           .from('client_services')
           .select(`
+            name,
             monthly_budget,
-            metrics:service_metrics(conversions)
+            metrics:service_metrics(revenue)
           `)
           .eq('organization_id', accountId)
           
         let total_budget = 0
         let total_revenue = 0
+        const services: any[] = []
 
         servicesWithMetrics?.forEach((s: any) => {
-          total_budget += s.monthly_budget || 0
+          const budget = s.monthly_budget || 0
+          let revenue = 0
+          
           s.metrics?.forEach((m: any) => {
-            total_revenue += (m.conversions || 0) * 50
+            revenue += m.revenue || 0
           })
+
+          const profit = revenue - budget
+          const roi = budget > 0 ? (profit / budget) : 0
+
+          services.push({
+            service_name: s.name,
+            budget,
+            revenue,
+            profit,
+            roi,
+            roi_percentage: roi * 100
+          })
+
+          total_budget += budget
+          total_revenue += revenue
         })
 
-        const roi = total_budget > 0 ? (total_revenue - total_budget) / total_budget : 0
+        const total_profit = total_revenue - total_budget
+        const overall_roi = total_budget > 0 ? (total_profit / total_budget) : 0
 
-        setData({ total_budget, total_revenue, roi })
+        setData({ 
+          total_budget, 
+          total_revenue, 
+          total_profit,
+          overall_roi,
+          services
+        })
       } catch (e) {
         console.error(e)
-        setData({ total_budget: 0, total_revenue: 0, roi: 0 })
+        setData({ 
+          total_budget: 0, 
+          total_revenue: 0, 
+          total_profit: 0,
+          overall_roi: 0,
+          services: []
+        })
       } finally {
         setLoading(false)
       }
@@ -577,7 +623,20 @@ export function useAudienceDemographics(accountId: string) {
         'UK': 15,
         'Canada': 10,
         'Other': 15
-      }
+      },
+      gender: {
+        'male': 45,
+        'female': 50,
+        'other': 5
+      },
+      interests: {
+        'Technology': 85,
+        'Marketing': 75,
+        'Business': 60,
+        'Design': 45,
+        'Social Media': 90
+      },
+      total_audience: 12500
     })
     setLoading(false)
   }, [accountId])
@@ -606,13 +665,12 @@ export function useTodayKeyMetrics(accountId: string) {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const today = new Date().toISOString().split('T')[0]
         
         // Get all active services and their latest metrics
         const { data: services } = await supabase
           .from('client_services')
           .select(`
-            monthly_budget,
+            *,
             metrics:service_metrics(*)
           `)
           .eq('organization_id', accountId)
@@ -628,7 +686,8 @@ export function useTodayKeyMetrics(accountId: string) {
         let metric_count = 0
 
         services?.forEach((s: any) => {
-          total_budget += s.monthly_budget || 0
+          const budget = s.monthly_budget || 0
+          total_budget += budget
           
           // Sort metrics desc
           const sorted = (s.metrics || []).sort((a: any, b: any) => 
@@ -648,11 +707,10 @@ export function useTodayKeyMetrics(accountId: string) {
             total_engagement += latest.engagement_rate || 0
             total_clicks += latest.clicks || 0
             total_conversions += latest.conversions || 0
-            total_revenue += (latest.conversions || 0) * 50
+            total_revenue += latest.revenue || 0
             metric_count++
 
-            // New followers today? Mock it: 1% of reach
-            new_followers += Math.floor((latest.reach || 0) * 0.01)
+            new_followers += 0
           }
         })
 
@@ -736,8 +794,9 @@ export function useServiceMetrics(accountId: string) {
           by_service_type[s.service_type].total_eng += eng
 
           // Performance
-          const revenue = (latest?.conversions || 0) * 50
-          const roi = s.monthly_budget > 0 ? (revenue - s.monthly_budget) / s.monthly_budget : 0
+          const revenue = latest?.revenue || 0
+          const budget = s.monthly_budget || 0
+          const roi = budget > 0 ? (revenue - budget) / budget : 0
           
           service_performance.push({
             service_name: s.name,

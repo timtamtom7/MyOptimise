@@ -131,3 +131,61 @@ export function useUserById(userId: string) {
 
   return { user, loading, error }
 }
+
+export interface OrganizationMember {
+  id: string
+  full_name: string
+  avatar_url?: string | null
+}
+
+export function useOrganizationMembers(organizationId: string | undefined) {
+  const [data, setData] = useState<OrganizationMember[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    if (!organizationId) {
+      setLoading(false)
+      setData([])
+      return
+    }
+
+    const fetchMembers = async () => {
+      try {
+        setLoading(true)
+        const { data: rows, error: err } = await (supabase as any)
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .eq('organization_id', organizationId)
+          .order('full_name', { ascending: true })
+        if (err) throw err
+        setData(((rows || []) as any[]).map((r: any) => ({
+          id: r.id,
+          full_name: r.full_name,
+          avatar_url: r.avatar_url
+        })))
+      } catch (e) {
+        setError(e instanceof Error ? e : new Error('Failed to fetch members'))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMembers()
+
+    const channel = supabase
+      .channel(`org-members:${organizationId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles', filter: `organization_id=eq.${organizationId}` },
+        () => fetchMembers()
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [organizationId])
+
+  return { data, loading, error }
+}

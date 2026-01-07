@@ -28,6 +28,37 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
+      name: "category",
+      type: "string",
+      title: "Category",
+      group: "content",
+      options: {
+        list: [
+          { title: "General Support", value: "support" },
+          { title: "Report a Bug", value: "bug" },
+          { title: "Feature Request", value: "feature" },
+          { title: "Billing Question", value: "billing" },
+          { title: "Other", value: "other" },
+        ],
+      },
+      initialValue: "support",
+    }),
+    defineField({
+      name: "priority",
+      type: "string",
+      title: "Priority",
+      group: "status",
+      options: {
+        list: [
+          { title: "Low", value: "low" },
+          { title: "Medium", value: "medium" },
+          { title: "High", value: "high" },
+          { title: "Urgent", value: "urgent" },
+        ],
+      },
+      initialValue: "medium",
+    }),
+    defineField({
       name: "clientEmail",
       type: "string",
       title: "Client Email",

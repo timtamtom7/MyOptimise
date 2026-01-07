@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/use-user'
 import { useCapabilities } from '@/hooks/use-capabilities'
-import { SignOutButton } from '../auth/signout-button'
+import SignOutButton from '../auth/signout-button'
 
 interface SidebarProps {
   activeView: 'dashboard' | 'tasks' | 'calendar' | 'team'

@@ -28,7 +28,9 @@ export function ClientWorkItemsList({ items }: ClientWorkItemsListProps) {
       </CardHeader>
       <CardContent className="px-0">
         {items.length === 0 && (
-            <div className="text-sm text-muted-foreground py-8 text-center border rounded-lg bg-muted/20">No pending tasks.</div>
+            <div className="text-sm text-muted-foreground py-8 text-center border rounded-lg bg-muted/20">
+              All caught up! No pending tasks right now.
+            </div>
         )}
         <div className="space-y-4">
           {items.map((item) => (

@@ -3,10 +3,9 @@ import { type SchemaTypeDefinition } from "sanity";
 import navigation from "./schemas/documents/navigation";
 import settings from "./schemas/documents/settings";
 import account from "./schemas/documents/account";
-import signup from "./schemas/documents/signup";
-import event from "./schemas/documents/event";
-import sponsorship from "./schemas/documents/sponsorship";
 import workItem from "./schemas/documents/workItem";
+import campaign from "./schemas/documents/campaign";
+import deliverable from "./schemas/documents/deliverable";
 import clientRequest from "./schemas/documents/clientRequest";
 import clientService from "./schemas/documents/clientService";
 import serviceRequest from "./schemas/documents/serviceRequest";
@@ -65,10 +64,9 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     navigation,
     settings,
     account,
-    signup,
-    event,
-    sponsorship,
     workItem,
+    campaign,
+    deliverable,
     clientRequest,
     clientService,
     serviceRequest,

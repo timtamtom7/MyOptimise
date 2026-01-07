@@ -11,6 +11,11 @@ const nextConfig = {
     ]
   },
   serverExternalPackages: ['isomorphic-dompurify', 'jsdom'],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '5mb',
+    },
+  },
   images: {
     unoptimized: true,
     qualities: [100],

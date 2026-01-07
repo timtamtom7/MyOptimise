@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { getAuthOptions, getEffectiveCapabilities } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
+import { getEffectiveCapabilities } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 
 export const runtime = "nodejs";

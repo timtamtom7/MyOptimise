@@ -1,4 +1,5 @@
-import { hasAccountCapability, safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { client } from "@/sanity/lib/client";
@@ -6,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { EmployeeView } from "@/components/dashboard/employee/employee-view";
-import { Resend } from "resend";
+import { createWorkItem, createWorkItemFromTemplate, bulkUpdateWorkItems } from "@/app/actions/work-items";
 
 export const dynamic = "force-dynamic";
 
@@ -381,7 +382,7 @@ export default async function EmployeeDashboardPage() {
 
   const canWrite = Boolean(process.env.SANITY_API_WRITE_TOKEN) && !isImpersonating;
 
-  const [myWorkItemsRes, staffRes, myThreadsRes, myScheduleRes] = await Promise.all([
+  const [myWorkItemsRes, staffRes, myThreadsRes, myScheduleRes, templatesRes] = await Promise.all([
     sanityFetch({
       query: `*[_type == "workItem" && (!defined(isTemplate) || isTemplate != true) && status != "done" && assignedTo->email != null && lower(assignedTo->email) == $email] | order(priority desc, dueDate asc, createdAt desc)[0..19]{
         _id, title, description, status, priority, dueDate, createdAt,
@@ -392,9 +393,7 @@ export default async function EmployeeDashboardPage() {
           author->{name, email}
         },
         attachments[]{asset->{url, originalFilename}},
-        relatedEvent->{title, slug},
-        relatedSignup->{name, email},
-        relatedSponsorship->{businessName, contactEmail}
+        checklist
       }`,
       params: { email: emailLower },
     }),
@@ -420,14 +419,21 @@ export default async function EmployeeDashboardPage() {
       }`,
       params: { acctId: String(effectiveAcct?._id || "") },
     }),
+    sanityFetch({
+      query: `*[_type == "workItem" && isTemplate == true] | order(title asc){
+        _id, title, description, priority, visibility, defaultDueOffset, checklist
+      }`,
+    }),
   ]);
 
   const myWorkItems = ((myWorkItemsRes as any)?.data ?? []) as any[];
   const staff = ((staffRes as any)?.data ?? []) as any[];
   const myThreads = ((myThreadsRes as any)?.data ?? []) as any[];
   const mySchedule = ((myScheduleRes as any)?.data ?? []) as any[];
+  const templates = ((templatesRes as any)?.data ?? []) as any[];
   const todayStr = new Date().toISOString().slice(0, 10);
   const dueTodayCount = myWorkItems.filter((w: any) => String(w.dueDate || "").slice(0, 10) === todayStr).length;
+  const blockedCount = myWorkItems.filter((w: any) => w.status === 'blocked').length;
   const unreadThreadsCount = myThreads.filter((t: any) => {
     const lastMessageAt = String(t?.lastMessage?.createdAt || t?.updatedAt || t?.createdAt || "");
     const effectiveAccountId = String(effectiveAcct?._id || "");
@@ -452,7 +458,8 @@ export default async function EmployeeDashboardPage() {
           staff,
           myThreads,
           mySchedule,
-          stats: { dueTodayCount, unreadThreadsCount },
+          workItemTemplates: templates,
+          stats: { dueTodayCount, unreadThreadsCount, blockedCount },
         }}
         actions={{
           updateWorkItemStatus,
@@ -463,6 +470,9 @@ export default async function EmployeeDashboardPage() {
           uploadWorkItemAttachment,
           createOrOpenDmThread,
           createOrOpenTaskThread,
+          createWorkItem,
+          createWorkItemFromTemplate,
+          bulkUpdateWorkItems,
         }}
       />
     </div>

@@ -1,4 +1,5 @@
-import { hasAccountCapability, safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { client } from "@/sanity/lib/client";
@@ -37,7 +38,7 @@ export default async function DashboardDocumentsPage(props: {
   const impersonateId = cookieStore.get(IMPERSONATE_COOKIE)?.value || "";
 
   let effectiveAcct: any = acct;
-  let effectiveType = String(acct?.type || (session as any)?.type || "");
+  let effectiveType = String(acct?.type || (session as any)?.type || "").toLowerCase();
   let isImpersonating = false;
 
   if (impersonateId && canImpersonate) {
@@ -49,7 +50,7 @@ export default async function DashboardDocumentsPage(props: {
     const target = (targetRes as any)?.data as any;
     if (target?._id && String(target.status || "") !== "disabled") {
       effectiveAcct = target;
-      effectiveType = String(target.type || "");
+      effectiveType = String(target.type || "").toLowerCase();
       isImpersonating = true;
     }
   }

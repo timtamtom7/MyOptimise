@@ -4,9 +4,10 @@ import { DisableDraftMode } from "@/components/disable-draft-mode";
 import { VisualEditing } from "next-sanity/visual-editing";
 import { draftMode } from "next/headers";
 import { SanityLive } from "@/sanity/lib/live";
-import GlobalRouteLoader from "@/components/global-route-loader";
+
 import CommandPalette, { type CommandPaletteCommand } from "@/components/command-palette";
-import { safeGetServerSession, hasAccountCapability } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 
 export default async function MainLayout({
@@ -70,7 +71,6 @@ export default async function MainLayout({
   return (
     <>
       <Header />
-      <GlobalRouteLoader />
       <main>{children}</main>
       <CommandPalette enabled={canUseCommandPalette} commands={commands} />
       {isDraftMode && allowVisualEditing ? <SanityLive /> : null}

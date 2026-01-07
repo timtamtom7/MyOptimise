@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '../ui/alert'
 
 export function EmployeeDashboard() {
   const [activeView, setActiveView] = useState<'dashboard' | 'tasks' | 'calendar' | 'team'>('dashboard')
-  const { user, isLoading, error } = useCurrentUser()
+  const { user, loading: isLoading, error } = useCurrentUser()
   const { hasCapability } = useCapabilities()
 
   if (isLoading) {

@@ -1,4 +1,4 @@
-import { hasAccountCapability } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { SidebarNav } from "./sidebar-nav";
 import {
   LayoutDashboard,
@@ -13,6 +13,8 @@ import {
   BarChart3,
   ShieldAlert,
   Briefcase,
+  HelpCircle,
+  LogOut,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -21,71 +23,106 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ account, className }: AppSidebarProps) {
-  const type = String(account?.type || "");
-  const navItems: { title: string; href: string; icon: any }[] = [];
+  const type = String(account?.type || "").toLowerCase();
+  const menuItems: { title: string; href: string; icon: any; exact?: boolean; badge?: string }[] = [];
+  const generalItems: { title: string; href: string; icon: any; exact?: boolean; badge?: string }[] = [];
 
-  // Common Dashboard Home
-  navItems.push({
+  // --- MENU SECTION ---
+  
+  // Dashboard
+  menuItems.push({
     title: "Dashboard",
     href: `/dashboard/${type === "admin" ? "admin" : type === "manager" ? "manager" : type === "employee" ? "employee" : "client"}`,
     icon: "LayoutDashboard",
+    exact: true,
   });
 
   if (type === "employee" || type === "manager" || type === "admin") {
     if (hasAccountCapability(account, "tasks.read")) {
-      navItems.push({ title: "Tasks", href: `/dashboard/${type}/tasks`, icon: "CheckSquare" }); // Assuming route exists or maps to anchor
+      const tasksHref = type === "manager" ? `/dashboard/manager` : `/dashboard/${type}/tasks`;
+      // TODO: Fetch real task count
+      menuItems.push({ title: "Tasks", href: tasksHref, icon: "CheckSquare", badge: "12+" });
     }
     if (hasAccountCapability(account, "calendar.read")) {
-      navItems.push({ title: "Schedule", href: `/dashboard/calendar`, icon: "Calendar" });
+      menuItems.push({ title: "Schedule", href: `/dashboard/calendar`, icon: "Calendar" });
     }
     if (hasAccountCapability(account, "message.read")) {
-      navItems.push({ title: "Chats", href: `/dashboard/${type}/threads`, icon: "MessageSquare" });
+      const chatsHref = type === "employee" 
+        ? `/dashboard/employee/messages` 
+        : `/dashboard/${type}/threads`;
+      menuItems.push({ title: "Chats", href: chatsHref, icon: "MessageSquare" });
     }
     if (type === "employee" || type === "manager" || type === "admin") {
-       // "Clients" might be "Business" or "CRM"
-       navItems.push({ title: "Clients", href: `/dashboard/business`, icon: "Users" });
+     menuItems.push({ title: "Clients", href: `/dashboard/business`, icon: "Users" });
     }
     if (type === "manager" || type === "admin") {
-        navItems.push({ title: "Team", href: `/dashboard/manager`, icon: "Briefcase" });
+        menuItems.push({ title: "Team", href: `/dashboard/team`, icon: "Briefcase" });
     }
     if (hasAccountCapability(account, "documents.view.shared")) {
-      navItems.push({ title: "Documents", href: `/dashboard/documents`, icon: "FileText" });
+      menuItems.push({ title: "Documents", href: `/dashboard/documents`, icon: "FileText" });
     }
     if (hasAccountCapability(account, "finance.view.all")) {
-      navItems.push({ title: "Finance", href: `/dashboard/finance`, icon: "DollarSign" });
+      menuItems.push({ title: "Finance", href: `/dashboard/finance`, icon: "DollarSign" });
+    }
+    if (hasAccountCapability(account, "analytics.view.all")) {
+        menuItems.push({ title: "Analytics", href: `/dashboard/analytics`, icon: "BarChart3" });
     }
   } else if (type === "client") {
-    // Client specific items
-    navItems.push({ title: "Overview", href: "/dashboard/client", icon: "LayoutDashboard" });
-    // navItems.push({ title: "Calendar", href: "/dashboard/client/calendar", icon: "Calendar" }); // If exists
-    if (hasAccountCapability(account, "client.services.view")) {
-        // navItems.push({ title: "Services", href: "/dashboard/client/services", icon: "Briefcase" });
-    }
+    menuItems.push({ title: "Overview", href: "/dashboard/client", icon: "LayoutDashboard" });
+    menuItems.push({ title: "Chats", href: "/dashboard/client/threads", icon: "MessageSquare" });
+    menuItems.push({ title: "Approvals", href: "/dashboard/client?tab=approvals", icon: "CheckSquare" });
   }
 
-  // Common Settings
-  navItems.push({ title: "Settings", href: "/dashboard/settings", icon: "Settings" });
+  // --- GENERAL SECTION ---
+  generalItems.push({ title: "Settings", href: "/dashboard/settings", icon: "Settings" });
+  
+  generalItems.push({ title: "Help", href: "/dashboard/help", icon: "HelpCircle" }); 
 
   if (type === "admin" && hasAccountCapability(account, "security.audit.view")) {
-     navItems.push({ title: "Audit Logs", href: "/dashboard/admin/audit", icon: "ShieldAlert" });
+     generalItems.push({ title: "Audit Logs", href: "/dashboard/admin/audit", icon: "ShieldAlert" });
   }
+  
+  generalItems.push({ title: "Logout", href: "/logout", icon: "LogOut" });
+
 
   return (
-    <div className={`w-64 border-r bg-card flex flex-col ${className}`}>
-      <div className="p-6">
-        <div className="flex items-center gap-3">
-           <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+    <div className={`w-64 border-r border-border bg-background flex flex-col h-screen sticky top-0 ${className}`}>
+      
+      {/* Spacer / Logo Area */}
+      <div className="p-6 pb-2">
+         {/* Minimal spacer as requested */}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+        
+        {/* MENU Group */}
+        <div>
+            <h3 className="mb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Menu
+            </h3>
+            <SidebarNav items={menuItems} />
+        </div>
+
+        {/* GENERAL Group */}
+        <div>
+            <h3 className="mb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                General
+            </h3>
+            <SidebarNav items={generalItems} />
+        </div>
+
+      </div>
+
+      {/* Footer / Profile minimal */}
+      <div className="p-4 border-t border-border bg-muted/10">
+         <div className="flex items-center gap-3 px-2">
+           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0 text-xs">
              {account.name?.charAt(0) || "O"}
            </div>
-           <div className="font-semibold truncate max-w-[140px]">{account.name}</div>
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto py-2">
-        <SidebarNav items={navItems} />
-      </div>
-      <div className="p-4 border-t">
-        <div className="text-xs text-muted-foreground px-2">
-            {type.charAt(0).toUpperCase() + type.slice(1)} Workspace
+           <div className="flex flex-col overflow-hidden min-w-0">
+             <div className="font-medium truncate text-sm">{account.name}</div>
+             <div className="text-[10px] text-muted-foreground truncate capitalize">{type}</div>
+           </div>
         </div>
       </div>
     </div>

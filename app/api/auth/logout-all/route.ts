@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { getAuthOptions, hasAccountCapability } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { client } from "@/sanity/lib/client";
 

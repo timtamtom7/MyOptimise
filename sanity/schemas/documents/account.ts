@@ -73,5 +73,40 @@ export default defineType({
     }),
     defineField({ name: "passwordHash", type: "string", title: "Password Hash", description: "Only for Credentials login" }),
     defineField({ name: "notes", type: "text", title: "Notes" }),
+    
+    // Client-specific fields
+    defineField({
+      name: "businessName",
+      type: "string",
+      title: "Business Name",
+      hidden: ({ document }) => document?.type !== "client",
+    }),
+    defineField({
+      name: "onboardingStatus",
+      type: "string",
+      title: "Onboarding Status",
+      options: { list: ["new", "in_progress", "live", "churned"] },
+      hidden: ({ document }) => document?.type !== "client",
+    }),
+    defineField({
+      name: "serviceScope",
+      type: "text",
+      title: "Service Scope",
+      description: "Summary of contracted services",
+      hidden: ({ document }) => document?.type !== "client",
+    }),
+    defineField({
+      name: "riskScore",
+      type: "string",
+      title: "Risk Score",
+      options: { list: ["low", "medium", "high"] },
+      hidden: ({ document }) => document?.type !== "client",
+    }),
+    defineField({
+      name: "brandGuidelines",
+      type: "file",
+      title: "Brand Guidelines",
+      hidden: ({ document }) => document?.type !== "client",
+    }),
   ],
 });

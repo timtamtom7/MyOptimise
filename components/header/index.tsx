@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Cpu } from "lucide-react";
 import Logo from "@/components/logo";
 import MobileNav from "@/components/header/mobile-nav";
 import DesktopNav from "@/components/header/desktop-nav";
@@ -21,7 +22,7 @@ export default async function Header() {
   const locale = await getLocale();
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-background text-[var(--header-foreground)] shadow-none">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="w-full px-6 flex h-16 items-center justify-between">
         <Link href="/" aria-label="Home page">
           <Logo settings={settings} className="h-7 w-auto" />
         </Link>
@@ -34,11 +35,14 @@ export default async function Header() {
               <>
                 <Link
                   href="/studio"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "border-0 bg-transparent shadow-none hover:bg-muted/40"
+                    buttonVariants({ variant: "ghost", size: "sm" }),
+                    "h-10 px-5 rounded-[33px] border-0 bg-transparent font-semibold text-[color:var(--primary)] hover:bg-muted/40 shadow-none flex items-center gap-2"
                   )}
                 >
+                  <Cpu className="h-4 w-4" />
                   Studio
                 </Link>
                 <SignOutButton

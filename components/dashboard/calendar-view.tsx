@@ -168,9 +168,6 @@ export function CalendarView() {
                   >
                     <div className="flex items-start justify-between mb-1">
                       <h4 className="font-medium text-xs leading-tight">{event.title}</h4>
-                      <Badge className={getVisibilityColor(event.visibility)} variant="outline">
-                        {event.visibility}
-                      </Badge>
                     </div>
                     
                     <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">

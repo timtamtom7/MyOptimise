@@ -12,11 +12,14 @@ import {
 } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/use-user'
 import { useCapabilities } from '@/hooks/use-capabilities'
-import { SignOutButton } from '../auth/signout-button'
+import SignOutButton from '../auth/signout-button'
 
 interface ClientSidebarProps {
   activeView: 'overview' | 'services' | 'performance' | 'reports'
   onViewChange: (view: 'overview' | 'services' | 'performance' | 'reports') => void
+  isOpen?: boolean
+  onToggle?: () => void
+  user?: any
 }
 
 const navigationItems = [
@@ -46,9 +49,10 @@ const navigationItems = [
   },
 ]
 
-export function ClientSidebar({ activeView, onViewChange }: ClientSidebarProps) {
-  const { user } = useCurrentUser()
+export function ClientSidebar({ activeView, onViewChange, isOpen, onToggle, user: propUser }: ClientSidebarProps) {
+  const { user: hookUser } = useCurrentUser()
   const { hasCapability } = useCapabilities()
+  const user = propUser || hookUser
 
   if (!user) return null
 

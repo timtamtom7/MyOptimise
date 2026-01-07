@@ -14,6 +14,8 @@ interface Request {
   statusHistory?: any[];
   messages?: any[];
   response?: string;
+  category?: string;
+  priority?: string;
 }
 
 import { Plus } from "lucide-react";
@@ -49,7 +51,7 @@ export function RequestsList({ requests, canWrite, addMessageAction, submitReque
               <DialogHeader>
                 <DialogTitle>Submit Support Request</DialogTitle>
                 <DialogDescription>
-                  Describe your issue or request and we'll get back to you shortly.
+                  Describe your issue or request and we&apos;ll get back to you shortly.
                 </DialogDescription>
               </DialogHeader>
               <form action={async (formData) => {
@@ -109,7 +111,9 @@ export function RequestsList({ requests, canWrite, addMessageAction, submitReque
       </CardHeader>
       <CardContent className="px-0">
         {requests.length === 0 && (
-            <div className="text-sm text-muted-foreground py-8 text-center border rounded-lg bg-muted/20">No requests found.</div>
+            <div className="text-sm text-muted-foreground py-8 text-center border rounded-lg bg-muted/20">
+              No requests found. Click &quot;New Request&quot; to get started.
+            </div>
         )}
         <div className="space-y-4">
           {requests.map((r) => (
@@ -125,6 +129,20 @@ export function RequestsList({ requests, canWrite, addMessageAction, submitReque
                     } className="capitalize shadow-sm">
                       {r.status.replace('_', ' ')}
                     </Badge>
+                    {r.priority && (
+                        <Badge variant="outline" className={`capitalize text-xs ${
+                            r.priority === 'urgent' ? 'text-red-600 border-red-200 bg-red-50' :
+                            r.priority === 'high' ? 'text-orange-600 border-orange-200 bg-orange-50' :
+                            'text-muted-foreground'
+                        }`}>
+                            {r.priority}
+                        </Badge>
+                    )}
+                     {r.category && (
+                        <Badge variant="secondary" className="capitalize text-xs">
+                            {r.category === 'bug' ? 'Bug Report' : r.category === 'feature' ? 'Feature Request' : r.category}
+                        </Badge>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-2">
                     <span>Opened {format(new Date(r.createdAt), "MMM d, yyyy")}</span>

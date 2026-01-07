@@ -1,4 +1,5 @@
-import { hasAccountCapability, safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession } from "@/lib/auth";
+import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { redirect } from "next/navigation";
@@ -19,6 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { CreateInvoiceDialog } from "@/components/dashboard/finance/create-invoice-dialog";
+import { InvoiceActions } from "@/components/dashboard/finance/invoice-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -49,8 +52,22 @@ export default async function FinancePage() {
       "clientName": client->name
     }
   `);
-  const { data: invoices } = await sanityFetch({ query });
+
+  // Fetch Clients
+  const clientsQuery = defineQuery(`
+    *[_type == "account" && role == "client"] | order(name asc) {
+      _id,
+      name
+    }
+  `);
+
+  const [{ data: invoices }, { data: clients }] = await Promise.all([
+    sanityFetch({ query }),
+    sanityFetch({ query: clientsQuery }),
+  ]);
+
   const safeInvoices = invoices || [];
+  const safeClients = clients || [];
 
   // Calculate Metrics
   const totalRevenue = safeInvoices
@@ -61,13 +78,19 @@ export default async function FinancePage() {
     .filter((i: any) => i.status === "sent")
     .reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
 
+  const canCreate = hasAccountCapability(acct, "finance.create");
+  const canUpdate = hasAccountCapability(acct, "finance.update");
+
   return (
     <div className="container mx-auto p-6 space-y-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Finance</h1>
-        <p className="text-muted-foreground">
-          Financial overview, revenue, and invoices.
-        </p>
+      <div className="flex flex-row items-center justify-between">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold tracking-tight">Finance</h1>
+          <p className="text-muted-foreground">
+            Financial overview, revenue, and invoices.
+          </p>
+        </div>
+        {canCreate && <CreateInvoiceDialog clients={safeClients} />}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -106,12 +129,13 @@ export default async function FinancePage() {
                 <TableHead>Issued</TableHead>
                 <TableHead>Due</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
+                {canUpdate && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {safeInvoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                  <TableCell colSpan={canUpdate ? 7 : 6} className="text-center h-24 text-muted-foreground">
                     No invoices found.
                   </TableCell>
                 </TableRow>
@@ -134,6 +158,14 @@ export default async function FinancePage() {
                     <TableCell className="text-right">
                       {invoice.amount?.toLocaleString()} {invoice.currency}
                     </TableCell>
+                    {canUpdate && (
+                      <TableCell>
+                        <InvoiceActions 
+                          invoiceId={invoice._id} 
+                          currentStatus={invoice.status} 
+                        />
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
