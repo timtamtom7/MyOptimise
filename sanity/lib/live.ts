@@ -14,13 +14,18 @@ const live = defineLive({
 export const SanityLive = sanityConfigured ? live.SanityLive : (() => null);
 
 export async function sanityFetch(...args: Parameters<typeof live.sanityFetch>) {
+  console.log("sanityFetch called", args[0]?.query);
   const empty = { data: null, sourceMap: null, tags: [] } as Awaited<ReturnType<typeof live.sanityFetch>>;
   if (!sanityConfigured) {
+    console.log("sanityFetch: not configured");
     return empty;
   }
   try {
-    return await live.sanityFetch(...args);
-  } catch {
+    const result = await live.sanityFetch(...args);
+    console.log("sanityFetch success");
+    return result;
+  } catch (e) {
+    console.error("sanityFetch error", e);
     return empty;
   }
 }

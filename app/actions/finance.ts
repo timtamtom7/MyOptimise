@@ -8,7 +8,7 @@ import { client } from "@/sanity/lib/client";
 import { revalidatePath } from "next/cache";
 import { sendEmail } from "@/lib/email";
 import { invoiceSentEmail } from "@/lib/email-templates";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/date-formatting";
 
 const writeClient = client.withConfig({
   token: process.env.SANITY_API_WRITE_TOKEN,
@@ -99,7 +99,7 @@ export async function updateInvoiceStatus(formData: FormData) {
           invoiceNumber: invoice.invoiceNumber,
           amount: invoice.amount,
           currency: invoice.currency,
-          dueDate: invoice.dueDate ? format(new Date(invoice.dueDate), "MMM d, yyyy") : undefined,
+          dueDate: invoice.dueDate ? formatDate(invoice.dueDate, "MMM d, yyyy") : undefined,
           link,
         }),
       });

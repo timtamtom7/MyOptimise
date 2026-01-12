@@ -49,13 +49,11 @@ export function Header({ user }: HeaderProps) {
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'User'} />
-                  <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
-                </Avatar>
-              </Button>
+            <DropdownMenuTrigger className="relative h-8 w-8 rounded-full">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'User'} />
+                <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
+              </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">

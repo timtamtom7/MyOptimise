@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
+import { formatDateTime } from "@/lib/date-formatting";
 import { Activity } from "lucide-react";
 
 interface AuditTabProps {
@@ -41,7 +41,7 @@ export function AuditTab({ auditLogs }: AuditTabProps) {
                     <span className="font-bold">{log.targetLabel || log.targetType}</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                    {formatDateTime(log.createdAt)}
                   </p>
                   {log.context && (
                     <div className="mt-2 rounded-md bg-muted/50 p-2 text-xs font-mono">

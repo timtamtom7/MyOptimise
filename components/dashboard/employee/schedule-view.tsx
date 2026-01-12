@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, startOfMonth, endOfMonth, isSameMonth, addMonths, subMonths } from "date-fns";
+import { startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, startOfMonth, endOfMonth, isSameMonth, addMonths, subMonths } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/date-formatting";
 
 interface ScheduleItem {
   _id: string;
@@ -67,7 +68,7 @@ export function ScheduleView({ items, currentUserId }: ScheduleViewProps) {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-lg font-semibold w-48 text-center">
-            {format(date, view === "month" ? "MMMM yyyy" : "MMM d, yyyy")}
+            {formatDate(date, view === "month" ? "MMMM yyyy" : "MMM d, yyyy")}
           </h2>
           <Button variant="outline" size="icon" onClick={() => navigate("next")}>
             <ChevronRight className="h-4 w-4" />
@@ -91,7 +92,7 @@ export function ScheduleView({ items, currentUserId }: ScheduleViewProps) {
             <Card key={day.toISOString()} className={cn("min-h-[150px]", isToday && "border-primary")}>
               <CardHeader className="p-3 pb-2 space-y-0">
                 <CardTitle className={cn("text-sm font-medium", !isCurrentMonth && "text-muted-foreground")}>
-                  {format(day, "EEE d")}
+                  {formatDate(day, "EEE d")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 space-y-2">
@@ -102,7 +103,7 @@ export function ScheduleView({ items, currentUserId }: ScheduleViewProps) {
                     <div className="flex items-center justify-between mt-1 text-[10px] text-muted-foreground">
                        <span className="flex items-center gap-0.5">
                          <Clock className="h-3 w-3" />
-                         {format(new Date(item.startsAt), "HH:mm")}
+                         {formatDate(item.startsAt, "HH:mm")}
                        </span>
                        {item.type === "team" && <Users className="h-3 w-3" />}
                     </div>

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, User } from "lucide-react";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/date-formatting";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +80,7 @@ export default async function DocumentsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>{doc.createdBy || "Unknown"}</TableCell>
-                  <TableCell>{doc.createdAt ? format(new Date(doc.createdAt), "MMM d, yyyy") : "-"}</TableCell>
+                  <TableCell>{doc.createdAt ? formatDate(doc.createdAt, "MMM d, yyyy") : "-"}</TableCell>
                   <TableCell className="text-right">
                     {doc.fileUrl && (
                       <Button variant="ghost" size="sm" asChild>

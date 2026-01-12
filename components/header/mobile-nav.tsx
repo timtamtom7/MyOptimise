@@ -34,14 +34,11 @@ export default function MobileNav({
   const [open, setOpen] = useState(false);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          aria-label="Open Menu"
-          variant="ghost"
-          className="w-10 p-5 focus-visible:ring-1 focus-visible:ring-offset-1"
-        >
-          <AlignRight className="dark:text-white" />
-        </Button>
+      <SheetTrigger
+        aria-label="Open Menu"
+        className="w-10 p-5 focus-visible:ring-1 focus-visible:ring-offset-1 inline-flex items-center justify-center rounded-2xl"
+      >
+        <AlignRight className="dark:text-white" />
       </SheetTrigger>
       <SheetContent>
         <SheetHeader>
@@ -65,14 +62,16 @@ export default function MobileNav({
                     rel={navItem.target ? "noopener noreferrer" : undefined}
                     className={cn("w-full rounded-md px-3 py-2 hover:bg-accent/40 transition", "text-left flex items-center gap-3")}
                   >
-                    {(() => {
-                      const t = (navItem.title || "").toLowerCase();
-                      if (t.includes("event")) return <CalendarDays className="w-5 h-5" />;
-                      if (t.includes("organ")) return <Building2 className="w-5 h-5" />;
-                      if (t.includes("sponsor")) return <HandHeart className="w-5 h-5" />;
-                      return <AlignRight className="w-5 h-5" />;
-                    })()}
-                    <span className="text-lg">{navItem.title}</span>
+                    <>
+                      {(() => {
+                        const t = (navItem.title || "").toLowerCase();
+                        if (t.includes("event")) return <CalendarDays className="w-5 h-5" />;
+                        if (t.includes("organ")) return <Building2 className="w-5 h-5" />;
+                        if (t.includes("sponsor")) return <HandHeart className="w-5 h-5" />;
+                        return <AlignRight className="w-5 h-5" />;
+                      })()}
+                      <span className="text-lg">{navItem.title}</span>
+                    </>
                   </Link>
                 </li>
               ))}

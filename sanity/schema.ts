@@ -23,10 +23,13 @@ import documentItem from "./schemas/documents/documentItem";
 import scheduleItem from "./schemas/documents/scheduleItem";
 import page from "./schemas/documents/page";
 import post from "./schemas/documents/post";
+import contentItem from "./schemas/documents/contentItem";
 import category from "./schemas/documents/category";
 import author from "./schemas/documents/author";
 import faq from "./schemas/documents/faq";
 import testimonial from "./schemas/documents/testimonial";
+import socialConnection from "./schemas/documents/socialConnection";
+import lead from "./schemas/documents/lead";
 
 // shared/object types
 import blockContent from "./schemas/blocks/shared/block-content";
@@ -85,10 +88,13 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     // documents
     page,
     post,
+    contentItem,
     category,
     author,
     faq,
     testimonial,
+    socialConnection,
+    lead,
     // objects/blocks
     blockContent,
     hero1,

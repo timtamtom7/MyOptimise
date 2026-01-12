@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/date-formatting";
 
 interface ServicesTabProps {
   clientServices: any[];
@@ -192,7 +193,7 @@ export function ServicesTab({
                     {r.clientAccount?.name || r.clientAccount?.email || "Client"} • {r.requestedServiceType}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {r.status} • {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ""}
+                    {r.status} • {formatDate(r.createdAt)}
                   </div>
                   {r.details && <div className="mt-2 text-sm text-muted-foreground">{r.details}</div>}
                   {r.attachments?.length > 0 && (

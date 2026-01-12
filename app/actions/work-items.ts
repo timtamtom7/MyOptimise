@@ -10,6 +10,69 @@ import { addDays } from "date-fns";
 import { sendEmail } from "@/lib/email";
 import { taskAssignedEmail } from "@/lib/email-templates";
 
+export async function createTaskInternal(data: {
+  title: string;
+  description?: string;
+  priority: string;
+  dueDate?: Date | null;
+  assigneeId?: string;
+  creatorId: string;
+  visibility?: string;
+  source?: { type: string; id: string };
+}) {
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  const assignedTo = data.assigneeId ? { _type: "reference", _ref: data.assigneeId } : undefined;
+
+  const created = await writeClient.create({
+    _type: "workItem",
+    title: data.title,
+    description: data.description,
+    visibility: data.visibility || "internal",
+    createdBy: { _type: "reference", _ref: data.creatorId },
+    ...(assignedTo ? { assignedTo } : {}),
+    priority: data.priority,
+    status: "todo",
+    createdAt: new Date().toISOString(),
+    ...(data.dueDate ? { dueDate: data.dueDate.toISOString() } : {}),
+    ...(data.source ? { source: data.source } : {}), // Assuming schema supports source or notes
+  });
+
+  await writeAuditLog({
+    actorAccountId: data.creatorId,
+    action: "workItem.created_internal",
+    targetId: String(created?._id || ""),
+    targetType: "workItem",
+    targetLabel: data.title,
+    context: { priority: data.priority, visibility: data.visibility, assigned: Boolean(assignedTo) },
+  });
+
+  // Notify assignee if different from creator
+  if (assignedTo && assignedTo._ref !== data.creatorId) {
+    const assignee = await writeClient.fetch(
+      `*[_type == "account" && _id == $id][0]{email}`,
+      { id: assignedTo._ref }
+    );
+    if (assignee?.email) {
+      const creator = await writeClient.fetch(`*[_type == "account" && _id == $id][0]{name}`, { id: data.creatorId });
+      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/employee/tasks`;
+      await sendEmail({
+        to: assignee.email,
+        subject: `New Task Assigned: ${data.title}`,
+        html: taskAssignedEmail({
+          taskTitle: data.title,
+          assignedBy: creator?.name || "System",
+          link,
+        }),
+      });
+    }
+  }
+
+  return created;
+}
+
 export async function createWorkItem(formData: FormData) {
   const session = await safeGetServerSession();
   const email = String((session as any)?.user?.email || "");
@@ -32,61 +95,21 @@ export async function createWorkItem(formData: FormData) {
   const dueDate = dueDateRaw ? new Date(dueDateRaw) : null;
   if (dueDate && Number.isNaN(dueDate.getTime())) return;
 
-  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
-  if (!writeToken) return;
-  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-
-  let assignedTo: { _type: "reference"; _ref: string } | undefined;
-  
+  let finalAssigneeId = String(acct._id);
   // If assigneeId provided and user has permission to assign
   if (assigneeId && hasAccountCapability(acct, "task.assign")) {
-    assignedTo = { _type: "reference", _ref: assigneeId };
-  } else {
-    // Default to self-assignment for employees creating their own tasks
-    assignedTo = { _type: "reference", _ref: String(acct._id) };
+    finalAssigneeId = assigneeId;
   }
 
-  const created = await writeClient.create({
-    _type: "workItem",
+  await createTaskInternal({
     title,
-    description: description || undefined,
-    visibility,
-    createdBy: { _type: "reference", _ref: String(acct._id) },
-    ...(assignedTo ? { assignedTo } : {}),
+    description,
     priority,
-    status: "todo",
-    createdAt: new Date().toISOString(),
-    ...(dueDate ? { dueDate: dueDate.toISOString() } : {}),
+    dueDate,
+    assigneeId: finalAssigneeId,
+    creatorId: String(acct._id),
+    visibility
   });
-
-  await writeAuditLog({
-    actorAccountId: String(acct._id),
-    action: "workItem.created_manual",
-    targetId: String(created?._id || ""),
-    targetType: "workItem",
-    targetLabel: String(created?.title || title),
-    context: { priority, visibility, assigned: Boolean(assignedTo) },
-  });
-
-  // Notify assignee if different from creator
-  if (assignedTo && assignedTo._ref !== String(acct._id)) {
-    const assignee = await writeClient.fetch(
-      `*[_type == "account" && _id == $id][0]{email}`,
-      { id: assignedTo._ref }
-    );
-    if (assignee?.email) {
-      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/employee/tasks`;
-      await sendEmail({
-        to: assignee.email,
-        subject: `New Task Assigned: ${title}`,
-        html: taskAssignedEmail({
-          taskTitle: title,
-          assignedBy: acct.name || "A manager",
-          link,
-        }),
-      });
-    }
-  }
 
   revalidatePath("/dashboard");
 }

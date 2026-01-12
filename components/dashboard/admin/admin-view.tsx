@@ -28,7 +28,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
 
 import { TasksTab } from "./tasks-tab";
 import { AccountsTab } from "./accounts-tab";
@@ -37,6 +36,7 @@ import { SupportTab } from "./support-tab";
 import { ServicesTab } from "./services-tab";
 import { SystemTab } from "./system-tab";
 import { MessagesTab } from "./messages-tab";
+import { FinancialsTab } from "./financials-tab";
 
 interface AdminViewProps {
   data: {
@@ -51,6 +51,7 @@ interface AdminViewProps {
     featureFlags: any[];
     myThreads: any[];
     auditLogs: any[];
+    invoices: any[];
     impersonatedAccount: any;
     stats: {
       totalUsers: number;
@@ -71,12 +72,14 @@ interface AdminViewProps {
     canImpersonate: boolean;
     canSetTaskVisibility: boolean;
     canManageTaskTemplates: boolean;
+    canDeleteTasks: boolean;
     canManageServices: boolean;
     canManageFeatureFlags: boolean;
   };
   actions: {
     createWorkItem: (formData: FormData) => Promise<void>;
     assignWorkItem: (formData: FormData) => Promise<void>;
+    deleteWorkItem: (formData: FormData) => Promise<void>;
     updateStatus: (formData: FormData) => Promise<void>;
     inviteGoogleAccount: (formData: FormData) => Promise<void>;
     updateAccount: (formData: FormData) => Promise<void>;
@@ -396,6 +399,10 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
           />
         </TabsContent>
 
+        <TabsContent value="financials">
+          <FinancialsTab invoices={data.invoices || []} />
+        </TabsContent>
+
         <TabsContent value="tasks">
           <TasksTab 
             openWorkItems={data.openWorkItems}
@@ -405,11 +412,13 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
             capabilities={{
               canCreate: capabilities.canCreateTasks,
               canAssign: capabilities.canAssign,
-              canManageTaskTemplates: capabilities.canManageTaskTemplates
+              canManageTaskTemplates: capabilities.canManageTaskTemplates,
+              canDelete: capabilities.canDeleteTasks
             }}
             actions={{
               createWorkItem: actions.createWorkItem,
               assignWorkItem: actions.assignWorkItem,
+              deleteWorkItem: actions.deleteWorkItem,
               updateStatus: actions.updateStatus,
               createWorkItemTemplate: actions.createWorkItemTemplate,
               deleteWorkItemTemplate: actions.deleteWorkItemTemplate,

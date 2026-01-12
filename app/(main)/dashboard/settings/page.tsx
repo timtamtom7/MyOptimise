@@ -10,6 +10,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 
+import { TimezoneSelector } from "@/components/dashboard/settings/timezone-selector";
+
 export const dynamic = "force-dynamic";
 
 const IMPERSONATE_COOKIE = "impersonateAccountId";
@@ -175,11 +177,8 @@ export default async function DashboardSettingsPage() {
               <label className="text-sm font-medium" htmlFor="timezone">
                 Timezone
               </label>
-              <input
-                id="timezone"
-                name="timezone"
+              <TimezoneSelector
                 defaultValue={String((effectiveAcct as any).timezone || "")}
-                className="rounded-md border px-3 py-2 text-sm"
                 disabled={!canWrite || !canEditTimezoneLocale}
               />
             </div>

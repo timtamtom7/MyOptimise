@@ -2,6 +2,8 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { ClientHero } from "./hero";
 import { RequestsList } from "./requests-list";
 import { ServicesGrid } from "./services-grid";
@@ -10,7 +12,13 @@ import { ClientWorkItemsList } from "./work-items-list";
 import { MessagesTab } from "../admin/messages-tab";
 import { ApprovalsTab } from "./approvals-tab";
 import { DeliverablesLibrary } from "./deliverables-library";
+import { ContentGrid } from "./content-grid";
+import { CreatePostDialog } from "./create-post-dialog";
+import { PostPreviewDialog } from "./post-preview-dialog";
 import { ClientCalendar, CalendarEvent } from "./client-calendar";
+import { SocialConnections } from "./social-connections";
+import { BrandTab } from "./brand-tab";
+import { BillingTab } from "./billing-tab";
 import { 
   FileText,
   CheckSquare,
@@ -19,12 +27,14 @@ import {
   Activity,
   Flag,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Plus
 } from "lucide-react";
 
 interface ClientViewProps {
   data: {
-    user: { name: string; email: string };
+    user: { name: string; email: string; id?: string; timezone?: string; avatar?: string };
+    account?: any; // Full account object
     myRequests: any[];
     supportStaff: any[];
     myThreads: any[];
@@ -33,7 +43,9 @@ interface ClientViewProps {
     myServiceRequests: any[];
     myDeliverables: any[];
     activeCampaign?: any;
-    calendarEvents?: CalendarEvent[];
+    calendarEvents?: any[];
+    contentItems?: any[];
+    socialConnections?: any[];
   };
   actions: {
     submitClientRequest: (formData: FormData) => Promise<void>;
@@ -47,10 +59,39 @@ interface ClientViewProps {
   capabilities: {
     canWrite: boolean;
     canViewServices: boolean;
+    canManageConnections?: boolean;
   };
 }
 
 export function ClientView({ data, actions, capabilities }: ClientViewProps) {
+  const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [createPostDate, setCreatePostDate] = useState<Date | undefined>(undefined);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewPost, setPreviewPost] = useState<any | null>(null);
+
+  const handleDateClick = (date: Date) => {
+    if (capabilities.canWrite) {
+      setCreatePostDate(date);
+      setCreatePostOpen(true);
+    }
+  };
+
+  const handleCreatePost = () => {
+    setCreatePostDate(undefined);
+    setCreatePostOpen(true);
+  };
+
+  const handlePostClick = (postOrId: any) => {
+      const post = typeof postOrId === 'string' 
+        ? data.contentItems?.find(c => c._id === postOrId)
+        : postOrId;
+      
+      if (post) {
+          setPreviewPost(post);
+          setPreviewOpen(true);
+      }
+  };
+
   // Calculate stats
   const activeRequests = data.myRequests.filter(r => r.status !== 'completed' && r.status !== 'closed').length;
   const pendingTasks = data.clientWorkItems.filter(i => i.status !== 'completed' && i.status !== 'done').length;
@@ -78,17 +119,62 @@ export function ClientView({ data, actions, capabilities }: ClientViewProps) {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
+          <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="library">Library</TabsTrigger>
           <TabsTrigger value="requests">Requests</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           {capabilities.canViewServices && <TabsTrigger value="services">Services</TabsTrigger>}
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="connections">Connections</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
+          <TabsTrigger value="brand">Brand</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="brand" className="space-y-6">
+          <BrandTab account={data.account} />
+        </TabsContent>
+
+        <TabsContent value="billing" className="space-y-6">
+          <BillingTab />
+        </TabsContent>
+
         <TabsContent value="calendar" className="space-y-6">
-          <ClientCalendar events={data.calendarEvents || []} />
+          <div className="flex items-center justify-between">
+             <h2 className="text-lg font-semibold tracking-tight">Content Calendar</h2>
+             {capabilities.canWrite && (
+               <Button onClick={handleCreatePost} className="gap-2">
+                 <Plus className="h-4 w-4" /> Create Post
+               </Button>
+             )}
+          </div>
+          <ClientCalendar 
+            events={data.calendarEvents || []} 
+            onDateClick={handleDateClick} 
+            onEventClick={handlePostClick}
+            drafts={(data.contentItems || []).filter(c => !c.scheduledAt || String(c.status || "") === "draft")}
+          />
+        </TabsContent>
+
+        <TabsContent value="content" className="space-y-6">
+           <div className="flex items-center justify-between">
+             <h2 className="text-lg font-semibold tracking-tight">All Posts</h2>
+             {capabilities.canWrite && (
+               <Button onClick={handleCreatePost} className="gap-2">
+                 <Plus className="h-4 w-4" /> Create Post
+               </Button>
+             )}
+           </div>
+           <ContentGrid items={data.contentItems || []} onPostClick={handlePostClick} />
+        </TabsContent>
+
+        <TabsContent value="connections" className="space-y-6">
+          <SocialConnections 
+            connections={data.socialConnections || []} 
+            clientId={data.user.id || ""} 
+            canWrite={capabilities.canManageConnections ?? capabilities.canWrite}
+          />
         </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
@@ -191,7 +277,7 @@ export function ClientView({ data, actions, capabilities }: ClientViewProps) {
             </Card>
           </div>
 
-          <ClientHero canWrite={capabilities.canWrite} submitAction={actions.submitClientRequest} />
+          <ClientHero canWrite={capabilities.canWrite} submitAction={actions.submitClientRequest} account={data.account} />
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <RequestsList 
@@ -262,6 +348,25 @@ export function ClientView({ data, actions, capabilities }: ClientViewProps) {
           />
         </TabsContent>
       </Tabs>
+
+      <CreatePostDialog 
+        clientId={data.user.id || ""} 
+        open={createPostOpen} 
+        onOpenChange={setCreatePostOpen}
+        defaultDate={createPostDate}
+        trigger={null}
+        targetTimezone={data.user.timezone}
+      />
+      
+      <PostPreviewDialog
+        post={previewPost}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        canWrite={capabilities.canWrite}
+        targetTimezone={data.user.timezone}
+        authorName={data.user.name}
+        authorAvatar={data.user.avatar}
+      />
     </div>
   );
 }

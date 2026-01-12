@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { format } from 'date-fns'
+import { formatDate } from '@/lib/date-formatting'
 import { useClientServices } from '@/hooks/use-analytics'
 import { useCurrentUser } from '@/hooks/use-user'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

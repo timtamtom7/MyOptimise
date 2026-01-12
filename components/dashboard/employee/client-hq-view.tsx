@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AlertTriangle, CheckCircle2, Clock, FileText, ExternalLink, Mail, Phone, Shield, Flag } from "lucide-react";
 import Link from "next/link";
-import { format } from "date-fns";
 import { ScheduleView } from "./schedule-view";
+import { formatDate } from "@/lib/date-formatting";
 
 interface ClientHQProps {
   data: {
@@ -159,7 +159,7 @@ export function ClientHQView({ data }: ClientHQProps) {
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="capitalize">{d.status.replace("_", " ")}</Badge>
                         {d.dueDate && (
-                           <span className="text-xs text-muted-foreground">{format(new Date(d.dueDate), "MMM d")}</span>
+                           <span className="text-xs text-muted-foreground">{formatDate(d.dueDate, "MMM d")}</span>
                         )}
                       </div>
                     </div>
@@ -196,7 +196,7 @@ export function ClientHQView({ data }: ClientHQProps) {
                       <h3 className="font-semibold">{c.title}</h3>
                       <p className="text-sm text-muted-foreground">{c.description}</p>
                       <div className="flex gap-2 text-xs text-muted-foreground mt-2">
-                        {c.endDate && <span>Ends: {format(new Date(c.endDate), "MMM d, yyyy")}</span>}
+                        {c.endDate && <span>Ends: {formatDate(c.endDate, "MMM d, yyyy")}</span>}
                         <span>•</span>
                         <span>{c.deliverableCount} Deliverables</span>
                       </div>
@@ -226,7 +226,7 @@ export function ClientHQView({ data }: ClientHQProps) {
                     <div key={t._id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
                       <div>
                         <p className="font-medium">{t.subject}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{t.category} • Created {format(new Date(t._createdAt), "MMM d")}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{t.category} • Created {formatDate(t._createdAt, "MMM d")}</p>
                       </div>
                       <Badge className={t.priority === 'urgent' ? 'bg-red-500' : ''}>{t.status}</Badge>
                     </div>

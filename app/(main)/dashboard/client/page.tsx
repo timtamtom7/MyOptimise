@@ -40,7 +40,7 @@ export default async function ClientDashboardPage() {
 
   if (impersonateId && canImpersonate) {
     const targetRes = await sanityFetch({
-      query: `*[_type == "account" && _id == $id][0]{_id, email, name, type, status}`,
+      query: `*[_type == "account" && _id == $id][0]{_id, email, name, type, status, timezone}`,
       params: { id: impersonateId },
       perspective: "published",
     });
@@ -342,6 +342,8 @@ export default async function ClientDashboardPage() {
     myServiceRequestsRes,
     myDeliverablesRes,
     activeCampaignRes,
+    contentItemsRes,
+    socialConnectionsRes,
   ] = await Promise.all([
     sanityFetch({
       query: `*[_type == "clientRequest" && clientEmail != null && lower(clientEmail) == $email] | order(createdAt desc)[0..9]{
@@ -408,6 +410,21 @@ export default async function ClientDashboardPage() {
         }`,
         params: { acctId },
       }),
+      sanityFetch({
+        query: `*[_type == "contentItem" && client._ref == $acctId]{
+          _id, title, caption, scheduledAt, status, platform, postType,
+          "firstAssetUrl": media[0].asset->url,
+          "firstAssetMime": media[0].asset->mimeType,
+          annotations
+        }`,
+        params: { acctId },
+      }),
+      sanityFetch({
+        query: `*[_type == "socialConnection" && client._ref == $acctId]{
+          _id, platform, pageName, status, pageId
+        }`,
+        params: { acctId },
+      }),
     ]);
 
   const myRequests = ((myRequestsRes as any)?.data ?? []) as any[];
@@ -418,6 +435,8 @@ export default async function ClientDashboardPage() {
   const myServiceRequests = ((myServiceRequestsRes as any)?.data ?? []) as any[];
   const myDeliverables = ((myDeliverablesRes as any)?.data ?? []) as any[];
   const campaigns = ((activeCampaignRes as any)?.data ?? []) as any[];
+  const contentItems = ((contentItemsRes as any)?.data ?? []) as any[];
+  const socialConnections = ((socialConnectionsRes as any)?.data ?? []) as any[];
   const activeCampaign = campaigns.find((c: any) => c.status === "active") || campaigns[0];
 
   // Prepare calendar events
@@ -438,7 +457,17 @@ export default async function ClientDashboardPage() {
       type: "deliverable",
       status: d.status,
       description: d.campaignTitle
-    })).filter((e: any) => e.date) // Ensure date exists
+    })).filter((e: any) => e.date), // Ensure date exists
+    ...contentItems.map((c: any) => ({
+      id: c._id,
+      title: c.title,
+      date: c.scheduledAt || new Date().toISOString(),
+      type: "content",
+      status: c.status,
+      description: c.platform,
+      platform: c.platform,
+      postType: c.postType,
+    })).filter((e: any) => e.date)
   ];
 
   return (
@@ -451,7 +480,8 @@ export default async function ClientDashboardPage() {
 
       <ClientView
         data={{
-          user: { name, email: emailLower },
+          user: { name, email: emailLower, id: acctId, avatar: (effectiveAcct as any)?.avatar },
+          account: effectiveAcct,
           myRequests,
           supportStaff,
           myThreads,
@@ -461,6 +491,8 @@ export default async function ClientDashboardPage() {
           myDeliverables,
           activeCampaign,
           calendarEvents,
+          contentItems,
+          socialConnections,
         }}
         actions={{
           submitClientRequest,

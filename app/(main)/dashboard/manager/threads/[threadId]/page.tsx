@@ -6,6 +6,9 @@ import { client } from "@/sanity/lib/client";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { postThreadMessage, approveMessageByKey, rejectMessageByKey } from "@/app/actions/messages";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -109,69 +112,7 @@ export default async function ManagerThreadPage(props: { params: Promise<{ threa
     redirect(`/dashboard/manager/threads/${threadId}`);
   }
 
-  async function postThreadMessage(formData: FormData) {
-    "use server";
-    const session = await safeGetServerSession();
-    const email = String((session as any)?.user?.email || "");
-    if (!email) return;
-    const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "manager") return;
-    if (!hasAccountCapability(acct, "message.create")) return;
-
-    const threadId = String(formData.get("threadId") || "").trim();
-    const message = String(formData.get("message") || "").trim();
-    if (!threadId || !message) return;
-    const attachment = formData.get("attachment");
-
-    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
-    if (!writeToken) return;
-    const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
-
-    const thread = await writeClient.fetch(
-      `*[_type == "messageThread" && _id == $id][0]{_id, visibility, participants[]._ref, "readStates": readStates[]{user, lastReadAt}}`,
-      { id: threadId },
-    );
-    if (!thread?._id) return;
-    if (!Array.isArray(thread.participants) || !thread.participants.includes(String(acct._id))) return;
-
-    const now = new Date().toISOString();
-    const messageVisibility = String(thread.visibility || "") === "client" ? "client" : "internal";
-    const existingReadStates = Array.isArray(thread.readStates) ? thread.readStates : [];
-    const updatedReadStates = [
-      ...existingReadStates.filter((rs: any) => String(rs?.user?._ref || "") !== String(acct._id)),
-      { _type: "threadReadState", user: { _type: "reference", _ref: String(acct._id) }, lastReadAt: now },
-    ];
-
-    let uploadedAssetId: string | null = null;
-    if (attachment && typeof attachment !== "string") {
-      const file = attachment as File;
-      if (file.size > 0) {
-        const asset = await writeClient.assets.upload("file", file, { filename: file.name });
-        uploadedAssetId = String(asset?._id || "");
-      }
-    }
-
-    await writeClient
-      .patch(threadId)
-      .setIfMissing({ messages: [], readStates: [] })
-      .set({ updatedAt: now, readStates: updatedReadStates })
-      .append("messages", [
-        {
-          _type: "threadMessage",
-          author: { _type: "reference", _ref: String(acct._id) },
-          visibility: messageVisibility,
-          message,
-          createdAt: now,
-          ...(uploadedAssetId
-            ? { attachments: [{ _type: "file", asset: { _type: "reference", _ref: uploadedAssetId } }] }
-            : {}),
-        },
-      ])
-      .commit();
-
-    revalidatePath(`/dashboard/manager/threads/${threadId}`);
-    redirect(`/dashboard/manager/threads/${threadId}`);
-  }
+  // postThreadMessage moved to @/app/actions/messages
 
   async function togglePinMessage(formData: FormData) {
     "use server";
@@ -235,6 +176,7 @@ export default async function ManagerThreadPage(props: { params: Promise<{ threa
         message,
         createdAt,
         visibility,
+        status,
         author->{_id, name, email, type, status},
         "reactions": reactions[]{_key, emoji, createdAt, user->{_id, name, email}},
         attachments[]{asset->{url, originalFilename}}
@@ -298,6 +240,24 @@ export default async function ManagerThreadPage(props: { params: Promise<{ threa
         </div>
       </div>
 
+      {thread?.relatedContentItem ? (
+        <div className="mt-6 rounded-xl border bg-card p-5">
+          <div className="text-sm text-muted-foreground">Context: Content Item</div>
+          <div className="mt-2 flex items-center gap-4">
+             {thread.relatedContentItem.media && (
+                 <img src={thread.relatedContentItem.media} alt="Preview" className="h-16 w-16 rounded object-cover border" />
+             )}
+             <div>
+                 <div className="font-medium">{String(thread.relatedContentItem.title || "Untitled")}</div>
+                 <div className="text-xs text-muted-foreground capitalize">{String(thread.relatedContentItem.platform || "")}</div>
+                 <Link href={`/dashboard/manager/content/${thread.relatedContentItem._id}`} className="text-xs text-blue-500 hover:underline">
+                     View Item
+                 </Link>
+             </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-6 rounded-xl border bg-card p-5">
         <div className="text-sm text-muted-foreground">Messages</div>
         {canMarkRead ? (
@@ -309,15 +269,28 @@ export default async function ManagerThreadPage(props: { params: Promise<{ threa
           </form>
         ) : null}
         <div className="mt-4 space-y-4">
-          {sortedMessages.map((m: any, idx: number) => (
-            <div key={idx} className="rounded-lg border p-4">
-              <div className="text-xs text-muted-foreground">
-                {String(m?.author?.name || m?.author?.email || "Unknown")}
-                {m?.createdAt ? ` • ${String(m.createdAt)}` : ""}
-                {pinnedKeys.has(String(m?._key || "")) ? " • pinned" : ""}
+          {sortedMessages.map((m: any, idx: number) => {
+            const isPending = m.status === 'pending_approval';
+            const isRejected = m.status === 'rejected';
+            return (
+            <div key={m._key || idx} className={`rounded-lg border p-4 ${isPending ? "bg-yellow-50/50 border-yellow-200" : isRejected ? "bg-red-50/50 border-red-200" : ""}`}>
+              <div className="flex justify-between items-start mb-2">
+                <div className="text-xs text-muted-foreground">
+                  {String(m?.author?.name || m?.author?.email || "Unknown")}
+                  {m?.createdAt ? ` • ${String(m.createdAt)}` : ""}
+                  {pinnedKeys.has(String(m?._key || "")) ? " • pinned" : ""}
+                </div>
+                {isPending && (
+                   <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending Approval</Badge>
+                )}
+                {isRejected && (
+                   <Badge variant="destructive">Rejected</Badge>
+                )}
               </div>
+
               {m?.message ? <div className="mt-2 whitespace-pre-wrap text-sm">{String(m.message)}</div> : null}
-              {canPin ? (
+              
+              {canPin && !isPending ? (
                 <form action={togglePinMessage} className="mt-3">
                   <input type="hidden" name="threadId" value={String(threadId)} />
                   <input type="hidden" name="messageKey" value={String(m?._key || "")} />
@@ -326,6 +299,7 @@ export default async function ManagerThreadPage(props: { params: Promise<{ threa
                   </button>
                 </form>
               ) : null}
+
               {Array.isArray(m?.reactions) && m.reactions.length ? (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {Object.entries(
@@ -342,6 +316,7 @@ export default async function ManagerThreadPage(props: { params: Promise<{ threa
                   ))}
                 </div>
               ) : null}
+
               {Array.isArray(m?.attachments) && m.attachments.length ? (
                 <div className="mt-2 space-y-1">
                   {m.attachments.map((a: any, aIdx: number) => (
@@ -353,8 +328,20 @@ export default async function ManagerThreadPage(props: { params: Promise<{ threa
                   ))}
                 </div>
               ) : null}
+
+              {isPending && (
+                  <div className="mt-4 flex gap-2">
+                      <form action={approveMessageByKey.bind(null, threadId, m._key)}>
+                          <Button size="sm">Approve & Send</Button>
+                      </form>
+                      <form action={rejectMessageByKey.bind(null, threadId, m._key)}>
+                          <Button size="sm" variant="destructive">Reject</Button>
+                      </form>
+                  </div>
+              )}
             </div>
-          ))}
+            );
+          })}
           {sortedMessages.length === 0 ? <div className="text-sm text-muted-foreground">No messages yet.</div> : null}
         </div>
 

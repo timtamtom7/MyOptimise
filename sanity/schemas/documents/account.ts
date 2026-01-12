@@ -103,9 +103,33 @@ export default defineType({
       hidden: ({ document }) => document?.type !== "client",
     }),
     defineField({
-      name: "brandGuidelines",
-      type: "file",
-      title: "Brand Guidelines",
+      name: "brandAssets",
+      type: "array",
+      title: "Brand Assets",
+      hidden: ({ document }) => document?.type !== "client",
+      of: [
+        {
+          type: "object",
+          fields: [
+            defineField({ name: "title", type: "string", title: "Title" }),
+            defineField({ name: "type", type: "string", options: { list: ["logo", "font", "guidelines", "other"] } }),
+            defineField({ name: "file", type: "file", title: "File" }),
+            defineField({ name: "url", type: "url", title: "External URL" }),
+          ]
+        }
+      ]
+    }),
+    // Finance
+    defineField({
+      name: "stripeCustomerId",
+      type: "string",
+      title: "Stripe Customer ID",
+      hidden: ({ document }) => document?.type !== "client",
+    }),
+    defineField({
+      name: "stripeSubscriptionId",
+      type: "string",
+      title: "Stripe Subscription ID",
       hidden: ({ document }) => document?.type !== "client",
     }),
   ],

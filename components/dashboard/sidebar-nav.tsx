@@ -74,20 +74,22 @@ export function SidebarNav({ items }: SidebarNavProps) {
               buttonVariants({ variant: "ghost", size: "lg" }),
               isActive 
                 ? "text-primary font-bold bg-primary/10" 
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                      "justify-start transition-all duration-200 px-4 py-2 h-10 rounded-md relative group"
-                    )}
-                  >
-                    {isActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-                    )}
-            {Icon && <Icon className={cn("mr-3 h-5 w-5", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />}
-            <span className={cn("text-sm", isActive ? "font-bold" : "font-normal")}>{item.title}</span>
-            {item.badge && (
-               <span className={cn("ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-bold", isActive ? "bg-primary text-primary-foreground" : "bg-primary text-primary-foreground")}>
-                 {item.badge}
-               </span>
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              "justify-start transition-all duration-200 px-4 py-2 h-10 rounded-md relative group"
             )}
+          >
+            <>
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+              )}
+              {Icon && <Icon className={cn("mr-3 h-5 w-5", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />}
+              <span className={cn("text-sm", isActive ? "font-bold" : "font-normal")}>{item.title}</span>
+              {item.badge && (
+                <span className={cn("ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-bold", isActive ? "bg-primary text-primary-foreground" : "bg-primary text-primary-foreground")}>
+                  {item.badge}
+                </span>
+              )}
+            </>
           </Link>
         );
       })}

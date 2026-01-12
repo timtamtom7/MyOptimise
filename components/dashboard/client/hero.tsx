@@ -7,9 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 interface ClientHeroProps {
   canWrite: boolean;
   submitAction: (formData: FormData) => Promise<void>;
+  account?: any;
 }
 
-export function ClientHero({ canWrite, submitAction }: ClientHeroProps) {
+export function ClientHero({ canWrite, submitAction, account }: ClientHeroProps) {
+  const packageName = account?.serviceScope?.split('-')[0] || "Growth Tier";
+
   return (
     <Card className="overflow-hidden mb-8 border-none shadow-md">
       <CardContent className="p-0">
@@ -20,7 +23,10 @@ export function ClientHero({ canWrite, submitAction }: ClientHeroProps) {
           <div className="relative z-10">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight">What’s on your mind?</h1>
+                <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-semibold tracking-tight">What’s on your mind?</h1>
+                    {account && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">{packageName}</span>}
+                </div>
                 <p className="text-muted-foreground mt-2">
                   Any work you need, any question you have, anything.
                 </p>

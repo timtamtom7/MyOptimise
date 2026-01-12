@@ -3,7 +3,7 @@ import { safeGetServerSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, AlertTriangle, Clock, TrendingUp, Activity } from "lucide-react";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/date-formatting";
 
 export const dynamic = "force-dynamic";
 
@@ -123,7 +123,7 @@ export default async function AnalyticsPage() {
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {format(new Date(log.timestamp), "MMM d, h:mm a")}
+                    {formatDate(log.timestamp, "MMM d, h:mm a")}
                   </div>
                 </div>
               ))}

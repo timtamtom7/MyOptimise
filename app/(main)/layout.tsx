@@ -73,7 +73,7 @@ export default async function MainLayout({
       <Header />
       <main>{children}</main>
       <CommandPalette enabled={canUseCommandPalette} commands={commands} />
-      {isDraftMode && allowVisualEditing ? <SanityLive /> : null}
+      <SanityLive />
       {isDraftMode && allowVisualEditing && (
         <>
           <DisableDraftMode />

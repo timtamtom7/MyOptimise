@@ -188,9 +188,12 @@ export function useTasks(accountId: string, filters?: TaskFilters) {
 
   const updateTask = async (taskId: string, updates: Partial<Task>, userId: string) => {
     try {
+      // Map title to name if present
+      const dbUpdates: any = { ...updates }
+      
       const { data, error } = await supabase
         .from('tasks')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', taskId)
         .select()
         .single()

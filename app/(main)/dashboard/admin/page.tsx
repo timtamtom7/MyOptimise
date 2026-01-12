@@ -402,6 +402,34 @@ async function assignWorkItem(formData: FormData) {
   revalidatePath("/dashboard/admin");
 }
 
+async function deleteWorkItem(formData: FormData) {
+  "use server";
+  const admin = await requireActiveAdmin();
+  if (!admin) return;
+  if (!hasAccountCapability(admin.acct, "task.delete.all")) return;
+
+  const id = String(formData.get("id") || "").trim();
+  if (!id) return;
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  const existing = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id, title}`, { id });
+  if (!existing?._id) return;
+
+  await writeClient.delete(id);
+  await writeAuditLog({
+    actorAccountId: String(admin.acct._id),
+    action: "workItem.deleted",
+    targetId: id,
+    targetType: "workItem",
+    targetLabel: String(existing.title || id),
+    context: { id },
+  });
+  revalidatePath("/dashboard/admin");
+}
+
 async function createWorkItem(formData: FormData) {
   "use server";
   const admin = await requireActiveAdmin();
@@ -1171,6 +1199,7 @@ export default async function AdminDashboardPage() {
   const canCreateTasks = hasAccountCapability(acct, "task.create");
   const canSetTaskVisibility = hasAccountCapability(acct, "task.visibility.set");
   const canManageTaskTemplates = hasAccountCapability(acct, "task.templates.manage");
+  const canDeleteTasks = hasAccountCapability(acct, "task.delete.all");
   const canManageServices = hasAccountCapability(acct, "client.services.manage");
   const canManageFeatureFlags = hasAccountCapability(acct, "system.feature_flags.manage");
   const canViewLogs =
@@ -1192,6 +1221,7 @@ export default async function AdminDashboardPage() {
     myThreadsRes,
     auditLogsRes,
     impersonatedRes,
+    invoicesRes,
   ] = await Promise.all([
     sanityFetch({
       query: `*[_type == "account"] | order(_createdAt desc){_id, email, name, type, status, capabilities, revokedCapabilities}`,
@@ -1280,6 +1310,12 @@ export default async function AdminDashboardPage() {
           params: { id: impersonateId },
         })
       : Promise.resolve({ data: null }),
+    sanityFetch({
+      query: `*[_type == "invoice"] | order(issueDate desc)[0..49]{
+        _id, number, issueDate, dueDate, status, totalAmount, currency,
+        client->{_id, name, email}
+      }`,
+    }),
   ]);
 
   const accounts = ((accountsRes as any)?.data ?? []) as any[];
@@ -1294,6 +1330,7 @@ export default async function AdminDashboardPage() {
   const myThreads = ((myThreadsRes as any)?.data ?? []) as any[];
   const auditLogs = ((auditLogsRes as any)?.data ?? []) as any[];
   const impersonatedAccount = ((impersonatedRes as any)?.data ?? null) as any;
+  const invoices = ((invoicesRes as any)?.data ?? []) as any[];
 
   const clients = accounts.filter((a: any) => a.type === "client");
 
@@ -1301,6 +1338,7 @@ export default async function AdminDashboardPage() {
     totalUsers: accounts.length,
     activeTasks: openWorkItems.length,
     pendingRequests: openClientRequests.length + openServiceRequests.length,
+    totalRevenue: invoices.reduce((acc: number, inv: any) => acc + (inv.status === "paid" ? (inv.totalAmount || 0) : 0), 0),
   };
 
   return (
@@ -1317,6 +1355,7 @@ export default async function AdminDashboardPage() {
         featureFlags,
         myThreads,
         auditLogs,
+        invoices,
         impersonatedAccount,
         stats,
         currentUser: { name, email },
@@ -1330,12 +1369,14 @@ export default async function AdminDashboardPage() {
         canImpersonate,
         canSetTaskVisibility,
         canManageTaskTemplates,
+        canDeleteTasks,
         canManageServices,
         canManageFeatureFlags,
       }}
       actions={{
         createWorkItem,
         assignWorkItem,
+        deleteWorkItem,
         updateStatus: updateWorkItemStatus,
         inviteGoogleAccount,
         updateAccount,

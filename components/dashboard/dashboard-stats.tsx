@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useTaskStats } from '@/hooks/use-tasks'
 import { useTodayCalendarEvents } from '@/hooks/use-calendar'
 import { useCurrentUser } from '@/hooks/use-user'
-import { format } from 'date-fns'
+import { formatDate } from '@/lib/date-formatting'
 import { 
   CheckCircle2, 
   Clock, 
@@ -110,7 +110,7 @@ export function DashboardStats() {
           <CardHeader>
             <CardTitle>Today’s Schedule</CardTitle>
             <CardDescription>
-              Your meetings and events for {format(new Date(), 'EEEE, MMMM d')}
+              Your meetings and events for {formatDate(new Date(), 'EEEE, MMMM d')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -126,7 +126,7 @@ export function DashboardStats() {
                         {event.title}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {format(new Date(event.start_time), 'h:mm a')} - {format(new Date(event.end_time), 'h:mm a')}
+                        {formatDate(event.start_time, 'h:mm a')} - {formatDate(event.end_time, 'h:mm a')}
                       </p>
                       {event.location && (
                         <p className="text-xs text-gray-400 dark:text-gray-500">

@@ -55,7 +55,7 @@ export default async function FinancePage() {
 
   // Fetch Clients
   const clientsQuery = defineQuery(`
-    *[_type == "account" && role == "client"] | order(name asc) {
+    *[_type == "account" && type == "client"] | order(name asc) {
       _id,
       name
     }

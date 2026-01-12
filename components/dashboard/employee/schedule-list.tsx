@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/date-formatting";
 
 interface ScheduleItem {
   _id: string;
@@ -44,7 +44,7 @@ export function ScheduleList({ items }: ScheduleListProps) {
                          <div>
                             <div className="text-sm font-medium leading-none">{item.title}</div>
                             <div className="text-xs text-muted-foreground mt-1">
-                               {format(new Date(item.startsAt), "h:mm a")} - {format(new Date(item.endsAt), "h:mm a")}
+                               {formatDate(item.startsAt, "h:mm a")} - {formatDate(item.endsAt, "h:mm a")}
                             </div>
                          </div>
                       </div>

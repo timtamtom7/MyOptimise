@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/date-formatting";
 import { MessageSquare } from "lucide-react";
 
 interface WorkItem {
@@ -61,7 +61,7 @@ export function ClientWorkItemsList({ items }: ClientWorkItemsListProps) {
                         <div className="flex items-center gap-1">
                           <span className="font-medium">Due:</span>
                           <span className={new Date(item.dueDate) < new Date() ? "text-red-500 font-medium" : ""}>
-                            {format(new Date(item.dueDate), "MMM d, yyyy")}
+                            {formatDate(item.dueDate, "MMM d, yyyy")}
                           </span>
                         </div>
                     )}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTasks } from '@/hooks/use-tasks'
-import { useCurrentUser } from '@/hooks/use-user'
+import { useCurrentUser, useOrganizationMembers } from '@/hooks/use-user'
 import { useTaskPermissions } from '@/hooks/use-capabilities'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -20,7 +20,7 @@ import {
   Calendar,
   Flag
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { formatDate } from '@/lib/date-formatting'
 import { Task, TaskStatus, TaskPriority } from '@/lib/supabase'
 
 interface TaskFormData {
@@ -38,15 +38,8 @@ export function TaskBoard() {
   const [selectedStatus, setSelectedStatus] = useState<TaskStatus | 'all'>('all')
   const { user } = useCurrentUser()
   const { tasks, loading: isLoading, createTask, updateTask } = useTasks(user?.accountId || '')
+  const { data: members } = useOrganizationMembers(user?.accountId)
   const { canCreate } = useTaskPermissions()
-  
-  // Debug logging
-  console.log('[TaskBoard] Render:', { 
-    userId: user?.id, 
-    userRole: user?.role, 
-    canCreate, 
-    isCreateDialogOpen 
-  });
 
   const [isCreating, setIsCreating] = useState(false)
 
@@ -229,7 +222,7 @@ export function TaskBoard() {
                         {task.due_date && (
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
-                            <span>{format(new Date(task.due_date), 'MMM d')}</span>
+                            <span>{formatDate(task.due_date, 'MMM d')}</span>
                           </div>
                         )}
                       </div>
@@ -279,6 +272,28 @@ export function TaskBoard() {
                 placeholder="Enter task description"
                 rows={3}
               />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Assign To</label>
+              <Select
+                value={formData.assignee_id || "unassigned"}
+                onValueChange={(value) => setFormData({ ...formData, assignee_id: value === "unassigned" ? undefined : value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {members?.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{member.full_name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -16,7 +16,7 @@ import {
   Circle,
   MessageSquare
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { formatDate } from '@/lib/date-formatting'
 
 export function TeamChat() {
   const { user } = useCurrentUser()
@@ -167,7 +167,7 @@ export function TeamChat() {
                     {message.sender.full_name}
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {format(new Date(message.created_at), 'h:mm a')}
+                    {formatDate(message.created_at, 'h:mm a')}
                   </span>
                 </div>
                 <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">

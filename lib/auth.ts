@@ -1,10 +1,12 @@
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { NextAuthOptions } from "next-auth";
-import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
+import { fetchSanityAccountByEmail, fetchSanityAccountById } from "@/sanity/lib/fetch";
 import bcrypt from "bcryptjs";
 import { client } from "@/sanity/lib/client";
 import crypto from "crypto";
+import { resolveCapabilities } from "@/lib/capabilities";
+import { cookies } from "next/headers";
 
 export function getGoogleOAuthConfig(): { clientId: string; clientSecret: string } {
   const clientId =
@@ -173,6 +175,67 @@ export function getAuthOptions(): NextAuthOptions {
             (token as any).isAdmin = acct.type === "admin" && acct.status !== "disabled";
             (token as any).type = acct.type;
 
+            const caps = resolveCapabilities(
+              acct.type || "employee",
+              (acct.capabilities as string[]) || [],
+              (acct.revokedCapabilities as string[]) || []
+            );
+            (token as any).capabilities = caps;
+
+            // Handle Impersonation
+            // We check if the user is an admin OR if they are already impersonating (which means they were an admin)
+            const isAdminOrImpersonating = (token as any).isAdmin || (token as any).isImpersonating;
+            
+            if (isAdminOrImpersonating) {
+              const cookieStore = await cookies();
+              const impersonateId = cookieStore.get("impersonateAccountId")?.value;
+              if (impersonateId) {
+                 const impersonatedAcct = await fetchSanityAccountById({ id: impersonateId });
+                 if (impersonatedAcct && impersonatedAcct.status !== "disabled") {
+                    (token as any).isImpersonating = true;
+                    // If we are starting impersonation, save the original details
+                    if (!(token as any).originalUserEmail) {
+                        (token as any).originalUserEmail = email;
+                        (token as any).originalAccountId = acct._id;
+                    }
+                    
+                    // Override with impersonated user details
+                    (token as any).accountId = impersonatedAcct._id;
+                    (token as any).email = impersonatedAcct.email;
+                    (token as any).name = impersonatedAcct.name;
+                    (token as any).type = impersonatedAcct.type;
+                    (token as any).isAdmin = impersonatedAcct.type === "admin"; // Usually false
+                    
+                    const impCaps = resolveCapabilities(
+                      impersonatedAcct.type || "employee",
+                      (impersonatedAcct.capabilities as string[]) || [],
+                      (impersonatedAcct.revokedCapabilities as string[]) || []
+                    );
+                    (token as any).capabilities = impCaps;
+                 }
+              } else if ((token as any).isImpersonating && (token as any).originalUserEmail) {
+                 // Restore original user
+                 const originalEmail = (token as any).originalUserEmail;
+                 const originalAcct = await fetchSanityAccountByEmail({ email: originalEmail });
+                 if (originalAcct && originalAcct.status !== "disabled") {
+                    (token as any).accountId = originalAcct._id;
+                    (token as any).email = originalAcct.email;
+                    (token as any).name = originalAcct.name;
+                    (token as any).type = originalAcct.type;
+                    (token as any).isAdmin = originalAcct.type === "admin";
+                    (token as any).capabilities = resolveCapabilities(
+                      originalAcct.type || "employee",
+                      (originalAcct.capabilities as string[]) || [],
+                      (originalAcct.revokedCapabilities as string[]) || []
+                    );
+                    
+                    delete (token as any).isImpersonating;
+                    delete (token as any).originalUserEmail;
+                    delete (token as any).originalAccountId;
+                 }
+              }
+            }
+
             if (account) {
               await recordLogin({ accountId: String(acct._id), provider: provider || String(account.provider || "") });
             }
@@ -189,6 +252,9 @@ export function getAuthOptions(): NextAuthOptions {
         (session as any).type = (token as any).type;
         (session as any).accountId = (token as any).accountId;
         (session as any).sessionVersion = (token as any).sessionVersion;
+        (session as any).capabilities = (token as any).capabilities;
+        (session as any).isImpersonating = (token as any).isImpersonating;
+        (session as any).originalUserEmail = (token as any).originalUserEmail;
         return session;
       },
     },
@@ -196,10 +262,14 @@ export function getAuthOptions(): NextAuthOptions {
 }
 
 export async function safeGetServerSession() {
+  console.log("safeGetServerSession: start");
   try {
     const { getServerSession } = await import("next-auth");
-    return await getServerSession(getAuthOptions());
-  } catch {
+    const result = await getServerSession(getAuthOptions());
+    console.log("safeGetServerSession: success");
+    return result;
+  } catch (e) {
+    console.error("safeGetServerSession: error", e);
     return null;
   }
 }

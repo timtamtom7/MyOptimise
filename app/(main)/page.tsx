@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { safeGetServerSession } from "@/lib/auth";
 import { t, getLocale } from "@/lib/i18n";
 import { fetchSanitySettings } from "@/sanity/lib/fetch";
@@ -15,11 +15,11 @@ export default async function IndexPage() {
   const role = String((session as any)?.type || "");
   const settings = await fetchSanitySettings();
 
-  if (!session) {
-    const clientCtaUrl = settings?.clientCta?.url || "https://OptimiseOperations.com";
-    return (
-      <div className="min-h-[calc(100vh-4rem)] bg-background flex flex-col">
-        <div className="container flex flex-1 items-center justify-center py-12">
+    if (!session) {
+      const clientCtaUrl = settings?.clientCta?.url || "https://OptimiseOperations.com";
+      return (
+        <div className="min-h-[calc(100vh-4rem)] bg-background flex flex-col">
+        <div className="container mx-auto flex flex-1 items-center justify-center py-12">
           <div className="w-full max-w-2xl text-center">
             <div className="text-sm font-medium text-muted-foreground">Welcome to</div>
             <div className="mt-4 flex justify-center">
@@ -29,9 +29,12 @@ export default async function IndexPage() {
               MyOptimise internal workspace for Optimise employees to manage tasks, updates, and approvals.
             </p>
             <div className="mt-8 flex justify-center">
-              <Button asChild className="rounded-2xl px-10">
-                <Link href="/login">{t("continueWithGoogle", locale)}</Link>
-              </Button>
+              <Link
+                href="/login"
+                className={buttonVariants({ className: "rounded-2xl px-10" })}
+              >
+                {t("continueWithGoogle", locale)}
+              </Link>
             </div>
           </div>
         </div>

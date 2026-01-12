@@ -23,6 +23,11 @@ interface Deliverable {
   type: string;
   versionHistory?: any[];
   campaign?: { title: string };
+  latestAsset?: {
+    url: string;
+    mimeType: string;
+    originalFilename?: string;
+  };
 }
 
 interface ApprovalsTabProps {

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InvoiceChatButton } from "@/components/billing/InvoiceChatButton";
 
 export const dynamic = "force-dynamic";
 
@@ -121,7 +122,12 @@ export default async function BillingPage() {
                     <TableCell className="text-right">
                       {invoice.amount?.toLocaleString()} {invoice.currency}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right flex items-center justify-end gap-2">
+                      <InvoiceChatButton 
+                        invoiceId={invoice._id} 
+                        invoiceNumber={invoice.invoiceNumber} 
+                        clientId={String(acct._id)}
+                      />
                       {invoice.status === "sent" && (
                          <Button size="sm" variant="outline">Pay Now</Button>
                       )}

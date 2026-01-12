@@ -65,6 +65,8 @@ export default async function ClientDetailView({ params }: PageProps) {
     myServiceRequestsRes,
     myDeliverablesRes,
     activeCampaignRes,
+    contentItemsRes,
+    socialConnectionsRes,
   ] = await Promise.all([
     sanityFetch({
       query: `*[_type == "clientRequest" && clientAccount._ref == $id] | order(createdAt desc)[0..9]{
@@ -128,7 +130,21 @@ export default async function ClientDetailView({ params }: PageProps) {
           _id, title, description, startDate, endDate, status
         }`,
         params: { id: clientId },
-      }),
+  }),
+  sanityFetch({
+      query: `*[_type == "contentItem" && client._ref == $id]{
+        _id, title, caption, scheduledAt, status, platform, postType,
+        "firstAssetUrl": media[0].asset->url,
+        "firstAssetMime": media[0].asset->mimeType
+      }`,
+      params: { id: clientId },
+  }),
+    sanityFetch({
+        query: `*[_type == "socialConnection" && client._ref == $id]{
+          _id, platform, pageName, status, pageId
+        }`,
+        params: { id: clientId },
+    }),
   ]);
 
   const myRequests = ((myRequestsRes as any)?.data ?? []) as any[];
@@ -139,6 +155,8 @@ export default async function ClientDetailView({ params }: PageProps) {
   const myServiceRequests = ((myServiceRequestsRes as any)?.data ?? []) as any[];
   const myDeliverables = ((myDeliverablesRes as any)?.data ?? []) as any[];
   const campaigns = ((activeCampaignRes as any)?.data ?? []) as any[];
+  const contentItems = ((contentItemsRes as any)?.data ?? []) as any[];
+  const socialConnections = ((socialConnectionsRes as any)?.data ?? []) as any[];
   const activeCampaign = campaigns.find((c: any) => c.status === "active") || campaigns[0];
 
    // Prepare calendar events
@@ -159,8 +177,18 @@ export default async function ClientDetailView({ params }: PageProps) {
        type: "deliverable",
        status: d.status,
        description: d.campaignTitle
-     })).filter((e: any) => e.date)
-   ];
+     })).filter((e: any) => e.date),
+    ...contentItems.map((c: any) => ({
+      id: c._id,
+      title: c.title,
+      date: c.scheduledAt || new Date().toISOString(),
+      type: "content",
+      status: c.status,
+      description: c.platform,
+      platform: c.platform,
+      postType: c.postType,
+    })).filter((e: any) => e.date)
+  ];
 
   // Dummy actions that do nothing in read-only mode
   // Note: approveDeliverable and rejectDeliverable are imported and technically work if the user has permission,
@@ -198,7 +226,7 @@ export default async function ClientDetailView({ params }: PageProps) {
 
       <ClientView
         data={{
-          user: { name: targetClient.name, email: targetClient.email },
+          user: { name: targetClient.name, email: targetClient.email, id: targetClient._id },
           myRequests,
           supportStaff,
           myThreads,
@@ -208,6 +236,8 @@ export default async function ClientDetailView({ params }: PageProps) {
           myDeliverables,
           activeCampaign,
           calendarEvents,
+          contentItems,
+          socialConnections,
         }}
         actions={{
           submitClientRequest: noop,
@@ -221,6 +251,7 @@ export default async function ClientDetailView({ params }: PageProps) {
         capabilities={{
           canWrite: false, // Enforce read-only UI
           canViewServices: true,
+          canManageConnections: true, // Allow managers to connect accounts
         }}
       />
     </div>

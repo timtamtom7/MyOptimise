@@ -15,6 +15,8 @@ import {
   Briefcase,
   HelpCircle,
   LogOut,
+  PenTool,
+  TrendingUp,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -61,6 +63,12 @@ export function AppSidebar({ account, className }: AppSidebarProps) {
     if (hasAccountCapability(account, "documents.view.shared")) {
       menuItems.push({ title: "Documents", href: `/dashboard/documents`, icon: "FileText" });
     }
+    if (hasAccountCapability(account, "content.view_drafts")) {
+      menuItems.push({ title: "Content", href: `/dashboard/content`, icon: "PenTool" });
+    }
+    if (hasAccountCapability(account, "sales.access")) {
+      menuItems.push({ title: "Sales", href: `/dashboard/sales`, icon: "TrendingUp" });
+    }
     if (hasAccountCapability(account, "finance.view.all")) {
       menuItems.push({ title: "Finance", href: `/dashboard/finance`, icon: "DollarSign" });
     }
@@ -80,6 +88,10 @@ export function AppSidebar({ account, className }: AppSidebarProps) {
 
   if (type === "admin" && hasAccountCapability(account, "security.audit.view")) {
      generalItems.push({ title: "Audit Logs", href: "/dashboard/admin/audit", icon: "ShieldAlert" });
+  }
+
+  if (type === "admin") {
+    generalItems.push({ title: "Permissions", href: "/dashboard/admin/permissions", icon: "ShieldAlert" });
   }
   
   generalItems.push({ title: "Logout", href: "/logout", icon: "LogOut" });

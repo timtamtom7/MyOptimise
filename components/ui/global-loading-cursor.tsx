@@ -51,11 +51,14 @@ export function GlobalLoadingCursor() {
 
     const patchHistory = (original: typeof window.history.pushState) => {
       return function (this: History, data: any, unused: string, url?: string | URL | null) {
-        setIsMutating(true);
-        if (navigationSafetyTimeout.current) clearTimeout(navigationSafetyTimeout.current);
-        navigationSafetyTimeout.current = setTimeout(() => {
-          setIsMutating(false);
-        }, 5000);
+        // Defer state update to avoid "useInsertionEffect must not schedule updates" error
+        requestAnimationFrame(() => {
+          setIsMutating(true);
+          if (navigationSafetyTimeout.current) clearTimeout(navigationSafetyTimeout.current);
+          navigationSafetyTimeout.current = setTimeout(() => {
+            setIsMutating(false);
+          }, 5000);
+        });
         return original.call(this, data, unused, url);
       };
     };
@@ -67,22 +70,42 @@ export function GlobalLoadingCursor() {
     let activeFetches = 0;
 
     const patchedFetch = async (...args: Parameters<typeof fetch>) => {
-      activeFetches++;
-      if (stopFetchingTimeout.current) {
-        clearTimeout(stopFetchingTimeout.current);
-        stopFetchingTimeout.current = null;
+      // Filter out Sanity Live and HMR requests from triggering the loading state
+      const url = args[0]?.toString() || "";
+      const isIgnored = 
+        url.includes("api.sanity.io") || 
+        url.includes("hot-reloader") ||
+        url.includes("_next/static") ||
+        url.includes("_next/image");
+
+      if (!isIgnored) {
+        activeFetches++;
+        if (stopFetchingTimeout.current) {
+          clearTimeout(stopFetchingTimeout.current);
+          stopFetchingTimeout.current = null;
+        }
+        setIsFetching(true);
       }
-      setIsFetching(true);
 
       try {
-        return await originalFetch(...args);
+        const response = await originalFetch(...args);
+        return response;
+      } catch (error: any) {
+        // Suppress abort errors from Sanity Live/HMR
+        if (error.name === 'AbortError' && isIgnored) {
+          // console.debug("Suppressed aborted fetch:", url);
+          throw error; // Rethrow but we know it's handled
+        }
+        throw error;
       } finally {
-        activeFetches--;
-        if (activeFetches <= 0) {
-          activeFetches = 0;
-          stopFetchingTimeout.current = setTimeout(() => {
-            setIsFetching(false);
-          }, 300);
+        if (!isIgnored) {
+          activeFetches--;
+          if (activeFetches <= 0) {
+            activeFetches = 0;
+            stopFetchingTimeout.current = setTimeout(() => {
+              setIsFetching(false);
+            }, 300);
+          }
         }
       }
     };
@@ -105,21 +128,8 @@ export function GlobalLoadingCursor() {
   if (!isLoading) return null;
 
   return (
-    <>
-      {/* Top Progress Bar (Indeterminate) */}
-      <div className="fixed top-0 left-0 right-0 z-[9999] h-1 bg-transparent overflow-hidden pointer-events-none">
-         <div className="h-full bg-primary animate-progress origin-left-right shadow-[0_0_10px_rgba(var(--primary),0.5)]"></div>
-      </div>
-      <style jsx>{`
-        @keyframes progress {
-          0% { width: 0%; margin-left: 0%; }
-          50% { width: 70%; margin-left: 0%; }
-          100% { width: 100%; margin-left: 100%; }
-        }
-        .animate-progress {
-          animation: progress 1.5s infinite ease-in-out;
-        }
-      `}</style>
-    </>
+    <div className="fixed top-0 left-0 right-0 z-[9999] h-1 bg-transparent overflow-hidden pointer-events-none">
+       <div className="h-full bg-primary animate-progress origin-left-right shadow-[0_0_10px_rgba(var(--primary),0.5)]"></div>
+    </div>
   );
 }

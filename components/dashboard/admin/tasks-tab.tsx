@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CheckSquare, Plus, Filter } from "lucide-react";
-import { format } from "date-fns";
+import { CheckSquare, Plus, Filter, Trash2 } from "lucide-react";
+import { formatDateTime } from "@/lib/date-formatting";
 
 interface TasksTabProps {
   openWorkItems: any[];
@@ -18,11 +18,13 @@ interface TasksTabProps {
     canCreate: boolean;
     canAssign: boolean;
     canManageTaskTemplates?: boolean;
+    canDelete?: boolean;
   };
   actions: {
     createWorkItem: (formData: FormData) => Promise<void>;
     assignWorkItem: (formData: FormData) => Promise<void>;
     updateStatus: (formData: FormData) => Promise<void>;
+    deleteWorkItem?: (formData: FormData) => Promise<void>;
     createWorkItemTemplate?: (formData: FormData) => Promise<void>;
     deleteWorkItemTemplate?: (formData: FormData) => Promise<void>;
     createWorkItemFromTemplate?: (formData: FormData) => Promise<void>;
@@ -83,7 +85,7 @@ export function TasksTab({
                         <div className="text-sm text-muted-foreground flex flex-wrap gap-2 items-center mt-1">
                           <Badge variant="outline" className="capitalize">{item.status}</Badge>
                           <span>•</span>
-                          <span>Due {item.dueDate ? format(new Date(item.dueDate), 'MMM d') : 'No date'}</span>
+                          <span>Due {item.dueDate ? formatDateTime(item.dueDate) : 'No date'}</span>
                           <span>•</span>
                           <span>{item.assigneeName || 'Unassigned'}</span>
                         </div>
@@ -110,6 +112,14 @@ export function TasksTab({
                             <option value="done">Done</option>
                          </select>
                       </form>
+                      {actions.deleteWorkItem && (
+                        <form action={actions.deleteWorkItem}>
+                          <input type="hidden" name="id" value={item._id} />
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </form>
+                      )}
                    </div>
                  </CardContent>
                </Card>
@@ -138,6 +148,14 @@ export function TasksTab({
                             ))}
                          </select>
                          <Button size="sm" type="submit">Assign</Button>
+                      </form>
+                   )}
+                   {actions.deleteWorkItem && (
+                      <form action={actions.deleteWorkItem}>
+                        <input type="hidden" name="id" value={item._id} />
+                        <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </form>
                    )}
                 </CardContent>

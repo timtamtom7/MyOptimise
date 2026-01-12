@@ -19,7 +19,8 @@ import {
   Link,
   Users
 } from 'lucide-react'
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
+import { startOfWeek, addDays, isSameDay } from 'date-fns'
+import { formatDate } from '@/lib/date-formatting'
 
 interface EventFormData {
   title: string
@@ -149,13 +150,13 @@ export function CalendarView() {
                 isToday ? "bg-blue-100 dark:bg-blue-900" : "bg-white dark:bg-gray-800"
               )}>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {format(day, 'EEE')}
+                  {formatDate(day, 'EEE')}
                 </div>
                 <div className={cn(
                   "text-lg font-semibold",
                   isToday ? "text-blue-600 dark:text-blue-400" : "text-gray-900 dark:text-white"
                 )}>
-                  {format(day, 'd')}
+                  {formatDate(day, 'd')}
                 </div>
               </div>
 
@@ -173,7 +174,7 @@ export function CalendarView() {
                     <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
                       <Clock className="h-3 w-3" />
                       <span>
-                        {format(new Date(event.start_time), 'h:mm a')} - {format(new Date(event.end_time), 'h:mm a')}
+                        {formatDate(event.start_time, 'h:mm a')} - {formatDate(event.end_time, 'h:mm a')}
                       </span>
                     </div>
 

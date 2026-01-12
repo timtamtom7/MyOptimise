@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { format } from "date-fns";
 
 interface Request {
   _id: string;
@@ -145,9 +144,9 @@ export function RequestsList({ requests, canWrite, addMessageAction, submitReque
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    <span>Opened {format(new Date(r.createdAt), "MMM d, yyyy")}</span>
+                    <span>Opened {formatDate(r.createdAt)}</span>
                     <span>•</span>
-                    <span>{format(new Date(r.createdAt), "h:mm a")}</span>
+                    <span>{formatDateTime(r.createdAt, "h:mm a")}</span>
                   </div>
                 </div>
                 
@@ -176,7 +175,7 @@ export function RequestsList({ requests, canWrite, addMessageAction, submitReque
                               {r.messages[r.messages.length-1].author?.name || "Support Team"}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {format(new Date(r.messages[r.messages.length-1].createdAt), "MMM d, h:mm a")}
+                              {formatDateTime(r.messages[r.messages.length-1].createdAt, "MMM d, h:mm a")}
                             </span>
                           </div>
                           <p className="text-muted-foreground line-clamp-2">

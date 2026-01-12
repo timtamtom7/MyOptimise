@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MoreHorizontal, CheckCircle2, Circle, Clock, AlertCircle, Plus, CheckSquare, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { formatDate } from "@/lib/date-formatting";
 import { TaskCreationDialog } from "./task-creation-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -242,7 +242,7 @@ export function WorkItemsTable({
                    </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {item.dueDate ? format(new Date(item.dueDate), "MMM d, yyyy") : "—"}
+                  {item.dueDate ? formatDate(item.dueDate, { timeZone: "UTC" }) : "—"}
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
                   {item.createdByName || "System"}

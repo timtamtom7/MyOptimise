@@ -8,6 +8,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { GlobalLoadingCursor } from "@/components/ui/global-loading-cursor";
 
+import { Providers } from "@/components/providers";
+import { safeGetServerSession } from "@/lib/auth";
+import { ImpersonationBanner } from "@/components/dashboard/admin/impersonation-banner";
+
 const isProduction = process.env.NEXT_PUBLIC_SITE_ENV === "production";
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
@@ -45,11 +49,18 @@ const fontDisplay = Instrument_Serif({
   variable: "--font-display",
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  console.log("RootLayout: start");
+  const session = await safeGetServerSession();
+  // const session = null;
+  console.log("RootLayout: session retrieved", !!session);
+
+  const isImpersonating = (session as any)?.isImpersonating;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <link rel="icon" href="/favicon.ico" />
@@ -66,8 +77,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <GlobalLoadingCursor />
-          {children}
+          <Providers session={session}>
+          <div className="contents">
+            <GlobalLoadingCursor />
+            {isImpersonating && <ImpersonationBanner originalUserEmail={(session as any)?.originalUserEmail} />}
+            {children}
+          </div>
+        </Providers>
         </ThemeProvider>
         <Toaster position="top-center" richColors />
         <Analytics />

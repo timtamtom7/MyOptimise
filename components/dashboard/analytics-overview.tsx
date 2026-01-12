@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTodayKeyMetrics, useServiceMetrics, useEngagementTrends } from '@/hooks/use-analytics'
 import { useCurrentUser } from '@/hooks/use-user'
-import { format } from 'date-fns'
+import { formatDate } from '@/lib/date-formatting'
 import { 
   Users, 
   TrendingUp, 
@@ -216,7 +216,7 @@ export function AnalyticsOverview() {
               {engagementTrends?.dates?.map((date, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {format(new Date(date), 'EEE, MMM d')}
+                    {formatDate(date, 'EEE, MMM d')}
                   </span>
                   <div className="flex items-center space-x-4">
                     <span className="text-sm">

@@ -184,8 +184,14 @@ export default async function ClientThreadPage(props: { params: Promise<{ thread
       visibility,
       createdAt,
       updatedAt,
+      relatedContentItem->{
+        _id,
+        title,
+        platform,
+        "media": media[0].asset->url
+      },
       "participants": participants[]->{_id, name, email, type, status},
-      "messages": messages[visibility == "client"]{
+      "messages": messages[visibility == "client" && (!defined(status) || status == "sent")]{
         message,
         createdAt,
         visibility,
@@ -229,6 +235,21 @@ export default async function ClientThreadPage(props: { params: Promise<{ thread
           <h1 className="mt-2 text-2xl font-semibold truncate">{String(thread?.title || "Thread")}</h1>
         </div>
       </div>
+
+      {thread?.relatedContentItem ? (
+        <div className="mt-6 rounded-xl border bg-card p-5">
+          <div className="text-sm text-muted-foreground">Context: Content Item</div>
+          <div className="mt-2 flex items-center gap-4">
+             {thread.relatedContentItem.media && (
+                 <img src={thread.relatedContentItem.media} alt="Preview" className="h-16 w-16 rounded object-cover border" />
+             )}
+             <div>
+                 <div className="font-medium">{String(thread.relatedContentItem.title || "Untitled")}</div>
+                 <div className="text-xs text-muted-foreground capitalize">{String(thread.relatedContentItem.platform || "")}</div>
+             </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-6 rounded-xl border bg-card p-5">
         <div className="text-sm text-muted-foreground">Messages</div>

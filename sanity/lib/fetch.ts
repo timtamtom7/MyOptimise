@@ -16,7 +16,34 @@ import {
   NAVIGATION_QUERYResult,
   SETTINGS_QUERYResult,
 } from "@/sanity.types";
-import { ACCOUNT_BY_EMAIL_QUERY } from "../queries/account";
+import { ACCOUNT_BY_EMAIL_QUERY, ACCOUNT_BY_ID_QUERY } from "../queries/account";
+import { CONTENT_ITEMS_QUERY } from "@/sanity/queries/contentItem";
+import { LEADS_QUERY } from "@/sanity/queries/lead";
+import { ANALYTICS_QUERY } from "@/sanity/queries/analytics";
+
+export const fetchLeads = async () => {
+  const { data } = await sanityFetch({
+    query: LEADS_QUERY,
+    tags: ["lead"],
+  });
+  return data || [];
+};
+
+export const fetchAnalytics = async () => {
+  const { data } = await sanityFetch({
+    query: ANALYTICS_QUERY,
+    tags: ["analyticsRecord"],
+  });
+  return data || [];
+};
+
+export const fetchContentItems = async () => {
+  const { data } = await sanityFetch({
+    query: CONTENT_ITEMS_QUERY,
+    tags: ["contentItem"],
+  });
+  return data || [];
+};
 
 export const fetchSanityPageBySlug = async ({
   slug,
@@ -30,6 +57,15 @@ export const fetchSanityPageBySlug = async ({
     params: { slug, i18nKey: mapLocaleToI18nKey(locale) },
   });
 
+  return data;
+};
+
+export const fetchSanityAccountById = async ({ id }: { id: string }): Promise<any> => {
+  const { data } = await sanityFetch({
+    query: ACCOUNT_BY_ID_QUERY,
+    params: { id },
+    perspective: "published",
+  });
   return data;
 };
 

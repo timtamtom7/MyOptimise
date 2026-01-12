@@ -30,28 +30,22 @@ export function useCurrentUser() {
       try {
         setLoading(true)
         
-        // First, get the user from our users table using the email from session
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select(`
-            *,
-            account:organizations (*)
-          `)
-          .eq('email', session.user?.email || '')
-          .single()
-
-        if (userError) throw userError
-        if (!userData) throw new Error('User not found in database')
+        // Fetch user from API (bypassing RLS issues)
+        const res = await fetch('/api/user/profile')
+        if (!res.ok) {
+            throw new Error(`Failed to fetch user profile: ${res.statusText}`)
+        }
+        const finalUserData = await res.json()
 
         const currentUser: CurrentUser = {
-          id: userData.id,
-          email: userData.email,
-          fullName: userData.full_name,
-          avatarUrl: userData.avatar_url,
-          role: userData.role,
-          accountId: userData.organization_id,
-          account: userData.account,
-          isActive: userData.is_active,
+          id: finalUserData.id,
+          email: finalUserData.email,
+          fullName: finalUserData.full_name,
+          avatarUrl: finalUserData.avatar_url,
+          role: finalUserData.role as any,
+          accountId: finalUserData.organization_id,
+          account: finalUserData.account,
+          isActive: finalUserData.status === 'active',
         }
 
         setUser(currentUser)
@@ -72,17 +66,17 @@ export function useCurrentUser() {
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'users',
+          table: 'profiles',
           filter: `email=eq.${session?.user?.email}`,
         },
         (payload) => {
-          const updatedUser = payload.new as User
+          const updatedUser = payload.new as any
           setUser(prev => prev ? {
             ...prev,
             fullName: updatedUser.full_name,
             avatarUrl: updatedUser.avatar_url,
             role: updatedUser.role,
-            isActive: updatedUser.is_active,
+            isActive: updatedUser.status === 'active',
             // account: prev.account - preserve existing account data as it's not in the payload
           } : null)
         }

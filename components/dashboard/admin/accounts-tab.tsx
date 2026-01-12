@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
 
 interface AccountsTabProps {
   accounts: any[];
@@ -34,6 +34,20 @@ interface AccountsTabProps {
 }
 
 export function AccountsTab({ accounts, capabilities, actions }: AccountsTabProps) {
+  const [selectedAccount, setSelectedAccount] = useState<any>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const handleEditCapabilities = (account: any) => {
+    setSelectedAccount(account);
+    // TODO: Open modal for capability editing
+  };
+
+  const handleInvite = async (formData: FormData) => {
+    startTransition(async () => {
+      await actions.inviteGoogleAccount(formData);
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -88,8 +102,8 @@ export function AccountsTab({ accounts, capabilities, actions }: AccountsTabProp
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         {capabilities.canImpersonate && account.status !== 'disabled' && (
-                          <DropdownMenuItem asChild>
-                            <form action={actions.startImpersonation}>
+                          <DropdownMenuItem>
+                            <form action={actions.startImpersonation} className="w-full">
                               <input type="hidden" name="targetId" value={account._id} />
                               <button className="w-full text-left flex items-center">
                                 <Shield className="mr-2 h-4 w-4" /> Impersonate
@@ -97,17 +111,14 @@ export function AccountsTab({ accounts, capabilities, actions }: AccountsTabProp
                             </form>
                           </DropdownMenuItem>
                         )}
-                         <DropdownMenuItem onClick={() => {
-                            // Ideally open a modal to edit
-                            // For now, we rely on the user to use the form below or similar
-                         }}>
-                            Edit Details
-                         </DropdownMenuItem>
-                         {capabilities.canRemove && (
+                        <DropdownMenuItem onClick={() => handleEditCapabilities(account)}>
+                           Manage Capabilities
+                        </DropdownMenuItem>
+                        {capabilities.canRemove && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem asChild className="text-red-600 focus:text-red-600">
-                                <form action={actions.removeAccount}>
+                              <DropdownMenuItem className="text-red-600 focus:text-red-600">
+                                <form action={actions.removeAccount} className="w-full">
                                   <input type="hidden" name="id" value={account._id} />
                                   <button className="w-full text-left">Remove Account</button>
                                 </form>
@@ -131,7 +142,7 @@ export function AccountsTab({ accounts, capabilities, actions }: AccountsTabProp
             </CardHeader>
             <CardContent>
               {capabilities.canInvite ? (
-                <form action={actions.inviteGoogleAccount} className="space-y-4 max-w-md">
+                <form action={handleInvite} className="space-y-4 max-w-md">
                   <div className="grid gap-2">
                     <label className="text-sm font-medium">Email Address</label>
                     <div className="relative">
@@ -148,7 +159,7 @@ export function AccountsTab({ accounts, capabilities, actions }: AccountsTabProp
                       <option value="client">Client</option>
                     </select>
                   </div>
-                  <Button type="submit">Send Invitation</Button>
+                  <Button type="submit" loading={isPending}>Send Invitation</Button>
                 </form>
               ) : (
                 <div className="text-red-500">You do not have permission to invite users.</div>
