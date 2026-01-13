@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "@/hooks/use-translation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { generateBlueGradient } from "@/lib/utils";
 
 // Import shared tabs from admin since they are identical for now
 import { TasksTab } from "../admin/tasks-tab";
@@ -75,6 +77,7 @@ interface ManagerViewProps {
 }
 
 export function ManagerView({ data, capabilities, actions, defaultTab = "overview" }: ManagerViewProps) {
+  const { t } = useTranslation();
   const isTeamPage = defaultTab === "team";
   
   // Layout State
@@ -131,48 +134,48 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
     myTasks: (
       <Card className={!layout.visible.myTasks && isEditing ? "opacity-50 border-dashed" : ""}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">My Tasks</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('myTasks')}</CardTitle>
           <CheckSquare className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{data.stats.myActiveTasks}</div>
-          <p className="text-xs text-muted-foreground">Assigned to me</p>
+          <p className="text-xs text-muted-foreground">{t('assignedToMe')}</p>
         </CardContent>
       </Card>
     ),
     pendingRequests: (
       <Card className={!layout.visible.pendingRequests && isEditing ? "opacity-50 border-dashed" : ""}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('pendingRequests')}</CardTitle>
           <CreditCard className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{data.stats.pendingRequests}</div>
-          <p className="text-xs text-muted-foreground">Requires attention</p>
+          <p className="text-xs text-muted-foreground">{t('requiresAttention')}</p>
         </CardContent>
       </Card>
     ),
     teamMembers: (
       <Card className={!layout.visible.teamMembers && isEditing ? "opacity-50 border-dashed" : ""}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('teamMembers')}</CardTitle>
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{data.stats.teamSize}</div>
-          <p className="text-xs text-muted-foreground">Active employees</p>
+          <p className="text-xs text-muted-foreground">{t('activeEmployees')}</p>
         </CardContent>
       </Card>
     ),
     systemStatus: (
       <Card className={!layout.visible.systemStatus && isEditing ? "opacity-50 border-dashed" : ""}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">System Status</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('systemStatus')}</CardTitle>
           <Activity className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">Online</div>
-          <p className="text-xs text-muted-foreground">All systems operational</p>
+          <div className="text-2xl font-bold text-green-600">{t('online')}</div>
+          <p className="text-xs text-muted-foreground">{t('allSystemsOperational')}</p>
         </CardContent>
       </Card>
     )
@@ -183,9 +186,9 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
       {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{isTeamPage ? "Team" : "Dashboard"}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{isTeamPage ? t('team') : t('dashboard')}</h1>
           <p className="text-muted-foreground">
-            {isTeamPage ? "Manage your team members and roles." : "Manage your team, tasks, and client services."}
+            {isTeamPage ? t('manageTeamRoles') : t('manageTeamTasks')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -193,18 +196,18 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
                 <X className="mr-2 h-4 w-4" />
-                Cancel
+                {t('cancel')}
               </Button>
               <Button onClick={saveLayout} size="sm">
                 <Save className="mr-2 h-4 w-4" />
-                Save Layout
+                {t('saveChanges')}
               </Button>
             </div>
           ) : (
             !isTeamPage && (
               <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                 <Edit className="mr-2 h-4 w-4" />
-                Edit
+                {t('editAccount')}
               </Button>
             )
           )}
@@ -213,12 +216,12 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
 
       <Tabs defaultValue={defaultTab} className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="support">Support</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
+          <TabsTrigger value="tasks">{t('tasks')}</TabsTrigger>
+          <TabsTrigger value="support">{t('support')}</TabsTrigger>
+          <TabsTrigger value="services">{t('services')}</TabsTrigger>
+          <TabsTrigger value="messages">{t('messages')}</TabsTrigger>
+          <TabsTrigger value="team">{t('team')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -266,8 +269,8 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
                 )}
                 <Card className={!layout.visible.recentTasksList ? "border-0 shadow-none bg-transparent pointer-events-none" : ""}>
                   <CardHeader>
-                    <CardTitle>My Tasks</CardTitle>
-                    <CardDescription>Your recent assigned work items.</CardDescription>
+                    <CardTitle>{t('myTasks')}</CardTitle>
+                    <CardDescription>{t('yourRecentWorkItems')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                      {data.myWorkItems.slice(0, 5).map((item) => (
@@ -291,7 +294,7 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
                         </div>
                      ))}
                      {data.myWorkItems.length === 0 && (
-                       <div className="text-center py-6 text-muted-foreground">No tasks assigned to you.</div>
+                       <div className="text-center py-6 text-muted-foreground">{t('noTasksAssigned')}</div>
                      )}
                   </CardContent>
                 </Card>
@@ -310,8 +313,8 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
                 )}
                 <Card className={!layout.visible.teamList ? "border-0 shadow-none bg-transparent pointer-events-none" : ""}>
                   <CardHeader>
-                    <CardTitle>Team Members</CardTitle>
-                    <CardDescription>Recently active.</CardDescription>
+                    <CardTitle>{t('teamMembers')}</CardTitle>
+                    <CardDescription>{t('recentlyActive')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                      <div className="space-y-4">
@@ -319,9 +322,13 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
                          <div key={user._id} className="flex items-center justify-between">
                            <div className="flex items-center gap-3">
                              <Avatar className="h-8 w-8">
-                               <AvatarImage src={`https://avatar.vercel.sh/${user.email}`} />
-                               <AvatarFallback>{user.name?.[0] || user.email[0]}</AvatarFallback>
-                             </Avatar>
+                             <AvatarFallback 
+                               style={{ background: generateBlueGradient(user.email) }}
+                               className="text-white"
+                             >
+                               {(user.name?.[0] || user.email?.[0] || "?").toUpperCase()}
+                             </AvatarFallback>
+                           </Avatar>
                              <div>
                                <div className="font-medium text-sm">{user.name || 'Unnamed'}</div>
                                <div className="text-xs text-muted-foreground">{user.email}</div>

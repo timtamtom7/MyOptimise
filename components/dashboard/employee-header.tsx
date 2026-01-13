@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Bell, Search, Plus, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { generateBlueGradient } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
   DropdownMenu,
@@ -35,6 +36,8 @@ interface EmployeeHeaderProps {
   }>
 }
 
+import { useTranslation } from '@/hooks/use-translation'
+
 export function EmployeeHeader({ 
   user, 
   onSearch, 
@@ -42,6 +45,7 @@ export function EmployeeHeader({
   onCreateTask,
   notifications = []
 }: EmployeeHeaderProps) {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const unreadCount = notifications.filter(n => !n.read).length
 
@@ -59,7 +63,7 @@ export function EmployeeHeader({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               type="search"
-              placeholder="Search tasks, events, messages..."
+              placeholder={t('searchPlaceholderEmployee')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2 w-full"
@@ -74,7 +78,7 @@ export function EmployeeHeader({
               className="flex items-center space-x-2"
             >
               <Filter className="h-4 w-4" />
-              <span>Filter</span>
+              <span>{t('filter')}</span>
             </Button>
           )}
         </div>
@@ -84,7 +88,7 @@ export function EmployeeHeader({
           {onCreateTask && (
             <Button onClick={onCreateTask} className="flex items-center space-x-2">
               <Plus className="h-4 w-4" />
-              <span>New Task</span>
+              <span>{t('newTask')}</span>
             </Button>
           )}
 
@@ -105,11 +109,11 @@ export function EmployeeHeader({
             </SheetTrigger>
             <SheetContent>
               <SheetHeader>
-                <SheetTitle>Notifications</SheetTitle>
+                <SheetTitle>{t('notifications')}</SheetTitle>
               </SheetHeader>
               <div className="mt-6 space-y-4">
                 {notifications.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No notifications</p>
+                  <p className="text-gray-500 text-center py-8">{t('noNotifications')}</p>
                 ) : (
                   notifications.map((notification) => (
                     <div
@@ -128,7 +132,7 @@ export function EmployeeHeader({
                         </div>
                         {!notification.read && (
                           <Badge variant="secondary" className="ml-2">
-                            New
+                            {t('new')}
                           </Badge>
                         )}
                       </div>
@@ -145,7 +149,10 @@ export function EmployeeHeader({
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user.avatarUrl || undefined} />
-                  <AvatarFallback>
+                  <AvatarFallback 
+                    style={{ background: generateBlueGradient(user.email) }}
+                    className="text-white"
+                  >
                     {user.fullName?.charAt(0) || user.email.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -161,20 +168,20 @@ export function EmployeeHeader({
                     {user.email}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground capitalize">
-                    {user.role}
+                    {t('role_' + user.role) || user.role}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
-                Profile
+                {t('profile')}
               </DropdownMenuItem>
               <DropdownMenuItem>
-                Settings
+                {t('settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600">
-                Sign out
+                {t('signOut')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

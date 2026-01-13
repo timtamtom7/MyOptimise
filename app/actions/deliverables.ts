@@ -7,6 +7,7 @@ import { client } from "@/sanity/lib/client";
 import { revalidatePath } from "next/cache";
 import { sendEmail } from "@/lib/email";
 import { deliverableApprovedEmail, deliverableRejectedEmail } from "@/lib/email-templates";
+import { writeAuditLog } from "@/lib/audit";
 
 export async function approveDeliverable(formData: FormData) {
   const session = await getServerSession(getAuthOptions());

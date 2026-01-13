@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, Users, Hash } from "lucide-react";
+import { generateBlueGradient } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,10 @@ export default async function MessagesPage() {
                   {thread.type === "dm" ? (
                     <Avatar>
                       <AvatarImage src={thread.participants?.find((p: any) => p._id !== currentUser._id)?.avatar?.asset?.url} />
-                      <AvatarFallback>
+                      <AvatarFallback
+                        style={{ background: generateBlueGradient(thread.participants?.find((p: any) => p._id !== currentUser._id)?.email || "") }}
+                        className="text-white"
+                      >
                         {thread.participants?.find((p: any) => p._id !== currentUser._id)?.name?.slice(0, 2).toUpperCase() || "??"}
                       </AvatarFallback>
                     </Avatar>

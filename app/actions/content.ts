@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { createTaskInternal } from "./work-items";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
+import { writeAuditLog } from "@/lib/audit";
 
 export async function generateApprovalLink(id: string) {
   const session = await getServerSession(getAuthOptions());
@@ -133,7 +134,20 @@ export async function createContentItem(formData: FormData) {
     ];
   }
 
-  await writeClient.create(doc);
+  const created = await writeClient.create(doc);
+  
+  const acct = await fetchSanityAccountByEmail({ email: session.user.email });
+  if (acct) {
+    await writeAuditLog({
+      actorAccountId: String(acct._id),
+      action: "content.created",
+      targetId: String(created._id),
+      targetType: "contentItem",
+      targetLabel: title,
+      context: { platform, postType, scheduledAt },
+    });
+  }
+
   revalidatePath("/dashboard/client");
   revalidatePath(`/dashboard/business/${clientId}`);
 }
@@ -264,6 +278,18 @@ export async function approveContent(id: string, comment?: string) {
   }
 
   await patch.commit();
+
+  const acct = await fetchSanityAccountByEmail({ email: session.user.email });
+  if (acct) {
+    await writeAuditLog({
+      actorAccountId: String(acct._id),
+      action: "content.approved",
+      targetId: id,
+      targetType: "contentItem",
+      targetLabel: id,
+      context: { comment },
+    });
+  }
 
   revalidatePath("/dashboard/approvals");
   revalidatePath("/dashboard/content");

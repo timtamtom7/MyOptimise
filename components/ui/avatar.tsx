@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
-import * as AvatarPrimitive from "@radix-ui/react-avatar";
+import * as React from "react"
+import * as AvatarPrimitive from "@radix-ui/react-avatar"
+import { generateBlueGradient } from "@/lib/utils"
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
 function Avatar({
   className,
@@ -18,7 +19,7 @@ function Avatar({
       )}
       {...props}
     />
-  );
+  )
 }
 
 function AvatarImage({
@@ -31,23 +32,40 @@ function AvatarImage({
       className={cn("aspect-square size-full", className)}
       {...props}
     />
-  );
+  )
+}
+
+interface AvatarFallbackProps
+  extends React.ComponentProps<typeof AvatarPrimitive.Fallback> {
+  seed?: string
 }
 
 function AvatarFallback({
   className,
+  style,
+  seed,
+  children,
   ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
+}: AvatarFallbackProps) {
+  const backgroundStyle = seed
+    ? { background: generateBlueGradient(seed) }
+    : typeof children === "string"
+      ? { background: generateBlueGradient(children) }
+      : undefined
+
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
+      style={{ ...backgroundStyle, ...style }}
       className={cn(
-        "bg-muted flex size-full items-center justify-center rounded-full",
+        "flex size-full items-center justify-center rounded-full text-white",
         className
       )}
       {...props}
-    />
-  );
+    >
+      {children}
+    </AvatarPrimitive.Fallback>
+  )
 }
 
-export { Avatar, AvatarImage, AvatarFallback };
+export { Avatar, AvatarImage, AvatarFallback }

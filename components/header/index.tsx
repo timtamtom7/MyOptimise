@@ -10,7 +10,8 @@ import { safeGetServerSession } from "@/lib/auth";
 import SignOutButton from "@/components/auth/signout-button";
 import LanguageSelector from "@/components/language-selector";
 import { cn } from "@/lib/utils";
-import { t, getLocale } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n-server";
 
 export default async function Header() {
   const settings = await fetchSanitySettings();
@@ -24,7 +25,9 @@ export default async function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-background text-[var(--header-foreground)] shadow-none">
       <div className="w-full px-6 flex h-16 items-center justify-between">
         <Link href="/" aria-label="Home page">
-          <Logo settings={settings} className="h-7 w-auto" />
+          <div className="flex items-center">
+            <Logo settings={settings} className="h-7 w-auto" />
+          </div>
         </Link>
         <div className="hidden xl:flex gap-7 items-center justify-between">
           {!isLoggedIn && <DesktopNav navigation={navigation} />}

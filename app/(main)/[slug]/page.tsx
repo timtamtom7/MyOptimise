@@ -5,7 +5,7 @@ import {
 } from "@/sanity/lib/fetch";
 import { notFound } from "next/navigation";
 import { generatePageMetadata } from "@/sanity/lib/metadata";
-import { getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n-server";
 
 export async function generateStaticParams() {
   try {

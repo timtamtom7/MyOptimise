@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { generateBlueGradient } from "@/lib/utils";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, Hash } from "lucide-react";
@@ -27,7 +28,7 @@ export default async function ManagerThreadsPage() {
     query: `*[_type == "messageThread" && $userId in participants[]._ref] | order(updatedAt desc) {
       _id, title, type, updatedAt,
       "lastMessage": messages[-1],
-      "participants": participants[]->{_id, name, avatar},
+      "participants": participants[]->{_id, name, email, avatar},
       relatedClient->{businessName}
     }`,
     params: { userId: currentUser._id },
@@ -57,7 +58,10 @@ export default async function ManagerThreadsPage() {
                   {thread.type === "dm" ? (
                     <Avatar>
                       <AvatarImage src={thread.participants?.find((p: any) => p._id !== currentUser._id)?.avatar?.asset?.url} />
-                      <AvatarFallback>
+                      <AvatarFallback
+                        style={{ background: generateBlueGradient(thread.participants?.find((p: any) => p._id !== currentUser._id)?.email || "") }}
+                        className="text-white"
+                      >
                         {thread.participants?.find((p: any) => p._id !== currentUser._id)?.name?.slice(0, 2).toUpperCase() || "??"}
                       </AvatarFallback>
                     </Avatar>

@@ -62,7 +62,7 @@ export default function MobileNav({
                     rel={navItem.target ? "noopener noreferrer" : undefined}
                     className={cn("w-full rounded-md px-3 py-2 hover:bg-accent/40 transition", "text-left flex items-center gap-3")}
                   >
-                    <>
+                    <div className="flex items-center gap-3">
                       {(() => {
                         const t = (navItem.title || "").toLowerCase();
                         if (t.includes("event")) return <CalendarDays className="w-5 h-5" />;
@@ -71,7 +71,7 @@ export default function MobileNav({
                         return <AlignRight className="w-5 h-5" />;
                       })()}
                       <span className="text-lg">{navItem.title}</span>
-                    </>
+                    </div>
                   </Link>
                 </li>
               ))}

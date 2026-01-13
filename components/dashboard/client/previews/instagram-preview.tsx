@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, generateBlueGradient } from "@/lib/utils";
 import { ImageAnnotator } from "../image-annotator";
 import { useState } from "react";
 
@@ -42,7 +42,10 @@ export function InstagramPreview({
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8 ring-2 ring-red-500 ring-offset-1">
             {authorAvatar && <AvatarImage src={authorAvatar} />}
-            <AvatarFallback className="bg-gradient-to-tr from-yellow-400 to-purple-600 text-white text-[10px]">
+            <AvatarFallback 
+              style={{ background: generateBlueGradient(authorName) }}
+              className="text-white text-[10px]"
+            >
               {authorName.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>

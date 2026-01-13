@@ -13,6 +13,7 @@ import {
 import { useCurrentUser } from '@/hooks/use-user'
 import { useCapabilities } from '@/hooks/use-capabilities'
 import SignOutButton from '../auth/signout-button'
+import { useTranslation } from '@/hooks/use-translation'
 
 interface SidebarProps {
   activeView: 'dashboard' | 'tasks' | 'calendar' | 'team'
@@ -22,25 +23,25 @@ interface SidebarProps {
 const navigationItems = [
   {
     id: 'dashboard' as const,
-    label: 'Dashboard',
+    label: 'dashboard',
     icon: LayoutDashboard,
     capability: 'analytics.read' as const,
   },
   {
     id: 'tasks' as const,
-    label: 'Tasks',
+    label: 'tasks',
     icon: CheckSquare,
     capability: 'tasks.read' as const,
   },
   {
     id: 'calendar' as const,
-    label: 'Calendar',
+    label: 'calendar',
     icon: Calendar,
     capability: 'calendar.read' as const,
   },
   {
     id: 'team' as const,
-    label: 'Team',
+    label: 'team',
     icon: Users,
     capability: 'messages.read' as const,
   },
@@ -49,6 +50,7 @@ const navigationItems = [
 export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   const { user } = useCurrentUser()
   const { hasCapability } = useCapabilities()
+  const { t } = useTranslation()
 
   if (!user) return null
 
@@ -66,7 +68,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
               {user.account?.name}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-              {user.role}
+              {t(user.role as any) || user.role}
             </p>
           </div>
         </div>
@@ -89,7 +91,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
               onClick={() => onViewChange(item.id)}
             >
               <Icon className="mr-3 h-4 w-4" />
-              {item.label}
+              {t(item.label)}
             </Button>
           )
         })}
@@ -99,11 +101,11 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
         <div className="space-y-2">
           <Button variant="ghost" className="w-full justify-start">
             <Settings className="mr-3 h-4 w-4" />
-            Settings
+            {t('settings')}
           </Button>
           <SignOutButton className="w-full justify-start">
             <LogOut className="mr-3 h-4 w-4" />
-            Sign Out
+            {t('signOut')}
           </SignOutButton>
         </div>
       </div>

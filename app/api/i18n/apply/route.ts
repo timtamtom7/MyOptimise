@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const allowed = new Set(["en", "zh-HK", "zh-CN"]);
+const allowed = new Set(["en", "zh-HK", "zh-CN", "fr", "it"]);
 
 function withLangCookie(response: NextResponse, lang: string) {
   response.cookies.set("lang", lang, {

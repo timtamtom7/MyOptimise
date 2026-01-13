@@ -1,4 +1,5 @@
 import { sanityFetch } from "@/sanity/lib/live";
+import { AccountForm } from "@/components/admin/account-form";
 import { client } from "@/sanity/lib/client";
 import { sanityConfigured } from "@/sanity/env";
 import { notFound, redirect } from "next/navigation";
@@ -7,6 +8,9 @@ import { Resend } from "resend";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import bcrypt from "bcryptjs";
 import { writeAuditLog } from "@/lib/audit";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { urlFor } from "@/sanity/lib/image";
+import Link from "next/link";
 
 async function sendResendEmailWithFallback({
   resend,
@@ -50,12 +54,23 @@ async function upsertAccount(formData: FormData) {
     .split(/[\n,]+/g)
     .map((v) => v.trim())
     .filter(Boolean);
+  const avatar = formData.get("avatar");
   if (!email) return;
 
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
   if (!writeToken) return;
 
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+  
+  let avatarAssetId: string | undefined;
+  if (avatar && typeof avatar !== "string" && (avatar as File).size > 0) {
+    const file = avatar as File;
+    if (String(file.type || "").startsWith("image/")) {
+       const asset = await writeClient.assets.upload("image", file, { filename: file.name });
+       avatarAssetId = String(asset?._id || "");
+    }
+  }
+
   const existing = await fetchSanityAccountByEmail({ email });
   const passwordHash = password ? await bcrypt.hash(password, 10) : undefined;
 
@@ -70,24 +85,27 @@ async function upsertAccount(formData: FormData) {
       revokedCapabilities,
       sessionVersion: 1,
       ...(passwordHash ? { passwordHash } : {}),
+      ...(avatarAssetId ? { avatar: { _type: "image", asset: { _type: "reference", _ref: avatarAssetId } } } : {}),
     });
     await writeAuditLog({
       action: "account.created",
       targetId: String(created?._id || ""),
       targetType: "account",
       targetLabel: email,
-      context: { email, name, type, status, passwordSet: Boolean(passwordHash), capabilities, revokedCapabilities },
+      context: { email, name, type, status, passwordSet: Boolean(passwordHash), capabilities, revokedCapabilities, avatarSet: Boolean(avatarAssetId) },
     });
   } else {
     const patch: Record<string, unknown> = { email, name, type, status, capabilities, revokedCapabilities };
     if (passwordHash) patch.passwordHash = passwordHash;
+    if (avatarAssetId) patch.avatar = { _type: "image", asset: { _type: "reference", _ref: avatarAssetId } };
+    
     await writeClient.patch(existing._id).set(patch).commit();
     await writeAuditLog({
       action: "account.updated",
       targetId: String(existing._id),
       targetType: "account",
       targetLabel: email,
-      context: { email, name, type, status, passwordUpdated: Boolean(passwordHash), capabilities, revokedCapabilities },
+      context: { email, name, type, status, passwordUpdated: Boolean(passwordHash), capabilities, revokedCapabilities, avatarUpdated: Boolean(avatarAssetId) },
     });
   }
   revalidatePath("/admin");
@@ -176,37 +194,15 @@ export default async function AdminPage(props: {
         </div>
       ) : null}
 
+
       <div className="mt-6 rounded-md border p-4">
         <h2 className="text-lg font-semibold">Create / Update Account</h2>
-        <form action={upsertAccount} className="mt-4 grid gap-3 max-w-xl">
-          <input name="email" type="email" placeholder="Email" required className="rounded-md border px-3 py-2" />
-          <input name="name" placeholder="Name" className="rounded-md border px-3 py-2" />
-          <select name="type" className="rounded-md border px-3 py-2" defaultValue="employee">
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
-            <option value="employee">Employee</option>
-            <option value="client">Client</option>
-          </select>
-          <select name="status" className="rounded-md border px-3 py-2" defaultValue="active">
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
-          </select>
-          <textarea
-            name="capabilities"
-            placeholder="Extra capabilities (comma or newline separated)"
-            className="min-h-[90px] rounded-md border px-3 py-2 text-sm"
-          />
-          <textarea
-            name="revokedCapabilities"
-            placeholder="Revoked capabilities (comma or newline separated)"
-            className="min-h-[90px] rounded-md border px-3 py-2 text-sm"
-          />
-          <input name="password" type="password" placeholder="Set/Reset password (optional)" className="rounded-md border px-3 py-2" />
-          <button className="rounded-md bg-primary px-3 py-2 text-primary-foreground" disabled={!process.env.SANITY_API_WRITE_TOKEN}>
-            Save Account
-          </button>
-        </form>
+        <AccountForm 
+          action={upsertAccount} 
+          writeTokenExists={!!process.env.SANITY_API_WRITE_TOKEN} 
+        />
       </div>
+
 
       <div className="mt-6 rounded-md border p-4">
         <h2 className="text-lg font-semibold">Email Test</h2>
@@ -340,14 +336,28 @@ export default async function AdminPage(props: {
         <div className="mt-4 grid gap-3">
           {(accounts ?? []).map((a: any) => (
             <div key={a._id} className="rounded-md border p-4 flex items-center justify-between">
-              <div>
-                <div className="font-medium">{a.name || a.email}</div>
-                <div className="text-sm text-muted-foreground">{a.email}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {a.type} • {a.status || "active"}
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={a.avatar ? urlFor(a.avatar).url() : undefined} />
+                  <AvatarFallback seed={a.email}>
+                    {(a.name || a.email).slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-medium">{a.name || a.email}</div>
+                  <div className="text-sm text-muted-foreground">{a.email}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {a.type} • {a.status || "active"}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2">
+                <Link
+                  href={`/admin?editEmail=${encodeURIComponent(a.email)}&key=${key}`}
+                  className="rounded-md border px-3 py-2 text-sm hover:bg-muted"
+                >
+                  Edit
+                </Link>
                 {a.status === "disabled" ? (
                   <form action={setAccountStatus}>
                     <input type="hidden" name="id" value={a._id} />

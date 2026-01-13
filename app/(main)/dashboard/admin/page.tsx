@@ -170,11 +170,25 @@ async function upsertAccount(formData: FormData) {
     .split(/[\n,]+/g)
     .map((v) => v.trim())
     .filter(Boolean);
+  const avatarFile = formData.get("avatar") as File | null;
+
   if (!email) return;
 
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
   if (!writeToken) return;
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  let avatarAssetId: string | undefined;
+  if (avatarFile && avatarFile.size > 0) {
+    try {
+      const asset = await writeClient.assets.upload("image", avatarFile, {
+        filename: avatarFile.name,
+      });
+      avatarAssetId = asset._id;
+    } catch (e) {
+      console.error("Failed to upload avatar", e);
+    }
+  }
 
   const existing = await fetchSanityAccountByEmail({ email });
   const passwordHash = password ? await bcrypt.hash(password, 10) : undefined;
@@ -190,6 +204,7 @@ async function upsertAccount(formData: FormData) {
       revokedCapabilities,
       sessionVersion: 1,
       ...(passwordHash ? { passwordHash } : {}),
+      ...(avatarAssetId ? { avatar: { _type: "image", asset: { _type: "reference", _ref: avatarAssetId } } } : {}),
     });
     await writeAuditLog({
       actorAccountId: String(admin.acct._id),
@@ -197,11 +212,23 @@ async function upsertAccount(formData: FormData) {
       targetId: String(created?._id || ""),
       targetType: "account",
       targetLabel: email,
-      context: { email, name, type, status, passwordSet: Boolean(passwordHash), capabilities, revokedCapabilities },
+      context: {
+        email,
+        name,
+        type,
+        status,
+        passwordSet: Boolean(passwordHash),
+        capabilities,
+        revokedCapabilities,
+        avatarUpdated: !!avatarAssetId,
+      },
     });
   } else {
     const patch: Record<string, unknown> = { email, name, type, status, capabilities, revokedCapabilities };
     if (passwordHash) patch.passwordHash = passwordHash;
+    if (avatarAssetId) {
+      patch.avatar = { _type: "image", asset: { _type: "reference", _ref: avatarAssetId } };
+    }
     await writeClient.patch(existing._id).set(patch).commit();
     await writeAuditLog({
       actorAccountId: String(admin.acct._id),
@@ -209,7 +236,16 @@ async function upsertAccount(formData: FormData) {
       targetId: String(existing._id),
       targetType: "account",
       targetLabel: email,
-      context: { email, name, type, status, passwordUpdated: Boolean(passwordHash), capabilities, revokedCapabilities },
+      context: {
+        email,
+        name,
+        type,
+        status,
+        passwordUpdated: Boolean(passwordHash),
+        capabilities,
+        revokedCapabilities,
+        avatarUpdated: !!avatarAssetId,
+      },
     });
   }
 
@@ -306,6 +342,20 @@ async function updateAccount(formData: FormData) {
   const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
   const patch: Record<string, unknown> = { type, status, name, capabilities, revokedCapabilities };
+
+  const avatarFile = formData.get("avatar") as File | null;
+  if (avatarFile && avatarFile.size > 0) {
+    try {
+      const asset = await writeClient.assets.upload("image", avatarFile, {
+        contentType: avatarFile.type,
+        filename: avatarFile.name,
+      });
+      patch.avatar = { _type: "image", asset: { _type: "reference", _ref: asset._id } };
+    } catch (e) {
+      console.error("Failed to upload avatar", e);
+    }
+  }
+
   await writeClient.patch(id).set(patch).commit();
   await writeAuditLog({
     actorAccountId: String(admin.acct._id),
@@ -313,7 +363,7 @@ async function updateAccount(formData: FormData) {
     targetId: id,
     targetType: "account",
     targetLabel: id,
-    context: { id, name, type, status, capabilities, revokedCapabilities },
+    context: { id, name, type, status, capabilities, revokedCapabilities, avatarUpdated: !!avatarFile },
   });
 
   revalidatePath("/dashboard/admin");
@@ -794,7 +844,7 @@ async function createClientService(formData: FormData) {
   const clientAcct = await writeClient.fetch(`*[_type == "account" && _id == $id && type == "client"][0]{_id}`, { id: clientId });
   if (!clientAcct?._id) return;
 
-  await writeClient.create({
+  const created = await writeClient.create({
     _type: "clientService",
     title,
     serviceType,
@@ -805,6 +855,15 @@ async function createClientService(formData: FormData) {
     clientEnabled,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+  });
+
+  await writeAuditLog({
+    actorAccountId: String(admin.acct._id),
+    action: "clientService.created",
+    targetId: String(created?._id || ""),
+    targetType: "clientService",
+    targetLabel: title,
+    context: { title, serviceType, clientId, status },
   });
 
   revalidatePath("/dashboard/admin");
@@ -843,6 +902,14 @@ async function updateClientService(formData: FormData) {
       updatedAt: new Date().toISOString(),
     })
     .commit();
+  await writeAuditLog({
+    actorAccountId: String(admin.acct._id),
+    action: "clientService.updated",
+    targetId: id,
+    targetType: "clientService",
+    targetLabel: id,
+    context: { id, status, clientCanToggle, clientEnabled },
+  });
 
   revalidatePath("/dashboard/admin");
 }
@@ -884,7 +951,7 @@ async function updateServiceRequestStatus(formData: FormData) {
       if (!existingService?._id) {
         await writeClient.create({
           _type: "clientService",
-          title: `Service: ${requestedServiceType}`,
+          title: requestedServiceType.charAt(0).toUpperCase() + requestedServiceType.slice(1),
           serviceType: requestedServiceType,
           client: { _type: "reference", _ref: clientId },
           status: "active",
@@ -974,6 +1041,15 @@ async function createOrOpenDmThread(formData: FormData) {
     messages: [],
   });
 
+  await writeAuditLog({
+    actorAccountId: String(admin.acct._id),
+    action: "messageThread.dm_created",
+    targetId: String(created?._id || ""),
+    targetType: "messageThread",
+    targetLabel: "Direct message",
+    context: { recipientId },
+  });
+
   revalidatePath("/dashboard/admin");
   redirect(`/dashboard/admin/threads/${String(created?._id || "")}`);
 }
@@ -1025,6 +1101,15 @@ async function createOrOpenTaskThread(formData: FormData) {
         .setIfMissing({ participants: [] })
         .append("participants", [{ _type: "reference", _ref: adminId }])
         .commit();
+      
+      await writeAuditLog({
+        actorAccountId: String(admin.acct._id),
+        action: "messageThread.participant_added",
+        targetId: String(existing._id),
+        targetType: "messageThread",
+        targetLabel: String(w.title || "Task thread"),
+        context: { workItemId, addedParticipantId: adminId },
+      });
     }
     revalidatePath("/dashboard/admin");
     redirect(`/dashboard/admin/threads/${String(existing._id)}`);
@@ -1045,6 +1130,15 @@ async function createOrOpenTaskThread(formData: FormData) {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     messages: [],
+  });
+
+  await writeAuditLog({
+    actorAccountId: String(admin.acct._id),
+    action: "messageThread.task_created",
+    targetId: String(created?._id || ""),
+    targetType: "messageThread",
+    targetLabel: `Task: ${String(w.title || "Work item")}`,
+    context: { workItemId, participantsCount: participants.length },
   });
 
   revalidatePath("/dashboard/admin");
@@ -1159,6 +1253,16 @@ async function startImpersonation(formData: FormData) {
 
   const cookieStore = await cookies();
   cookieStore.set(IMPERSONATE_COOKIE, targetId, { httpOnly: true, sameSite: "lax", path: "/" });
+  
+  await writeAuditLog({
+    actorAccountId: String(admin.acct._id),
+    action: "user.impersonation_started",
+    targetId: targetId,
+    targetType: "account",
+    targetLabel: String(target.email || targetId),
+    context: { targetId, targetType: String(target.type || "employee") },
+  });
+
   redirect(`/dashboard/${String(target.type || "employee")}`);
 }
 
@@ -1168,7 +1272,20 @@ async function stopImpersonation() {
   if (!admin) return;
   if (!hasAccountCapability(admin.acct, "users.impersonate.read_only")) return;
   const cookieStore = await cookies();
+  const impersonatedId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
   cookieStore.delete(IMPERSONATE_COOKIE);
+
+  if (impersonatedId) {
+    await writeAuditLog({
+      actorAccountId: String(admin.acct._id),
+      action: "user.impersonation_stopped",
+      targetId: impersonatedId,
+      targetType: "account",
+      targetLabel: impersonatedId,
+      context: { impersonatedId },
+    });
+  }
+
   redirect("/dashboard/admin");
 }
 
@@ -1224,10 +1341,10 @@ export default async function AdminDashboardPage() {
     invoicesRes,
   ] = await Promise.all([
     sanityFetch({
-      query: `*[_type == "account"] | order(_createdAt desc){_id, email, name, type, status, capabilities, revokedCapabilities}`,
+      query: `*[_type == "account"] | order(_createdAt desc){_id, email, name, type, status, capabilities, revokedCapabilities, avatar}`,
     }),
     sanityFetch({
-      query: `*[_type == "account" && type == "employee" && status != "disabled"] | order(name asc, email asc){_id, name, email}`,
+      query: `*[_type == "account" && type == "employee" && status != "disabled"] | order(name asc, email asc){_id, name, email, avatar}`,
     }),
     sanityFetch({
       query: `*[_type == "workItem" && (!defined(isTemplate) || isTemplate != true) && status != "done" && !defined(assignedTo)] | order(priority desc, dueDate asc, createdAt desc)[0..9]{

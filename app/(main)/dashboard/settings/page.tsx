@@ -11,6 +11,10 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 
 import { TimezoneSelector } from "@/components/dashboard/settings/timezone-selector";
+import { dictionaries, Locale } from "@/lib/i18n";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { generateBlueGradient } from "@/lib/utils";
+import { writeAuditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +37,8 @@ export default async function DashboardSettingsPage() {
 
   const canImpersonate = Boolean(acct && acct.type === "admin" && hasAccountCapability(acct, "users.impersonate.read_only"));
   const cookieStore = await cookies();
+  const lang = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
+  const t = dictionaries[lang] || dictionaries.en;
   const impersonateId = cookieStore.get(IMPERSONATE_COOKIE)?.value || "";
 
   let effectiveAcct: any = acct;
@@ -112,6 +118,19 @@ export default async function DashboardSettingsPage() {
     if (Object.keys(patch).length === 0) return;
 
     await writeClient.patch(String(acct._id)).set(patch).commit();
+
+    await writeAuditLog({
+      actorAccountId: String(acct._id),
+      action: "account.profile_updated_self",
+      targetId: String(acct._id),
+      targetType: "account",
+      targetLabel: String(acct.email || ""),
+      context: { 
+        ...patch,
+        updatedFields: Object.keys(patch)
+      }
+    });
+
     revalidatePath("/dashboard/settings");
     redirect("/dashboard/settings");
   }
@@ -123,27 +142,35 @@ export default async function DashboardSettingsPage() {
   return (
     <div className="container mx-auto px-4 py-10 max-w-2xl">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Settings</h1>
+        <h1 className="text-2xl font-semibold">{t["settings_preferences"] || "Preferences"}</h1>
         <div className="text-sm text-muted-foreground">{String(effectiveAcct.email || "")}</div>
       </div>
 
       {!canWrite ? (
         <div className="mt-6 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
-          {isImpersonating ? `Impersonation mode (${effectiveType}): actions are read-only.` : "Missing SANITY_API_WRITE_TOKEN: settings updates are disabled."}
+          {isImpersonating
+            ? (t["settings_impersonation_notice"] || "Impersonation mode ({type}): actions are read-only.").replace("{type}", effectiveType)
+            : t["settings_missing_write_token"] || "Missing SANITY_API_WRITE_TOKEN: settings updates are disabled."}
         </div>
       ) : null}
 
       <form action={updateSettings} className="mt-6 grid gap-6" encType="multipart/form-data">
         <div className="rounded-xl border bg-card p-5">
-          <div className="text-sm text-muted-foreground">Profile</div>
+          <div className="text-sm text-muted-foreground">{t["profile"] || "Profile"}</div>
           <div className="mt-3 grid gap-3">
             <div className="flex items-center gap-4">
-              <div className="relative h-16 w-16 overflow-hidden rounded-full border bg-muted">
-                {avatarUrl ? <Image src={avatarUrl} alt="" fill sizes="64px" className="object-cover" /> : null}
-              </div>
+              <Avatar className="h-16 w-16 border">
+                {avatarUrl && <AvatarImage src={avatarUrl} className="object-cover" />}
+                <AvatarFallback
+                  style={{ background: generateBlueGradient(String(effectiveAcct.email || "")) }}
+                  className="text-white text-lg"
+                >
+                  {(String(effectiveAcct.name || effectiveAcct.email || "?"))[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1 grid gap-1">
                 <label className="text-sm font-medium" htmlFor="avatar">
-                  Avatar
+                  {t["avatar"] || "Avatar"}
                 </label>
                 <input
                   id="avatar"
@@ -157,7 +184,7 @@ export default async function DashboardSettingsPage() {
             </div>
             <div className="grid gap-1">
               <label className="text-sm font-medium" htmlFor="name">
-                Name
+                {t["name"] || "Name"}
               </label>
               <input
                 id="name"
@@ -171,11 +198,11 @@ export default async function DashboardSettingsPage() {
         </div>
 
         <div className="rounded-xl border bg-card p-5">
-          <div className="text-sm text-muted-foreground">Preferences</div>
+          <div className="text-sm text-muted-foreground">{t["settings_preferences"] || "Preferences"}</div>
           <div className="mt-3 grid gap-3">
             <div className="grid gap-1">
               <label className="text-sm font-medium" htmlFor="timezone">
-                Timezone
+                {t["settings_timezone"] || "Timezone"}
               </label>
               <TimezoneSelector
                 defaultValue={String((effectiveAcct as any).timezone || "")}
@@ -184,7 +211,7 @@ export default async function DashboardSettingsPage() {
             </div>
             <div className="grid gap-1">
               <label className="text-sm font-medium" htmlFor="locale">
-                Locale
+                {t["settings_locale"] || "Locale"}
               </label>
               <input
                 id="locale"
@@ -195,7 +222,7 @@ export default async function DashboardSettingsPage() {
               />
             </div>
             <div className="grid gap-2">
-              <div className="text-sm font-medium">Notifications</div>
+              <div className="text-sm font-medium">{t["settings_notifications"] || "Notifications"}</div>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -203,7 +230,7 @@ export default async function DashboardSettingsPage() {
                   defaultChecked={Boolean((effectiveAcct as any).notificationPreferences?.emailUpdates ?? true)}
                   disabled={!canWrite || !canEditNotifications}
                 />
-                Email updates
+                {t["settings_email_updates"] || "Email updates"}
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -212,19 +239,19 @@ export default async function DashboardSettingsPage() {
                   defaultChecked={Boolean((effectiveAcct as any).notificationPreferences?.inAppUpdates ?? true)}
                   disabled={!canWrite || !canEditNotifications}
                 />
-                In-app updates
+                {t["settings_in_app_updates"] || "In-app updates"}
               </label>
             </div>
           </div>
         </div>
 
         <button className="rounded-md border px-3 py-2 text-sm" disabled={!canWrite}>
-          Save changes
+          {t["saveChanges"] || "Save changes"}
         </button>
       </form>
 
       <div className="mt-8 rounded-xl border bg-card p-5">
-        <div className="text-sm text-muted-foreground">Security</div>
+        <div className="text-sm text-muted-foreground">{t["settings_security"] || "Security"}</div>
         <div className="mt-3">
           <SignOutButton
             variant="outline"
@@ -233,30 +260,30 @@ export default async function DashboardSettingsPage() {
             showLogoutAll={canLogoutAllDevices}
           />
           {!canLogoutAllDevices ? (
-            <div className="mt-2 text-xs text-muted-foreground">Your account can’t sign out everywhere.</div>
+            <div className="mt-2 text-xs text-muted-foreground">{t["settings_cant_sign_out"] || "Your account can’t sign out everywhere."}</div>
           ) : null}
         </div>
 
         {canViewLoginActivity ? (
           <div className="mt-6">
-            <div className="text-lg font-medium">Login activity</div>
+            <div className="text-lg font-medium">{t["settings_login_activity"] || "Login activity"}</div>
             <div className="mt-3 grid gap-2 text-sm">
               <div>
-                <span className="text-muted-foreground">Last login:</span>{" "}
+                <span className="text-muted-foreground">{t["settings_last_login"] || "Last login:"}</span>{" "}
                 <span>{lastLoginAt ? new Date(lastLoginAt).toLocaleString() : "—"}</span>
               </div>
               <div className="mt-2">
-                <div className="text-muted-foreground">Recent logins</div>
+                <div className="text-muted-foreground">{t["settings_recent_logins"] || "Recent logins"}</div>
                 <div className="mt-2 space-y-2">
                   {loginHistory.slice(-10).reverse().map((e: any, idx: number) => (
                     <div key={idx} className="rounded-md border px-3 py-2">
-                      <div className="font-medium">{String(e?.provider || "unknown")}</div>
+                      <div className="font-medium">{String(e?.provider || t["settings_unknown"] || "unknown")}</div>
                       <div className="text-muted-foreground">
                         {String(e?.createdAt || "") ? new Date(String(e.createdAt)).toLocaleString() : "—"}
                       </div>
                     </div>
                   ))}
-                  {loginHistory.length === 0 ? <div className="text-muted-foreground">No login history yet.</div> : null}
+                  {loginHistory.length === 0 ? <div className="text-muted-foreground">{t["settings_no_login_history"] || "No login history yet."}</div> : null}
                 </div>
               </div>
             </div>

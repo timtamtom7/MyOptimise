@@ -35,7 +35,7 @@ export function ScheduleList({ items }: ScheduleListProps) {
           {sortedDates.map(date => (
              <div key={date}>
                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                   {format(new Date(date), "EEEE, MMM d")}
+                   {formatDate(date, "EEEE, MMM d")}
                 </div>
                 <div className="space-y-3">
                    {grouped[date].map(item => (

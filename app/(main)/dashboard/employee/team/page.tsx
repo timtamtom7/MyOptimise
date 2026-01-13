@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { generateBlueGradient } from "@/lib/utils";
 import { Mail, Clock, MapPin } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,12 @@ export default async function TeamPage() {
             <CardHeader className="flex flex-row items-center gap-4">
               <Avatar className="h-12 w-12">
                 <AvatarImage src={member.avatar?.asset?.url} />
-                <AvatarFallback>{member.name?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarFallback 
+                  style={{ background: generateBlueGradient(member.email) }}
+                  className="text-white"
+                >
+                  {member.name?.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div>
                 <CardTitle className="text-lg">{member.name}</CardTitle>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useCurrentUser } from '@/hooks/use-user'
 import { useOrganizationMembers } from '@/hooks/use-user'
 import { useChannels, useMessages } from '@/hooks/use-chat'
+import { useTranslation } from '@/hooks/use-translation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,8 +18,10 @@ import {
   MessageSquare
 } from 'lucide-react'
 import { formatDate } from '@/lib/date-formatting'
+import { generateBlueGradient } from '@/lib/utils'
 
 export function TeamChat() {
+  const { t } = useTranslation()
   const { user } = useCurrentUser()
   const { data: members } = useOrganizationMembers(user?.accountId)
   const { channels, loading: channelsLoading } = useChannels(user?.accountId)
@@ -68,7 +71,7 @@ export function TeamChat() {
   }
 
   if (channelsLoading) {
-    return <div className="p-4">Loading chat...</div>
+    return <div className="p-4">{t('loading')}</div>
   }
 
   return (
@@ -77,11 +80,11 @@ export function TeamChat() {
       <div className="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold text-sm text-gray-900 dark:text-white mb-3">
-            Channels
+            {t('channels')}
           </h3>
           <div className="space-y-1">
             {channels.length === 0 ? (
-                <div className="text-sm text-gray-500 px-3">No channels found</div>
+                <div className="text-sm text-gray-500 px-3">{t('no_channels_found')}</div>
             ) : (
                 channels.map((channel) => (
                 <button
@@ -108,13 +111,16 @@ export function TeamChat() {
 
         <div className="p-4">
           <h3 className="font-semibold text-sm text-gray-900 dark:text-white mb-3">
-            Team Members
+            {t('teamMembers')}
           </h3>
           <div className="space-y-2">
             {members?.slice(0, 5).map((member) => (
               <div key={member.id} className="flex items-center space-x-3">
                 <Avatar className="h-6 w-6">
-                  <AvatarFallback className="text-xs">
+                  <AvatarFallback 
+                    style={{ background: generateBlueGradient(member.full_name) }}
+                    className="text-xs text-white"
+                  >
                     {getInitials(member.full_name)}
                   </AvatarFallback>
                 </Avatar>
@@ -157,7 +163,10 @@ export function TeamChat() {
           {messages.map((message) => (
             <div key={message.id} className="flex space-x-3">
               <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarFallback className="text-xs">
+                <AvatarFallback 
+                  style={{ background: generateBlueGradient(message.sender.full_name) }}
+                  className="text-xs text-white"
+                >
                   {getInitials(message.sender.full_name)}
                 </AvatarFallback>
               </Avatar>
@@ -184,7 +193,7 @@ export function TeamChat() {
           <form onSubmit={handleSendMessage} className="flex space-x-2">
             <Input
               type="text"
-              placeholder={selectedChannel ? `Message #${channels.find(c => c.id === selectedChannel)?.name}` : 'Select a channel'}
+              placeholder={selectedChannel ? `${t('message_placeholder')} #${channels.find(c => c.id === selectedChannel)?.name}` : t('select_channel')}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               className="flex-1"

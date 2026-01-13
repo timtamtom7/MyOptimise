@@ -2,6 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { generateBlueGradient } from "@/lib/utils";
 import { ThumbsUp, MessageSquare, Share2, Send, MoreHorizontal, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImageAnnotator } from "../image-annotator";
@@ -43,7 +44,10 @@ export function LinkedInPreview({
         <div className="flex gap-3">
           <Avatar className="h-12 w-12 rounded-none">
             {authorAvatar && <AvatarImage src={authorAvatar} />}
-            <AvatarFallback className="bg-blue-600 text-white rounded-none">
+            <AvatarFallback 
+              style={{ background: generateBlueGradient(authorName) }}
+              className="text-white rounded-none"
+            >
               {authorName.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { safeGetServerSession } from "@/lib/auth";
-import { t, getLocale } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n-server";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";

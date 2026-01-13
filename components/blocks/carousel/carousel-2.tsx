@@ -14,6 +14,7 @@ import { urlFor } from "@/sanity/lib/image";
 import { StarRating } from "@/components/ui/star-rating";
 import PortableTextRenderer from "@/components/portable-text-renderer";
 import { PAGE_QUERYResult } from "@/sanity.types";
+import { generateBlueGradient } from "@/lib/utils";
 
 type Carousel2Props = Extract<
   NonNullable<NonNullable<PAGE_QUERYResult>["blocks"]>[number],
@@ -48,7 +49,10 @@ export default function Carousel2({
                               alt={item.name ?? ""}
                             />
                           )}
-                          <AvatarFallback>
+                          <AvatarFallback
+                            style={{ background: generateBlueGradient(item.name || "") }}
+                            className="text-white"
+                          >
                             {item.name?.slice(0, 2)}
                           </AvatarFallback>
                         </Avatar>

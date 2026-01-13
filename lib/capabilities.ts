@@ -56,6 +56,64 @@ export interface UserCapabilities {
   'message.create': boolean;
 }
 
+export const ALL_CAPABILITIES: (keyof UserCapabilities)[] = [
+  // Content & Approvals
+  'content.view_drafts',
+  'content.create',
+  'content.delete',
+  'content.approve_internal',
+  'content.approve_client',
+
+  // Communication
+  'chat.internal_access',
+  'chat.client_access',
+  'chat.ghost_mode',
+  'chat.requires_approval',
+
+  // Sales & Growth
+  'sales.access',
+  'sales.lead_gen',
+  'sales.contracts',
+
+  // Admin & Financials
+  'analytics.view_financials',
+  'admin.impersonate',
+  'admin.billing',
+
+  // Legacy / Sidebar Compatibility
+  'tasks.read',
+  'task.create',
+  'task.update.all',
+  'task.delete.all',
+  'task.view.all',
+  'calendar.read',
+  'message.read',
+  'documents.view.shared',
+  'finance.view.all',
+  'analytics.view.all',
+  'security.audit.view',
+  'task.status.override',
+  'task.assign',
+  'task.assign.team',
+  'task.visibility.set',
+  'task.templates.manage',
+  'client.services.manage',
+  'users.invite.limited',
+  'users.impersonate.read_only',
+  'system.feature_flags.manage',
+  
+  // Missing Admin Capabilities
+  'users.invite',
+  'users.remove',
+  'users.capabilities.assign',
+  'users.activity_logs.view',
+  'users.sessions.reset',
+  'support.ticket.manage',
+  'task.reassign.manage',
+  'task.comment',
+  'message.create',
+];
+
 export const ROLE_CAPABILITIES: Record<string, Partial<UserCapabilities>> = {
   admin: {
     'content.view_drafts': true,

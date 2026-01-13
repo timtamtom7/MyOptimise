@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
 import Image from "next/image";
+import { generateBlueGradient } from "@/lib/utils";
 
 interface InstagramPreviewProps {
   username?: string;
@@ -26,7 +27,12 @@ export function InstagramPreview({
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarImage src={userImage} />
-            <AvatarFallback>{username[0].toUpperCase()}</AvatarFallback>
+            <AvatarFallback 
+              style={{ background: generateBlueGradient(username) }}
+              className="text-white text-[10px]"
+            >
+              {username[0].toUpperCase()}
+            </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
             <span className="text-sm font-semibold leading-none">{username}</span>

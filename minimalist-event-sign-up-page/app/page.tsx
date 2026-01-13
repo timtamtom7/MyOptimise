@@ -1,6 +1,7 @@
 import { SignupForm } from "@/components/signup-form"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { CalendarIcon, ClockIcon, MapPinIcon } from "lucide-react"
+import { generateBlueGradient } from "@/lib/utils"
 
 const attendees = [
   {
@@ -75,7 +76,7 @@ export default function Home() {
               <div key={attendee.name} className="flex items-center gap-2">
                 <Avatar className="size-8 border border-border">
                   <AvatarImage src={attendee.image || "/placeholder.svg"} alt={attendee.name} />
-                  <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback style={{ background: generateBlueGradient(attendee.name) }} className="text-white text-xs">{attendee.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <span className="text-sm text-foreground">{attendee.name}</span>
               </div>

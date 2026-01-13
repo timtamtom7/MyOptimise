@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useTranslation } from "@/hooks/use-translation";
+import { generateBlueGradient } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -92,6 +94,7 @@ interface AdminViewProps {
 }
 
 export function AdminView({ data, capabilities, actions }: AdminViewProps) {
+  const { t } = useTranslation();
   // Layout State
   const [isEditing, setIsEditing] = useState(false);
   const [layout, setLayout] = useState({
@@ -145,13 +148,13 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
     totalUsers: (
       <Card className={!layout.visible.totalUsers && isEditing ? "opacity-50 border-dashed" : ""}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('totalUsers')}</CardTitle>
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{data.stats.totalUsers}</div>
           <p className="text-xs text-muted-foreground">
-            Across all roles
+            {t('acrossAllRoles')}
           </p>
         </CardContent>
       </Card>
@@ -159,13 +162,13 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
     activeTasks: (
       <Card className={!layout.visible.activeTasks && isEditing ? "opacity-50 border-dashed" : ""}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('activeTasks')}</CardTitle>
           <CheckSquare className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{data.stats.activeTasks}</div>
           <p className="text-xs text-muted-foreground">
-            {data.unassignedWorkItems.length} unassigned
+            {data.unassignedWorkItems.length} {t('unassigned')}
           </p>
         </CardContent>
       </Card>
@@ -173,13 +176,13 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
     pendingRequests: (
       <Card className={!layout.visible.pendingRequests && isEditing ? "opacity-50 border-dashed" : ""}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('pendingRequests')}</CardTitle>
           <CreditCard className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{data.stats.pendingRequests}</div>
           <p className="text-xs text-muted-foreground">
-            Requires attention
+            {t('requiresAttention')}
           </p>
         </CardContent>
       </Card>
@@ -187,13 +190,13 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
     systemHealth: (
       <Card className={!layout.visible.systemHealth && isEditing ? "opacity-50 border-dashed" : ""}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">System Health</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('systemHealth')}</CardTitle>
           <Activity className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-600">98%</div>
           <p className="text-xs text-muted-foreground">
-            Operational
+            {t('operational')}
           </p>
         </CardContent>
       </Card>
@@ -205,9 +208,9 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
       {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('dashboard')}</h1>
           <p className="text-muted-foreground">
-            Overview of your organization&apos;s activity and performance.
+            {t('manageAccountsDesc')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -215,17 +218,17 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
                 <X className="mr-2 h-4 w-4" />
-                Cancel
+                {t('cancel')}
               </Button>
               <Button onClick={saveLayout} size="sm">
                 <Save className="mr-2 h-4 w-4" />
-                Save Layout
+                {t('saveChanges')}
               </Button>
             </div>
           ) : (
             <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
               <Edit className="mr-2 h-4 w-4" />
-              Edit
+              {t('editAccount')}
             </Button>
           )}
         </div>
@@ -233,14 +236,14 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="support">Support</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="accounts">Accounts</TabsTrigger>
-          {capabilities.canManageFeatureFlags && <TabsTrigger value="system">System</TabsTrigger>}
-          {capabilities.canViewLogs && <TabsTrigger value="audit">Audit Logs</TabsTrigger>}
+          <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
+          <TabsTrigger value="tasks">{t('tasks')}</TabsTrigger>
+          <TabsTrigger value="support">{t('support')}</TabsTrigger>
+          <TabsTrigger value="services">{t('services')}</TabsTrigger>
+          <TabsTrigger value="messages">{t('messages')}</TabsTrigger>
+          <TabsTrigger value="accounts">{t('accounts')}</TabsTrigger>
+          {capabilities.canManageFeatureFlags && <TabsTrigger value="system">{t('system')}</TabsTrigger>}
+          {capabilities.canViewLogs && <TabsTrigger value="audit">{t('auditLogs')}</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -288,8 +291,8 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
                 )}
                 <Card className={!layout.visible.recentTasksList ? "border-0 shadow-none bg-transparent pointer-events-none" : ""}>
                   <CardHeader>
-                    <CardTitle>Recent Tasks</CardTitle>
-                    <CardDescription>Latest work items in the system.</CardDescription>
+                    <CardTitle>{t('recentTasks')}</CardTitle>
+                    <CardDescription>{t('latestWorkItems')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {data.openWorkItems.slice(0, 5).map((item) => (
@@ -305,7 +308,7 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
                             <div>
                               <div className="font-medium">{item.title}</div>
                               <div className="text-xs text-muted-foreground">
-                                {item.assigneeName ? `Assigned to ${item.assigneeName}` : 'Unassigned'}
+                                {item.assigneeName ? `${t('assignedToMe')} ${item.assigneeName}` : t('unassigned')}
                               </div>
                             </div>
                           </div>
@@ -313,7 +316,7 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
                         </div>
                     ))}
                     {data.openWorkItems.length === 0 && (
-                      <div className="text-center py-6 text-muted-foreground">No active tasks.</div>
+                      <div className="text-center py-6 text-muted-foreground">{t('noActiveTasks')}</div>
                     )}
                   </CardContent>
                 </Card>
@@ -332,8 +335,8 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
                 )}
                 <Card className={!layout.visible.teamList ? "border-0 shadow-none bg-transparent pointer-events-none" : ""}>
                   <CardHeader>
-                    <CardTitle>Team Members</CardTitle>
-                    <CardDescription>Recently active users.</CardDescription>
+                    <CardTitle>{t('teamMembers')}</CardTitle>
+                    <CardDescription>{t('recentlyActiveUsers')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -341,9 +344,13 @@ export function AdminView({ data, capabilities, actions }: AdminViewProps) {
                         <div key={user._id} className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={`https://avatar.vercel.sh/${user.email}`} />
-                              <AvatarFallback>{user.name?.[0] || user.email[0]}</AvatarFallback>
-                            </Avatar>
+                            <AvatarFallback 
+                              style={{ background: generateBlueGradient(user.email) }}
+                              className="text-white"
+                            >
+                              {(user.name?.[0] || user.email?.[0] || "?").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                             <div>
                               <div className="font-medium text-sm">{user.name || 'Unnamed'}</div>
                               <div className="text-xs text-muted-foreground">{user.email}</div>

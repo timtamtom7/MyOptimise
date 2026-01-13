@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Share2, Music2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, generateBlueGradient } from "@/lib/utils";
 import { ImageAnnotator } from "../image-annotator";
 
 interface TikTokPreviewProps {
@@ -70,7 +70,10 @@ export function TikTokPreview({
         <div className="relative">
           <Avatar className="h-10 w-10 ring-1 ring-white">
             {authorAvatar && <AvatarImage src={authorAvatar} />}
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+            <AvatarFallback 
+              style={{ background: generateBlueGradient(authorName) }}
+              className="text-white text-xs"
+            >
               {authorName.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>

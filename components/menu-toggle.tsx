@@ -1,27 +1,44 @@
 "use client";
 
 import * as React from "react";
+import { Moon, Sun, Laptop } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export function ModeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { setTheme, theme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" className="h-9 w-9">
+        <span className="sr-only">Toggle theme</span>
+      </Button>
+    );
+  }
+
+  const cycleTheme = () => {
+    if (theme === "light") setTheme("dark");
+    else if (theme === "dark") setTheme("system");
+    else setTheme("light");
+  };
 
   return (
-    <select
-      aria-label="Theme"
-      value={theme || "system"}
-      onChange={(e) => setTheme(e.target.value)}
-      className={cn(
-        buttonVariants({ variant: "outline", size: "sm" }),
-        "h-9 w-[110px] border-0 bg-transparent shadow-none hover:bg-muted/40"
-      )}
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={cycleTheme}
+      className="h-9 w-9 border-0 bg-transparent shadow-none hover:bg-muted/40 relative"
+      aria-label="Toggle theme"
     >
-      <option value="system">System</option>
-      <option value="light">Light</option>
-      <option value="dark">Dark</option>
-    </select>
+      {theme === "light" && <Sun className="h-[1.2rem] w-[1.2rem]" />}
+      {theme === "dark" && <Moon className="h-[1.2rem] w-[1.2rem]" />}
+      {theme === "system" && <Laptop className="h-[1.2rem] w-[1.2rem]" />}
+    </Button>
   );
 }

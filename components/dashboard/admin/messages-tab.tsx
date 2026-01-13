@@ -3,6 +3,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { generateBlueGradient } from "@/lib/utils";
+import { useTranslation } from "@/hooks/use-translation";
 import { Plus, MessageSquare } from "lucide-react";
 import {
   Dialog,
@@ -27,32 +29,33 @@ interface MessagesTabProps {
 }
 
 export function MessagesTab({ threads, employees, basePath = "/dashboard/admin", actions }: MessagesTabProps) {
+  const { t } = useTranslation();
   const router = useRouter();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Messages</h2>
-          <p className="text-muted-foreground">Direct messages and task discussions.</p>
+          <h2 className="text-2xl font-bold tracking-tight">{t('messages')}</h2>
+          <p className="text-muted-foreground">{t('messagesDesc')}</p>
         </div>
         <Dialog>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="mr-2 h-4 w-4" /> New Message
+              <Plus className="mr-2 h-4 w-4" /> {t('newMessage')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>New Message</DialogTitle>
-              <DialogDescription>Start a conversation with a team member.</DialogDescription>
+              <DialogTitle>{t('newMessage')}</DialogTitle>
+              <DialogDescription>{t('newMessageDesc')}</DialogDescription>
             </DialogHeader>
             <form action={actions.createOrOpenDmThread} className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Recipient</Label>
+                <Label>{t('recipient')}</Label>
                 <Select name="recipientId" required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select team member..." />
+                    <SelectValue placeholder={t('selectTeamMember')} />
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((e) => (
@@ -89,7 +92,12 @@ export function MessagesTab({ threads, employees, basePath = "/dashboard/admin",
               <div className="flex items-center gap-2">
                 {thread.participants?.slice(0, 3).map((p: any) => (
                    <Avatar key={p._id} className="h-6 w-6">
-                      <AvatarFallback className="text-[10px]">{p.name?.[0] || p.email?.[0]}</AvatarFallback>
+                      <AvatarFallback 
+                        style={{ background: generateBlueGradient(p.email || p.name) }}
+                        className="text-[10px] text-white"
+                      >
+                        {p.name?.[0] || p.email?.[0]}
+                      </AvatarFallback>
                    </Avatar>
                 ))}
                 {thread.participants?.length > 3 && (

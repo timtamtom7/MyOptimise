@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { CurrentUser } from '@/hooks/use-user'
+import { useState } from 'react'
+import { ProfileDialog } from '@/components/profile-dialog'
+import { useTranslation } from '@/hooks/use-translation'
+import { generateBlueGradient } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +23,9 @@ interface HeaderProps {
 }
 
 export function Header({ user }: HeaderProps) {
+  const [showProfile, setShowProfile] = useState(false)
+  const { t } = useTranslation()
+
   const getInitials = (name: string | null) => {
     return (name || 'U')
       .split(' ')
@@ -36,7 +43,7 @@ export function Header({ user }: HeaderProps) {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               type="search"
-              placeholder="Search tasks, events, or team members..."
+              placeholder={t('searchPlaceholder')}
               className="pl-10 pr-4 py-2 w-full"
             />
           </div>
@@ -52,7 +59,12 @@ export function Header({ user }: HeaderProps) {
             <DropdownMenuTrigger className="relative h-8 w-8 rounded-full">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'User'} />
-                <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
+                <AvatarFallback 
+                  style={{ background: generateBlueGradient(user.email) }}
+                  className="text-white"
+                >
+                  {getInitials(user.fullName)}
+                </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -63,27 +75,28 @@ export function Header({ user }: HeaderProps) {
                     {user.email}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground capitalize">
-                    {user.role}
+                    {t('role_' + user.role) || user.role}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShowProfile(true)}>
                 <User className="mr-2 h-4 w-4" />
-                Profile
+                {t('profile')}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
-                Settings
+                {t('settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600">
-                Sign out
+                {t('signOut')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
+      <ProfileDialog open={showProfile} onOpenChange={setShowProfile} />
     </header>
   )
 }

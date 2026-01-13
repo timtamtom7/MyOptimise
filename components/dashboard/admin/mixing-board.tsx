@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toggleCapability } from "@/app/actions/permissions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { generateBlueGradient } from "@/lib/utils";
+import { useTranslation } from "@/hooks/use-translation";
 
 // Types
 type User = {
@@ -36,6 +38,7 @@ interface MixingBoardProps {
 }
 
 export function MixingBoard({ users, capabilities, userCapabilities }: MixingBoardProps) {
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
     
@@ -62,7 +65,7 @@ export function MixingBoard({ users, capabilities, userCapabilities }: MixingBoa
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <Input 
-                    placeholder="Search capabilities..." 
+                    placeholder={t('searchCapabilities')} 
                     className="max-w-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -73,7 +76,7 @@ export function MixingBoard({ users, capabilities, userCapabilities }: MixingBoa
                         className="cursor-pointer hover:bg-primary/90"
                         onClick={() => setSelectedCategory("all")}
                     >
-                        All
+                        {t('filterAll')}
                     </Badge>
                     {categories.map(cat => (
                         <Badge 
@@ -92,13 +95,18 @@ export function MixingBoard({ users, capabilities, userCapabilities }: MixingBoa
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="border-b bg-muted/50">
-                            <th className="p-4 text-left font-medium min-w-[250px] sticky left-0 bg-gray-50/95 backdrop-blur z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">Capability</th>
+                            <th className="p-4 text-left font-medium min-w-[250px] sticky left-0 bg-gray-50/95 backdrop-blur z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">{t('capability')}</th>
                             {users.map(user => (
                                 <th key={user.id} className="p-4 text-center min-w-[120px]">
                                     <div className="flex flex-col items-center gap-2">
                                         <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                                             <AvatarImage src={user.avatar_url} />
-                                            <AvatarFallback>{(user.full_name?.[0] || user.email[0]).toUpperCase()}</AvatarFallback>
+                                            <AvatarFallback
+                                                style={{ background: generateBlueGradient(user.email) }}
+                                                className="text-white"
+                                            >
+                                                {(user.full_name?.[0] || user.email?.[0] || "?").toUpperCase()}
+                                            </AvatarFallback>
                                         </Avatar>
                                         <div className="flex flex-col">
                                             <span className="text-xs font-semibold truncate max-w-[100px]" title={user.full_name}>{user.full_name || user.email}</span>

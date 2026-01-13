@@ -1,3 +1,5 @@
+"use client"
+
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -16,6 +18,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { generateBlueGradient } from '@/lib/utils'
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { signOut } from 'next-auth/react'
+import { useTranslation } from '@/hooks/use-translation'
 
 interface EmployeeSidebarProps {
   user: {
@@ -38,20 +42,21 @@ interface EmployeeSidebarProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard/employee', icon: LayoutDashboard },
-  { name: 'Tasks', href: '/dashboard/employee/tasks', icon: CheckSquare },
-  { name: 'Clients', href: '/dashboard/employee/clients', icon: Briefcase },
-  { name: 'Schedule', href: '/dashboard/employee/schedule', icon: Calendar },
-  { name: 'Messages', href: '/dashboard/employee/messages', icon: MessageSquare },
-  { name: 'Documents', href: '/dashboard/employee/documents', icon: FileText },
-  { name: 'Team', href: '/dashboard/employee/team', icon: Users },
-  { name: 'Analytics', href: '/dashboard/employee/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/dashboard/employee/settings', icon: Settings },
+  { name: 'nav_dashboard', href: '/dashboard/employee', icon: LayoutDashboard },
+  { name: 'nav_tasks', href: '/dashboard/employee/tasks', icon: CheckSquare },
+  { name: 'nav_clients', href: '/dashboard/employee/clients', icon: Briefcase },
+  { name: 'nav_schedule', href: '/dashboard/employee/schedule', icon: Calendar },
+  { name: 'nav_messages', href: '/dashboard/employee/messages', icon: MessageSquare },
+  { name: 'nav_documents', href: '/dashboard/employee/documents', icon: FileText },
+  { name: 'nav_team', href: '/dashboard/employee/team', icon: Users },
+  { name: 'nav_analytics', href: '/dashboard/employee/analytics', icon: BarChart3 },
+  { name: 'nav_settings', href: '/dashboard/employee/settings', icon: Settings },
 ]
 
 export function EmployeeSidebar({ user }: EmployeeSidebarProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const { t } = useTranslation()
 
   return (
     <div className={cn(
@@ -97,10 +102,10 @@ export function EmployeeSidebar({ user }: EmployeeSidebarProps) {
                   : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
                 isCollapsed ? "justify-center" : "justify-start"
               )}
-              title={isCollapsed ? item.name : undefined}
+              title={isCollapsed ? t(item.name) : undefined}
             >
               <item.icon className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "")} />
-              {!isCollapsed && <span>{item.name}</span>}
+              {!isCollapsed && <span>{t(item.name)}</span>}
             </Link>
           )
         })}
@@ -116,7 +121,10 @@ export function EmployeeSidebar({ user }: EmployeeSidebarProps) {
             )}>
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user.avatarUrl || undefined} />
-                <AvatarFallback>
+                <AvatarFallback 
+                  style={{ background: generateBlueGradient(user.email) }}
+                  className="text-white"
+                >
                   {user.fullName?.charAt(0) || user.email.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -126,18 +134,18 @@ export function EmployeeSidebar({ user }: EmployeeSidebarProps) {
                     {user.fullName || user.email}
                   </p>
                   <p className="text-xs text-gray-500 capitalize">
-                    {user.role}
+                    {t('role_' + user.role) || user.role}
                   </p>
                 </div>
               )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('nav_my_account')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/dashboard/employee/settings">
-                Settings
+                {t('nav_settings')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -146,7 +154,7 @@ export function EmployeeSidebar({ user }: EmployeeSidebarProps) {
               className="text-red-600"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Sign out
+              {t('nav_sign_out')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

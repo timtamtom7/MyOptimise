@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, MessageCircle, Share2, Music2, Disc } from "lucide-react";
 import Image from "next/image";
+import { generateBlueGradient } from "@/lib/utils";
 
 interface TikTokPreviewProps {
   username?: string;
@@ -65,9 +66,14 @@ export function TikTokPreview({
           <div className="flex flex-col items-center gap-5 pb-2">
             {/* Avatar */}
             <div className="relative mb-2">
-              <Avatar className="h-10 w-10 border-2 border-white">
+              <Avatar className="h-10 w-10 ring-1 ring-white">
                 <AvatarImage src={userImage} />
-                <AvatarFallback className="text-black bg-white">{username[0].toUpperCase()}</AvatarFallback>
+                <AvatarFallback 
+                  style={{ background: generateBlueGradient(username) }}
+                  className="text-white text-xs"
+                >
+                  {username.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-red-500 rounded-full p-0.5">
                  <div className="w-3 h-3 text-white flex items-center justify-center text-[10px] font-bold">+</div>

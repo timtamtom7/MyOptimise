@@ -170,7 +170,7 @@ export function ServicesDashboard() {
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Started:</span>
                   <span className="font-medium ml-1">
-                    {format(new Date(service.start_date || service.created_at), 'MMM d, yyyy')}
+                    {formatDate(service.start_date || service.created_at, 'MMM d, yyyy')}
                   </span>
                 </div>
               </div>
