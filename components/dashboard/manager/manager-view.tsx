@@ -1,15 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useTranslation } from "@/hooks/use-translation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Users, 
-  CheckSquare, 
-  Activity, 
-  Settings, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Users,
+  CheckSquare,
+  Activity,
+  Settings,
   FileText,
   CreditCard,
   MessageSquare,
@@ -19,18 +26,30 @@ import {
   ArrowLeft,
   ArrowRight,
   Save,
-  X
+  X,
+  Calendar,
+  BarChart3,
+  Briefcase,
+  LayoutDashboard,
+  ExternalLink,
+  ChevronDown,
+  HelpCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { generateBlueGradient } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 // Import shared tabs from admin since they are identical for now
 import { TasksTab } from "../admin/tasks-tab";
 import { SupportTab } from "../admin/support-tab";
 import { ServicesTab } from "../admin/services-tab";
 import { MessagesTab } from "../admin/messages-tab";
+import { ReportsTab } from "../shared/reports-tab";
 import { TeamTab } from "./team-tab";
+import { BriefsTab } from "./briefs-tab";
+import { Brief } from "@/types/briefs";
+import { ClientPerformanceRollup } from "../admin/client-performance-rollup";
 
 interface ManagerViewProps {
   data: {
@@ -38,11 +57,13 @@ interface ManagerViewProps {
     clients: any[];
     unassignedWorkItems: any[];
     myWorkItems: any[];
+    teamWorkItems?: any[];
     openClientRequests: any[];
     clientServices: any[];
     openServiceRequests: any[];
     staff: any[];
     myThreads: any[];
+    briefs?: Brief[]; // Added briefs
     stats: {
       myActiveTasks: number;
       pendingRequests: number;
@@ -52,6 +73,7 @@ interface ManagerViewProps {
       name: string;
       email: string;
     };
+    isImpersonating?: boolean;
   };
   capabilities: {
     canInvite: boolean;
@@ -69,8 +91,12 @@ interface ManagerViewProps {
     createClientService: (formData: FormData) => Promise<void>;
     updateClientService: (formData: FormData) => Promise<void>;
     updateServiceRequestStatus: (formData: FormData) => Promise<void>;
-    assignWorkItem: (formData: FormData) => Promise<void>; // Added this as it might be needed for TasksTab
+    assignWorkItem: (formData: FormData) => Promise<void>;
     createOrOpenDmThread: (formData: FormData) => Promise<void>;
+    createBrief: (formData: FormData) => Promise<void>;
+    approveBrief: (formData: FormData) => Promise<void>;
+    rejectBrief: (formData: FormData) => Promise<void>;
+    stopImpersonation?: () => Promise<void>;
     [key: string]: any;
   };
   defaultTab?: string;
@@ -79,11 +105,24 @@ interface ManagerViewProps {
 export function ManagerView({ data, capabilities, actions, defaultTab = "overview" }: ManagerViewProps) {
   const { t } = useTranslation();
   const isTeamPage = defaultTab === "team";
+  const router = useRouter();
   
-  // Layout State
   const [isEditing, setIsEditing] = useState(false);
-  const [layout, setLayout] = useState({
-    statsOrder: ['myTasks', 'pendingRequests', 'teamMembers', 'systemStatus'],
+
+  interface ManagerLayout {
+    statsOrder: string[];
+    visible: {
+      myTasks: boolean;
+      pendingRequests: boolean;
+      teamMembers: boolean;
+      systemStatus: boolean;
+      recentTasksList: boolean;
+      teamList: boolean;
+    };
+  }
+
+  const defaultLayout: ManagerLayout = {
+    statsOrder: ["myTasks", "pendingRequests", "teamMembers", "systemStatus"],
     visible: {
       myTasks: true,
       pendingRequests: true,
@@ -92,19 +131,20 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
       recentTasksList: true,
       teamList: true
     }
-  });
+  };
 
-  // Load from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("manager-dashboard-layout");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Merge with default to handle new keys if any
-        setLayout(prev => ({ ...prev, ...parsed, visible: { ...prev.visible, ...parsed.visible } }));
-      } catch (e) { console.error("Failed to parse layout", e); }
+  const [layout, setLayout] = useState<ManagerLayout>(() => {
+    if (typeof window === "undefined") return defaultLayout;
+    const saved = window.localStorage.getItem("manager-dashboard-layout");
+    if (!saved) return defaultLayout;
+    try {
+      const parsed = JSON.parse(saved);
+      return { ...defaultLayout, ...parsed, visible: { ...defaultLayout.visible, ...parsed.visible } };
+    } catch (e) {
+      console.error("Failed to parse layout", e);
+      return defaultLayout;
     }
-  }, []);
+  });
 
   // Save to localStorage
   const saveLayout = () => {
@@ -113,7 +153,7 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
   };
 
   const toggleVisibility = (key: string) => {
-    setLayout(prev => ({
+    setLayout((prev: ManagerLayout) => ({
       ...prev,
       visible: { ...prev.visible, [key]: !prev.visible[key as keyof typeof prev.visible] }
     }));
@@ -126,8 +166,10 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
     } else if (direction === 'right' && index < newOrder.length - 1) {
       [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
     }
-    setLayout(prev => ({ ...prev, statsOrder: newOrder }));
+    setLayout((prev: ManagerLayout) => ({ ...prev, statsOrder: newOrder }));
   };
+
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   // Stat Card Components Map
   const statCards = {
@@ -180,6 +222,119 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
       </Card>
     )
   };
+
+  const allBriefs: Brief[] = data.briefs || [];
+  const deliverablesByClientMap = allBriefs.reduce(
+    (
+      map: Map<
+        string,
+        {
+          client: string;
+          campaign: string | null;
+          total: number;
+          inProgress: number;
+          approved: number;
+        }
+      >,
+      brief,
+    ) => {
+      const meta: any = (brief as any).metadata || {};
+      const clientName = String(meta.client || "Unassigned client");
+      const campaignTitle = meta.campaign ? String(meta.campaign) : null;
+      const key = `${clientName}__${campaignTitle || ""}`;
+      let row = map.get(key);
+      if (!row) {
+        row = {
+          client: clientName,
+          campaign: campaignTitle,
+          total: 0,
+          inProgress: 0,
+          approved: 0,
+        };
+        map.set(key, row);
+      }
+      row.total += 1;
+      if (brief.status === "approved" || brief.status === "scheduled") {
+        row.approved += 1;
+      } else {
+        row.inProgress += 1;
+      }
+      return map;
+    },
+    new Map<
+      string,
+      {
+        client: string;
+        campaign: string | null;
+        total: number;
+        inProgress: number;
+        approved: number;
+      }
+    >(),
+  );
+
+  const deliverablesByClient = Array.from(deliverablesByClientMap.values())
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6);
+
+  const managerTabs = [
+    {
+      value: "overview",
+      label: t("overview"),
+      icon: LayoutDashboard,
+      description: "Your team dashboard overview"
+    },
+    {
+      value: "tasks",
+      label: t("tasks"),
+      icon: CheckSquare,
+      description: "Tasks for you and your team"
+    },
+    {
+      value: "support",
+      label: t("support"),
+      icon: CreditCard,
+      description: "Client support tickets"
+    },
+    {
+      value: "services",
+      label: t("services"),
+      icon: Briefcase,
+      description: "Service delivery and requests"
+    },
+    {
+      value: "messages",
+      label: t("messages"),
+      icon: MessageSquare,
+      description: "Team messages and DMs"
+    },
+    {
+      value: "team",
+      label: t("team"),
+      icon: Users,
+      description: "Manage your team"
+    },
+    {
+      value: "clients",
+      label: t("clients"),
+      icon: Briefcase,
+      href: "/dashboard/business",
+      description: "Client accounts you manage"
+    },
+    {
+      value: "schedule",
+      label: t("schedule"),
+      icon: Calendar,
+      href: "/dashboard/calendar",
+      description: "Schedule and calendar"
+    },
+    {
+      value: "more",
+      label: "More",
+      icon: ExternalLink,
+      description: "Additional manager tools"
+    }
+  ];
   
   return (
     <div className="space-y-6">
@@ -214,22 +369,93 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
         </div>
       </div>
 
-      <Tabs defaultValue={defaultTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
-          <TabsTrigger value="tasks">{t('tasks')}</TabsTrigger>
-          <TabsTrigger value="support">{t('support')}</TabsTrigger>
-          <TabsTrigger value="services">{t('services')}</TabsTrigger>
-          <TabsTrigger value="messages">{t('messages')}</TabsTrigger>
-          <TabsTrigger value="team">{t('team')}</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="flex items-center gap-2 overflow-x-auto overflow-y-visible border-b pb-2">
+          <Button
+            variant={activeTab === "overview" ? "secondary" : "ghost"}
+            onClick={() => setActiveTab("overview")}
+            className="gap-2"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Overview
+          </Button>
 
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={["tasks", "briefs", "services", "support"].includes(activeTab) ? "secondary" : "ghost"}
+                className="gap-2"
+              >
+                <Briefcase className="h-4 w-4" />
+                Work
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setActiveTab("tasks")}>
+                <CheckSquare className="mr-2 h-4 w-4" />
+                Tasks
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("briefs")}>
+                <FileText className="mr-2 h-4 w-4" />
+                Briefs
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("services")}>
+                <Activity className="mr-2 h-4 w-4" />
+                Services
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("support")}>
+                <HelpCircle className="mr-2 h-4 w-4" />
+                Support
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/calendar">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Schedule
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={["team"].includes(activeTab) ? "secondary" : "ghost"}
+                className="gap-2"
+              >
+                <Users className="h-4 w-4" />
+                People
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setActiveTab("team")}>
+                <Users className="mr-2 h-4 w-4" />
+                Team
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/business">
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  Accounts
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            variant={activeTab === "messages" ? "secondary" : "ghost"}
+            onClick={() => setActiveTab("messages")}
+            className="gap-2"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Inbox
+          </Button>
+        </div>
         <TabsContent value="overview" className="space-y-6">
           {/* Stats Row */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {layout.statsOrder.map((key, index) => {
+            {layout.statsOrder.map((key: string, index: number) => {
               const isVisible = layout.visible[key as keyof typeof layout.visible];
-              if (!isVisible && !isEditing) return null;
               
               return (
                 <div key={key} className="relative group">
@@ -255,6 +481,8 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
               );
             })}
           </div>
+
+          <ClientPerformanceRollup clients={data.clients} />
 
           <div className="grid gap-6 md:grid-cols-7">
             {/* My Recent Tasks */}
@@ -342,11 +570,68 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
               </div>
             )}
           </div>
+          
+          {deliverablesByClient.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Deliverables by client</CardTitle>
+                <CardDescription>Snapshot of briefs and deliverables per account.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {deliverablesByClient.map((row, index) => (
+                    <div
+                      key={`${row.client}-${row.campaign || "none"}-${index}`}
+                      className="flex items-center justify-between border-b last:border-0 py-2 text-sm"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {row.client}
+                          {row.campaign ? ` • ${row.campaign}` : ""}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                          <span>Total {row.total}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                          <span>In progress {row.inProgress}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          <span>Approved {row.approved}</span>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <ReportsTab />
+        </TabsContent>
+
+        <TabsContent value="briefs">
+          <BriefsTab
+            briefs={data.briefs || []}
+            editors={data.employees.map((e: any) => ({
+              id: String(e._id || e.id || ""),
+              name: String(e.name || e.email || "Unnamed"),
+            }))}
+            createBriefAction={actions.createBrief}
+            approveBriefAction={actions.approveBrief}
+            rejectBriefAction={actions.rejectBrief}
+          />
         </TabsContent>
 
         <TabsContent value="tasks">
           <TasksTab 
-            openWorkItems={[...data.unassignedWorkItems, ...data.myWorkItems]} // Show both or just unassigned? Manager should see all relevant tasks.
+            openWorkItems={data.teamWorkItems || [...data.unassignedWorkItems, ...data.myWorkItems]}
             unassignedWorkItems={data.unassignedWorkItems}
             employees={data.employees}
             capabilities={{
@@ -410,6 +695,31 @@ export function ManagerView({ data, capabilities, actions, defaultTab = "overvie
               inviteEmployee: actions.inviteEmployee
             }}
           />
+        </TabsContent>
+
+        <TabsContent value="more" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>More navigation</CardTitle>
+              <CardDescription>Additional manager pages.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Link href="/dashboard/documents" className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm hover:border-primary hover:bg-primary/5 transition-colors">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span>Documents</span>
+                </Link>
+                <Link href="/dashboard/analytics" className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm hover:border-primary hover:bg-primary/5 transition-colors">
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <span>Analytics</span>
+                </Link>
+                <Link href="/dashboard/settings" className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm hover:border-primary hover:bg-primary/5 transition-colors">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                  <span>Settings</span>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
       </Tabs>

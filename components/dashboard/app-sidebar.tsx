@@ -79,6 +79,9 @@ export function AppSidebar({ account, className }: AppSidebarProps) {
     menuItems.push({ title: "Overview", href: "/dashboard/client", icon: "LayoutDashboard" });
     menuItems.push({ title: "Chats", href: "/dashboard/client/threads", icon: "MessageSquare" });
     menuItems.push({ title: "Approvals", href: "/dashboard/client?tab=approvals", icon: "CheckSquare" });
+  } else if (type === "editor") {
+    menuItems.push({ title: "My Tasks", href: "/dashboard/editor", icon: "CheckSquare" });
+    menuItems.push({ title: "Chats", href: "/dashboard/editor/messages", icon: "MessageSquare" });
   }
 
   // --- GENERAL SECTION ---

@@ -44,9 +44,11 @@ export default function LanguageSelector({ initialLang }: { initialLang?: string
           "h-9 px-2 border-0 bg-transparent shadow-none hover:bg-muted/40 gap-2 min-w-[40px]"
         )}
       >
-        <span className="text-lg leading-none">{current.flag}</span>
-        <span className="text-sm font-medium uppercase text-muted-foreground">{current.code.substring(0, 2)}</span>
-        <span className="sr-only">{current.label}</span>
+        <span className="flex items-center gap-2">
+          <span className="text-lg leading-none">{current.flag}</span>
+          <span className="text-sm font-medium uppercase text-muted-foreground">{current.code.substring(0, 2)}</span>
+          <span className="sr-only">{current.label}</span>
+        </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {options.map((o) => (

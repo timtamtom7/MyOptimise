@@ -3,8 +3,19 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/date-formatting";
 import { Instagram, Smartphone, Facebook, Linkedin, Youtube, Film, Image as ImageIcon, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
-export function ContentGrid({ items, onPostClick }: { items: any[], onPostClick?: (post: any) => void }) {
+interface ContentGridProps {
+  items: any[];
+  onPostClick?: (post: any) => void;
+  capabilities?: {
+    canWrite: boolean;
+    canViewServices: boolean;
+    canManageConnections?: boolean;
+  };
+}
+
+export function ContentGrid({ items, onPostClick }: ContentGridProps) {
   if (!items || items.length === 0) return <div className="text-center text-muted-foreground py-8">No content scheduled.</div>;
 
   return (
@@ -17,11 +28,11 @@ export function ContentGrid({ items, onPostClick }: { items: any[], onPostClick?
           >
             {item.firstAssetUrl && (
               <div className="relative w-full h-36 bg-muted/50">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={item.firstAssetUrl}
                   alt={item.title}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  fill
+                  className="absolute inset-0 object-cover"
                 />
               </div>
             )}

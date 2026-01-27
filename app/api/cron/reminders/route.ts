@@ -79,10 +79,41 @@ export async function GET(req: Request) {
       })
     );
 
+    // 3. Overdue Deliverables
+    const overdueDeliverables = await writeClient.fetch<any[]>(
+      `*[_type == "deliverable" && status != "approved" && status != "client_review" && defined(dueDate) && dateTime(dueDate) < dateTime(now())]{
+        _id,
+        title,
+        dueDate,
+        "assigneeEmail": assignedTo->email
+      }`
+    );
+
+    const overdueDeliverableResults = await Promise.all(
+      overdueDeliverables.map(async (item) => {
+        if (!item.assigneeEmail) return { id: item._id, status: "skipped_no_email" };
+
+        const link = `${process.env.NEXT_PUBLIC_SITE_URL || "https://myoptimise.org"}/dashboard/editor`;
+        
+        await sendEmail({
+          to: item.assigneeEmail,
+          subject: `Overdue Deliverable: ${item.title}`,
+          html: taskOverdueEmail({
+            taskTitle: item.title,
+            dueDate: new Date(item.dueDate).toLocaleDateString(),
+            link,
+          }),
+        });
+
+        return { id: item._id, status: "sent" };
+      })
+    );
+
     return NextResponse.json({
       success: true,
       stalled: stalledResults,
-      overdue: overdueResults,
+      overdueTasks: overdueResults,
+      overdueDeliverables: overdueDeliverableResults,
     });
 
   } catch (error) {

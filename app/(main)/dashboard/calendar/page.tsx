@@ -58,7 +58,14 @@ export default async function DashboardCalendarPage() {
     }
   }
 
+  const acctId = String(effectiveAcct._id || "");
+  const isClient = effectiveType === "client";
+  const isEmployee = effectiveType === "employee";
+  const isManager = effectiveType === "manager";
+  const isAdmin = effectiveType === "admin";
+
   const canViewCalendar =
+    isAdmin ||
     hasAccountCapability(effectiveAcct, "calendar.view.all") ||
     hasAccountCapability(effectiveAcct, "calendar.team.view") ||
     hasAccountCapability(effectiveAcct, "calendar.view.own") ||
@@ -78,12 +85,6 @@ export default async function DashboardCalendarPage() {
   const canUpdateOwn = hasAccountCapability(effectiveAcct, "calendar.update.own");
   const canRequestDateChange = hasAccountCapability(effectiveAcct, "calendar.date_change.request");
 
-  const acctId = String(effectiveAcct._id || "");
-  const isClient = effectiveType === "client";
-  const isEmployee = effectiveType === "employee";
-  const isManager = effectiveType === "manager";
-  const isAdmin = effectiveType === "admin";
-
   async function createScheduleItem(formData: FormData) {
     "use server";
     const session = await safeGetServerSession();
@@ -96,6 +97,7 @@ export default async function DashboardCalendarPage() {
 
     const title = String(formData.get("title") || "").trim();
     const description = String(formData.get("description") || "").trim();
+    const relatedDeliverableId = String(formData.get("relatedDeliverableId") || "").trim();
     const startsAtRaw = String(formData.get("startsAt") || "").trim();
     const endsAtRaw = String(formData.get("endsAt") || "").trim();
     const visibility = String(formData.get("visibility") || "internal").trim();
@@ -177,7 +179,12 @@ export default async function DashboardCalendarPage() {
       createdBy: { _type: "reference", _ref: String(acct._id) },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      ...(relatedDeliverableId ? { relatedDeliverable: { _type: "reference", _ref: relatedDeliverableId } } : {}),
     });
+
+    if (relatedDeliverableId) {
+      await writeClient.patch(relatedDeliverableId).set({ scheduledAt: startsAt.toISOString() }).commit();
+    }
 
     revalidatePath("/dashboard/calendar");
     redirect("/dashboard/calendar");

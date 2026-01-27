@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -241,7 +242,7 @@ export default async function ClientThreadPage(props: { params: Promise<{ thread
           <div className="text-sm text-muted-foreground">Context: Content Item</div>
           <div className="mt-2 flex items-center gap-4">
              {thread.relatedContentItem.media && (
-                 <img src={thread.relatedContentItem.media} alt="Preview" className="h-16 w-16 rounded object-cover border" />
+                 <Image src={thread.relatedContentItem.media} alt="Preview" width={64} height={64} className="rounded object-cover border" />
              )}
              <div>
                  <div className="font-medium">{String(thread.relatedContentItem.title || "Untitled")}</div>

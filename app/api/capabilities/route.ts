@@ -23,7 +23,7 @@ export async function GET() {
   
   // Fetch Supabase Profile to get the UUID used in user_capabilities
   // This ensures we use the same ID that the "Mixing Board" uses.
-  const { data: profile } = await supabaseAdmin
+  const { data: profile } = await (supabaseAdmin as any)
     .from("profiles")
     .select("id")
     .eq("email", email)
@@ -33,7 +33,7 @@ export async function GET() {
 
   if (profile?.id) {
     // Fetch overrides from Supabase using the Profile UUID
-    const { data: userCaps } = await supabaseAdmin
+    const { data: userCaps } = await (supabaseAdmin as any)
         .from("user_capabilities")
         .select("capabilities(name)")
         .eq("user_id", profile.id)

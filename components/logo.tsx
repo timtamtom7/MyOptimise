@@ -3,8 +3,6 @@
 import Image from "next/image";
 import { urlFor } from "@/sanity/lib/image";
 import { SETTINGS_QUERYResult } from "@/sanity.types";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export default function Logo({
@@ -14,51 +12,46 @@ export default function Logo({
   settings: SETTINGS_QUERYResult;
   className?: string;
 }) {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-  const themeToUse = mounted ? resolvedTheme || "light" : "light";
-
-  const preferredKey = themeToUse === "dark" ? "dark" : "light";
-  const fallbackKey = themeToUse === "dark" ? "light" : "dark";
-  const selectedLogo = settings?.logo?.[preferredKey];
-  const fallbackLogo = settings?.logo?.[fallbackKey];
-  const logoToUse = selectedLogo || fallbackLogo;
   const siteName = settings?.siteName || "Optimise Operations";
+  const logo = settings?.logo;
+  
+  // Prepare URLs for both variants
+  const lightUrl = logo?.light ? urlFor(logo.light).width(400).url() : null;
+  const darkUrl = logo?.dark ? urlFor(logo.dark).width(400).url() : null;
+  
+  // Fallback: if one is missing, use the other for both modes
+  const effectiveLightUrl = lightUrl || darkUrl;
+  const effectiveDarkUrl = darkUrl || lightUrl;
+
+  const hasLogo = !!effectiveLightUrl;
 
   return (
-    <div className={cn("flex items-center shrink-0")}>
-      {logoToUse ? (
-        <Image
-          src={urlFor(logoToUse).url()}
-          alt={siteName}
-          width={
-            settings?.logo?.width ??
-            logoToUse?.asset?.metadata?.dimensions?.width ??
-            100
-          }
-          height={
-            settings?.logo?.height ??
-            logoToUse?.asset?.metadata?.dimensions?.height ??
-            40
-          }
-          className={cn("h-auto w-auto", className)}
-          title={siteName}
-          placeholder={
-            logoToUse?.asset?.metadata?.lqip &&
-            logoToUse?.asset?.mimeType !== "image/svg+xml"
-              ? "blur"
-              : undefined
-          }
-          blurDataURL={logoToUse?.asset?.metadata?.lqip || undefined}
-          quality={100}
-          priority
-        />
+    <div className={cn("flex items-center shrink-0 relative", className)}>
+      {hasLogo ? (
+        <>
+          {/* Light Mode Logo - hidden in dark mode */}
+          <Image
+            src={effectiveLightUrl!}
+            alt={siteName}
+            width={150}
+            height={40}
+            className="h-10 w-auto object-contain dark:hidden"
+            priority
+            suppressHydrationWarning
+          />
+          {/* Dark Mode Logo - hidden in light mode */}
+          <Image
+            src={effectiveDarkUrl!}
+            alt={siteName}
+            width={150}
+            height={40}
+            className="h-10 w-auto object-contain hidden dark:block"
+            priority
+            suppressHydrationWarning
+          />
+        </>
       ) : (
-        <span className={cn("text-lg font-semibold tracking-tighter text-[color:var(--primary)]", className)}>
+        <span className="text-lg font-semibold tracking-tighter text-[color:var(--primary)]">
           {siteName}
         </span>
       )}

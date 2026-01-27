@@ -12,6 +12,8 @@ import { Providers } from "@/components/providers";
 import { safeGetServerSession } from "@/lib/auth";
 import { ImpersonationBanner } from "@/components/dashboard/admin/impersonation-banner";
 
+export const dynamic = "force-dynamic";
+
 const isProduction = process.env.NEXT_PUBLIC_SITE_ENV === "production";
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")

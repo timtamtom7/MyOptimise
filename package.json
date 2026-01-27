@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@babel/runtime": "^7.28.6",
+    "@floating-ui/react-dom": "^2.1.6",
     "@hookform/resolvers": "^5.2.2",
     "@next/third-parties": "^16.0.10",
     "@portabletext/react": "^6.0.0",
@@ -26,11 +28,13 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@sanity/code-input": "^6.0.3",
+    "@sanity/comlink": "^4.0.1",
     "@sanity/image-url": "^2.0.2",
     "@sanity/orderable-document-list": "^1.4.1",
     "@sanity/preview-url-secret": "^3.0.0",
     "@sanity/ui": "^3.1.11",
     "@sanity/vision": "^4.21.1",
+    "@sanity/visual-editing": "^4.0.3",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.89.0",
@@ -41,16 +45,20 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
+    "enhanced-resolve": "^5.18.4",
+    "event-source-polyfill": "^1.0.31",
     "lucide-react": "^0.561.0",
     "motion": "^12.23.26",
     "next": "16.0.10",
     "next-auth": "^4.24.13",
     "next-sanity": "^11.6.10",
     "next-themes": "^0.4.6",
+    "openai": "^6.16.0",
     "prism-react-renderer": "^2.4.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.68.0",
+    "react-markdown": "^10.1.0",
     "react-player": "^3.4.0",
     "recharts": "^3.6.0",
     "resend": "^6.6.0",
@@ -59,6 +67,7 @@
     "styled-components": "^6.1.19",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "uri-js": "^4.4.1",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -69,9 +78,10 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.0.10",
+    "jiti": "^2.6.1",
     "postcss": "^8.5.6",
     "supabase": "^2.71.3",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.9.3"
+    "typescript": "5.9.3"
   }
 }

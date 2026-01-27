@@ -4,16 +4,30 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/date-formatting";
 import { DollarSign, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { CreateInvoiceDialog } from "@/components/dashboard/finance/create-invoice-dialog";
 
 interface FinancialsTabProps {
   invoices: any[];
+  clients: any[];
+  editorPayouts: {
+    editorId: string;
+    editorName: string;
+    editorEmail: string;
+    totalEarned: number;
+    jobsCompleted: number;
+    activeJobs: number;
+  }[];
 }
 
-export function FinancialsTab({ invoices }: FinancialsTabProps) {
+export function FinancialsTab({ invoices, clients, editorPayouts }: FinancialsTabProps) {
   // Calculate metrics
   const totalRevenue = invoices
     .filter((inv) => inv.status === "paid")
     .reduce((acc, inv) => acc + (inv.amount || inv.totalAmount || 0), 0);
+
+  const totalPayouts = editorPayouts.reduce((acc, row) => acc + row.totalEarned, 0);
+  const grossProfit = totalRevenue - totalPayouts;
+  const profitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
 
   const outstandingAmount = invoices
     .filter((inv) => inv.status === "sent" || inv.status === "overdue")
@@ -31,7 +45,7 @@ export function FinancialsTab({ invoices }: FinancialsTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -41,6 +55,18 @@ export function FinancialsTab({ invoices }: FinancialsTabProps) {
             <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               Collected from {invoices.filter(i => i.status === "paid").length} invoices
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Gross Profit</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">${grossProfit.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              {profitMargin.toFixed(1)}% margin (Rev - Payouts)
             </p>
           </CardContent>
         </Card>
@@ -72,10 +98,65 @@ export function FinancialsTab({ invoices }: FinancialsTabProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Invoices</CardTitle>
+          <CardTitle>Editor Performance & Workload</CardTitle>
           <CardDescription>
-            Latest invoices generated across all clients.
+            Approved payouts and current active workload.
           </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {editorPayouts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No data found.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {editorPayouts.map((row) => (
+                <div
+                  key={row.editorId}
+                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                >
+                  <div>
+                    <p className="text-sm font-medium leading-none">
+                      {row.editorName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {row.editorEmail}
+                    </p>
+                  </div>
+                  <div className="text-right flex items-center gap-6">
+                    <div className="text-right">
+                        <p className="text-sm font-medium">
+                        ${row.totalEarned.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                        {row.jobsCompleted} completed
+                        </p>
+                    </div>
+                    <div className="text-right min-w-[80px]">
+                        <Badge variant={row.activeJobs > 5 ? "destructive" : row.activeJobs > 2 ? "secondary" : "outline"}>
+                            {row.activeJobs} Active
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Current Load
+                        </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Recent Invoices</CardTitle>
+            <CardDescription>
+              Latest invoices generated across all clients.
+            </CardDescription>
+          </div>
+          <CreateInvoiceDialog clients={clients} />
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -129,6 +210,8 @@ export function FinancialsTab({ invoices }: FinancialsTabProps) {
           </div>
         </CardContent>
       </Card>
+
+
     </div>
   );
 }

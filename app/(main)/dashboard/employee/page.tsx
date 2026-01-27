@@ -61,10 +61,11 @@ export default async function EmployeeDashboardPage() {
     const session = await safeGetServerSession();
     const email = String((session as any)?.user?.email || "");
     if (!email) return;
-    const cookieStore = await cookies();
-    if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
+    // const cookieStore = await cookies();
+    // if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
     const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "employee") return;
+    if (!acct || acct.status === "disabled") return;
+    if (acct.type !== "employee" && acct.type !== "admin") return;
     if (!hasAccountCapability(acct, "task.status.change.own")) return;
 
     const id = String(formData.get("id") || "");
@@ -75,11 +76,17 @@ export default async function EmployeeDashboardPage() {
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-    const canUpdate = await writeClient.fetch(
-      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
-      { id, email: email.toLowerCase() },
-    );
-    if (!canUpdate?._id) return;
+    // Allow Admin override
+    if (acct.type === "admin") {
+      const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id}`, { id });
+      if (!exists?._id) return;
+    } else {
+      const canUpdate = await writeClient.fetch(
+        `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
+        { id, email: email.toLowerCase() },
+      );
+      if (!canUpdate?._id) return;
+    }
 
     await writeClient.patch(id).set({ status }).commit();
     revalidatePath("/dashboard/employee");
@@ -90,10 +97,11 @@ export default async function EmployeeDashboardPage() {
     const session = await safeGetServerSession();
     const email = String((session as any)?.user?.email || "");
     if (!email) return;
-    const cookieStore = await cookies();
-    if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
+    // const cookieStore = await cookies();
+    // if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
     const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "employee") return;
+    if (!acct || acct.status === "disabled") return;
+    if (acct.type !== "employee" && acct.type !== "admin") return;
     if (!hasAccountCapability(acct, "task.comment")) return;
 
     const id = String(formData.get("id") || "");
@@ -104,11 +112,17 @@ export default async function EmployeeDashboardPage() {
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-    const canUpdate = await writeClient.fetch(
-      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
-      { id, email: email.toLowerCase() },
-    );
-    if (!canUpdate?._id) return;
+    // Allow Admin override
+    if (acct.type === "admin") {
+      const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id}`, { id });
+      if (!exists?._id) return;
+    } else {
+      const canUpdate = await writeClient.fetch(
+        `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
+        { id, email: email.toLowerCase() },
+      );
+      if (!canUpdate?._id) return;
+    }
 
     await writeClient
       .patch(id)
@@ -130,10 +144,11 @@ export default async function EmployeeDashboardPage() {
     const session = await safeGetServerSession();
     const email = String((session as any)?.user?.email || "");
     if (!email) return;
-    const cookieStore = await cookies();
-    if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
+    // const cookieStore = await cookies();
+    // if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
     const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "employee") return;
+    if (!acct || acct.status === "disabled") return;
+    if (acct.type !== "employee" && acct.type !== "admin") return;
     if (!hasAccountCapability(acct, "task.reassign.request")) return;
 
     const id = String(formData.get("id") || "");
@@ -144,18 +159,27 @@ export default async function EmployeeDashboardPage() {
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-    const canUpdate = await writeClient.fetch(
-      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id, status}`,
-      { id, email: email.toLowerCase() },
-    );
-    if (!canUpdate?._id) return;
+    let currentStatus = "";
+    // Allow Admin override
+    if (acct.type === "admin") {
+      const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id, status}`, { id });
+      if (!exists?._id) return;
+      currentStatus = String(exists.status || "");
+    } else {
+      const canUpdate = await writeClient.fetch(
+        `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id, status}`,
+        { id, email: email.toLowerCase() },
+      );
+      if (!canUpdate?._id) return;
+      currentStatus = String(canUpdate.status || "");
+    }
 
     const now = new Date().toISOString();
     const patch: Record<string, unknown> = {
       reassignmentRequestedAt: now,
       ...(note ? { reassignmentNote: note } : {}),
     };
-    if (String(canUpdate.status || "") !== "done") patch.status = "blocked";
+    if (currentStatus !== "done") patch.status = "blocked";
 
     await writeClient.patch(id).set(patch).commit();
     revalidatePath("/dashboard/employee");
@@ -166,10 +190,11 @@ export default async function EmployeeDashboardPage() {
     const session = await safeGetServerSession();
     const email = String((session as any)?.user?.email || "");
     if (!email) return;
-    const cookieStore = await cookies();
-    if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
+    // const cookieStore = await cookies();
+    // if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
     const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "employee") return;
+    if (!acct || acct.status === "disabled") return;
+    if (acct.type !== "employee" && acct.type !== "admin") return;
     if (!hasAccountCapability(acct, "task.update.description.own")) return;
     const id = String(formData.get("id") || "");
     const description = String(formData.get("description") || "").trim();
@@ -179,11 +204,17 @@ export default async function EmployeeDashboardPage() {
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-    const canUpdate = await writeClient.fetch(
-      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
-      { id, email: email.toLowerCase() },
-    );
-    if (!canUpdate?._id) return;
+    // Allow Admin override
+    if (acct.type === "admin") {
+      const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id}`, { id });
+      if (!exists?._id) return;
+    } else {
+      const canUpdate = await writeClient.fetch(
+        `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
+        { id, email: email.toLowerCase() },
+      );
+      if (!canUpdate?._id) return;
+    }
 
     await writeClient.patch(id).set({ description }).commit();
     revalidatePath("/dashboard/employee");
@@ -194,10 +225,11 @@ export default async function EmployeeDashboardPage() {
     const session = await safeGetServerSession();
     const email = String((session as any)?.user?.email || "");
     if (!email) return;
-    const cookieStore = await cookies();
-    if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
+    // const cookieStore = await cookies();
+    // if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
     const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "employee") return;
+    if (!acct || acct.status === "disabled") return;
+    if (acct.type !== "employee" && acct.type !== "admin") return;
     if (!hasAccountCapability(acct, "task.blockers.mark")) return;
 
     const id = String(formData.get("id") || "");
@@ -208,11 +240,17 @@ export default async function EmployeeDashboardPage() {
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-    const canUpdate = await writeClient.fetch(
-      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
-      { id, email: email.toLowerCase() },
-    );
-    if (!canUpdate?._id) return;
+    // Allow Admin override
+    if (acct.type === "admin") {
+      const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id}`, { id });
+      if (!exists?._id) return;
+    } else {
+      const canUpdate = await writeClient.fetch(
+        `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
+        { id, email: email.toLowerCase() },
+      );
+      if (!canUpdate?._id) return;
+    }
 
     await writeClient.patch(id).set({ blockedReason, status: "blocked" }).commit();
     revalidatePath("/dashboard/employee");
@@ -223,10 +261,11 @@ export default async function EmployeeDashboardPage() {
     const session = await safeGetServerSession();
     const email = String((session as any)?.user?.email || "");
     if (!email) return;
-    const cookieStore = await cookies();
-    if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
+    // const cookieStore = await cookies();
+    // if (cookieStore.get(IMPERSONATE_COOKIE)?.value) return;
     const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled" || acct.type !== "employee") return;
+    if (!acct || acct.status === "disabled") return;
+    if (acct.type !== "employee" && acct.type !== "admin") return;
     if (!hasAccountCapability(acct, "task.attachments.upload")) return;
 
     const id = String(formData.get("id") || "");
@@ -237,11 +276,17 @@ export default async function EmployeeDashboardPage() {
     if (!writeToken) return;
     const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
 
-    const canUpdate = await writeClient.fetch(
-      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
-      { id, email: email.toLowerCase() },
-    );
-    if (!canUpdate?._id) return;
+    // Allow Admin override
+    if (acct.type === "admin") {
+      const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id}`, { id });
+      if (!exists?._id) return;
+    } else {
+      const canUpdate = await writeClient.fetch(
+        `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
+        { id, email: email.toLowerCase() },
+      );
+      if (!canUpdate?._id) return;
+    }
 
     if (!attachment || typeof attachment === "string") return;
     const file = attachment as File;
@@ -380,6 +425,13 @@ export default async function EmployeeDashboardPage() {
     redirect(`/dashboard/employee/threads/${String(created?._id || "")}`);
   }
 
+  async function stopImpersonation() {
+    "use server";
+    const cookieStore = await cookies();
+    cookieStore.delete(IMPERSONATE_COOKIE);
+    redirect('/dashboard/admin');
+  }
+
   const canWrite = Boolean(process.env.SANITY_API_WRITE_TOKEN) && !isImpersonating;
 
   const [myWorkItemsRes, staffRes, myThreadsRes, myScheduleRes, templatesRes] = await Promise.all([
@@ -460,6 +512,7 @@ export default async function EmployeeDashboardPage() {
           mySchedule,
           workItemTemplates: templates,
           stats: { dueTodayCount, unreadThreadsCount, blockedCount },
+          isImpersonating,
         }}
         actions={{
           updateWorkItemStatus,
@@ -473,6 +526,7 @@ export default async function EmployeeDashboardPage() {
           createWorkItem,
           createWorkItemFromTemplate,
           bulkUpdateWorkItems,
+          stopImpersonation,
         }}
       />
     </div>

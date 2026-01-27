@@ -3,11 +3,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle2, Clock, FileText, ExternalLink, Mail, Phone, Shield, Flag } from "lucide-react";
 import Link from "next/link";
 import { ScheduleView } from "./schedule-view";
 import { formatDate } from "@/lib/date-formatting";
+import { UpdateScopeDialog } from "./update-scope-dialog";
+import { AIResearchAssistant } from "./ai-research-assistant";
+import { StrategyDeck } from "./strategy-deck";
+import { cn } from "@/lib/utils";
 
 interface ClientHQProps {
   data: {
@@ -67,18 +71,26 @@ export function ClientHQView({ data }: ClientHQProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link href={`/dashboard/employee/tickets/new?clientId=${client._id}`}>Create Ticket</Link>
-          </Button>
-          <Button asChild>
-            <Link href={`/dashboard/employee/campaigns/new?clientId=${client._id}`}>New Campaign</Link>
-          </Button>
+            <AIResearchAssistant client={client} activeCampaigns={activeCampaigns} />
+            <Link 
+              href={`/dashboard/employee/tickets/new?clientId=${client._id}`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Create Ticket
+            </Link>
+            <Link 
+              href={`/dashboard/employee/campaigns/new?clientId=${client._id}`}
+              className={buttonVariants()}
+            >
+              New Campaign
+            </Link>
+          </div>
         </div>
-      </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="strategy">Strategy</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
           <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
           <TabsTrigger value="tickets">Tickets</TabsTrigger>
@@ -100,7 +112,6 @@ export function ClientHQView({ data }: ClientHQProps) {
           </Card>
         </TabsContent>
 
-        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
@@ -179,6 +190,12 @@ export function ClientHQView({ data }: ClientHQProps) {
           </div>
         </TabsContent>
 
+        <TabsContent value="strategy" className="space-y-4">
+          <StrategyDeck client={client} activeCampaigns={activeCampaigns} />
+        </TabsContent>
+
+
+
         {/* Campaigns Tab */}
         <TabsContent value="campaigns">
           <Card>
@@ -201,9 +218,12 @@ export function ClientHQView({ data }: ClientHQProps) {
                       </div>
                     </div>
                     <div className="mt-4 md:mt-0">
-                       <Button variant="outline" size="sm" asChild>
-                         <Link href={`/dashboard/employee/campaigns/${c._id}`}>View Details</Link>
-                       </Button>
+                       <Link 
+                         href={`/dashboard/employee/campaigns/${c._id}`}
+                         className={buttonVariants({ variant: "outline", size: "sm" })}
+                       >
+                         View Details
+                       </Link>
                     </div>
                   </div>
                 ))}
@@ -246,11 +266,14 @@ export function ClientHQView({ data }: ClientHQProps) {
                 <div>
                   <h4 className="font-medium mb-1">Brand Guidelines</h4>
                   {client.brandGuidelines ? (
-                     <Button variant="link" className="p-0 h-auto" asChild>
-                       <a href={client.brandGuidelines.asset?.url} target="_blank" rel="noopener noreferrer">
-                         Download PDF <ExternalLink className="ml-2 h-3 w-3" />
-                       </a>
-                     </Button>
+                     <a 
+                       href={client.brandGuidelines.asset?.url} 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       className={cn(buttonVariants({ variant: "link" }), "p-0 h-auto")}
+                     >
+                       Download PDF <ExternalLink className="ml-2 h-3 w-3" />
+                     </a>
                   ) : (
                     <p className="text-sm text-muted-foreground">Not uploaded.</p>
                   )}

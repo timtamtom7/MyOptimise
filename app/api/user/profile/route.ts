@@ -15,7 +15,7 @@ export async function GET() {
     const email = session.user.email
 
     // Fetch user from Supabase using Service Role (bypassing RLS)
-    const { data: user, error } = await supabaseAdmin
+    const { data: user, error } = await (supabaseAdmin as any)
       .from('profiles')
       .select('*, account:organizations (*)')
       .eq('email', email)
@@ -32,7 +32,7 @@ export async function GET() {
 
     // Fallback logic (server-side)
     console.warn(`[API] Profile not found for ${email}, using fallback.`)
-    const { data: fallbackUser, error: fallbackError } = await supabaseAdmin
+    const { data: fallbackUser, error: fallbackError } = await (supabaseAdmin as any)
       .from('profiles')
       .select('*, account:organizations (*)')
       .eq('email', 'tommasomaurielloltd@gmail.com')

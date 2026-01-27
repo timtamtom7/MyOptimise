@@ -1,29 +1,46 @@
-import { defineLive } from "next-sanity/live";
 import { client } from "./client";
-import { token } from "./token";
 import { sanityConfigured } from "../env";
 
-const live = defineLive({
-  client,
-  // Required for showing draft content when the Sanity Presentation Tool is used, or to enable the Vercel Toolbar Edit Mode
-  serverToken: token,
-  // Required for stand-alone live previews, the token is only shared to the brwoser if it's a valid Next.js Draft Mode session
-  browserToken: token,
-});
+export const SanityLive = () => null;
 
-export const SanityLive = sanityConfigured ? live.SanityLive : (() => null);
+type SanityFetchOptions = {
+  query: string;
+  params?: Record<string, unknown>;
+  perspective?: "published" | "previewDrafts" | "raw";
+  tags?: string[];
+  stega?: boolean;
+};
 
-export async function sanityFetch(...args: Parameters<typeof live.sanityFetch>) {
-  console.log("sanityFetch called", args[0]?.query);
-  const empty = { data: null, sourceMap: null, tags: [] } as Awaited<ReturnType<typeof live.sanityFetch>>;
+export async function sanityFetch(options: SanityFetchOptions) {
+  console.log("sanityFetch called", options?.query);
+  const empty = { data: null, sourceMap: null, tags: [] as string[] };
   if (!sanityConfigured) {
     console.log("sanityFetch: not configured");
     return empty;
   }
   try {
-    const result = await live.sanityFetch(...args);
+    const fetchOptions: any = {};
+    if (options.perspective) fetchOptions.perspective = options.perspective;
+    if (options.tags) fetchOptions.tag = options.tags[0]; // Sanity client uses 'tag' (singular) usually for single tag or we might need to check client capability
+    // Actually, client.fetch(query, params, options)
+    // options can have { perspective, tag, ... }
+    
+    // Adjusting based on standard Sanity client usage
+    const queryOptions: any = {
+       perspective: options.perspective,
+    };
+    
+    // Support Next.js cache tags if provided
+    if (options.tags && options.tags.length > 0) {
+      queryOptions.next = { tags: options.tags };
+    }
+
+    // The client.fetch(query, params, options) signature support
+    if (options.stega !== undefined) queryOptions.stega = options.stega;
+    
+    const data = await client.fetch(options.query, options.params || {}, queryOptions);
     console.log("sanityFetch success");
-    return result;
+    return { data, sourceMap: null, tags: [] as string[] };
   } catch (e) {
     console.error("sanityFetch error", e);
     return empty;

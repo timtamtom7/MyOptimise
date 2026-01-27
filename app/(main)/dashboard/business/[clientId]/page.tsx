@@ -1,13 +1,8 @@
 import { safeGetServerSession } from "@/lib/auth";
-import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { redirect } from "next/navigation";
-import { ClientView } from "@/components/dashboard/client/client-view";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Lock, FileText } from "lucide-react";
+import { ClientHQView } from "@/components/dashboard/employee/client-hq-view";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +10,7 @@ interface PageProps {
   params: Promise<{ clientId: string }>;
 }
 
-export default async function ClientDetailView({ params }: PageProps) {
+export default async function BusinessClientHQPage({ params }: PageProps) {
   const { clientId } = await params;
   const session = await safeGetServerSession();
   if (!session) redirect("/login?next=/dashboard/business");
@@ -23,237 +18,45 @@ export default async function ClientDetailView({ params }: PageProps) {
   const email = String((session as any)?.user?.email || "");
   const acct = email ? await fetchSanityAccountByEmail({ email }) : null;
   if (!acct) redirect("/login?error=no_account&next=/dashboard/business");
-  
-  // Allow admins, managers, and employees to view
-  const type = String(acct.type || "");
+  if (String(acct.status || "") === "disabled") redirect("/login?error=disabled&next=/dashboard/business");
+
+  const type = String(acct.type || "").toLowerCase();
   if (!["admin", "manager", "employee"].includes(type)) {
     redirect("/dashboard");
   }
 
-  // Fetch target client
-  const targetClientRes = await sanityFetch({
-    query: `*[_type == "account" && _id == $id][0]{_id, name, email, type, status, notes}`,
-    params: { id: clientId }
+  const { data } = await sanityFetch({
+    query: `{
+      "client": *[_type == "account" && _id == $clientId][0]{
+        ...,
+        "manager": *[_type == "account" && _id == ^.manager._ref][0]{name, email, avatar}
+      },
+      "activeCampaigns": *[_type == "campaign" && client._ref == $clientId && status == "active"] | order(endDate asc){
+        _id, title, status, endDate, description,
+        "deliverableCount": count(*[_type == "deliverable" && campaign._ref == ^._id])
+      },
+      "recentDeliverables": *[_type == "deliverable" && campaign->client._ref == $clientId] | order(updatedAt desc)[0...5]{
+        _id, title, status, type, dueDate, "campaignTitle": campaign->title
+      },
+      "openTickets": *[_type == "clientRequest" && clientAccount._ref == $clientId && status in ["new", "open", "in_progress"]] | order(_createdAt desc){
+        _id, subject, status, priority, _createdAt, category
+      },
+      "services": *[_type == "clientService" && client._ref == $clientId],
+      "calendarSchedule": *[_type == "scheduleItem" && relatedClient._ref == $clientId && visibility == "client"],
+      "calendarDeliverables": *[_type == "deliverable" && campaign->client._ref == $clientId && dueDate != null] | order(dueDate asc){
+        _id, title, dueDate, status
+      },
+      "calendarCampaigns": *[_type == "campaign" && client._ref == $clientId && status == "active"]{
+        _id, title, startDate, endDate, status
+      }
+    }`,
+    params: { clientId },
   });
-  const targetClient = (targetClientRes as any)?.data;
 
-  if (!targetClient || targetClient.type !== 'client') {
-    return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center gap-4 mb-8">
-                <Button variant="ghost" asChild>
-                    <Link href="/dashboard/business">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to HQ
-                    </Link>
-                </Button>
-            </div>
-            <div className="p-8 text-center text-muted-foreground">
-                Client not found or invalid.
-            </div>
-        </div>
-    );
+  if (!data?.client) {
+    redirect("/dashboard/business");
   }
 
-  // Fetch Client Data (Read-Only View)
-  // Reusing queries from ClientDashboardPage but targeting clientId
-  const [
-    myRequestsRes,
-    supportStaffRes,
-    myThreadsRes,
-    clientWorkItemsRes,
-    clientServicesRes,
-    myServiceRequestsRes,
-    myDeliverablesRes,
-    activeCampaignRes,
-    contentItemsRes,
-    socialConnectionsRes,
-  ] = await Promise.all([
-    sanityFetch({
-      query: `*[_type == "clientRequest" && clientAccount._ref == $id] | order(createdAt desc)[0..9]{
-        _id, subject, status, createdAt, response, category, priority,
-        statusHistory[]{fromStatus, toStatus, changedAt},
-        messages[visibility == "client"]{
-          message, createdAt, visibility,
-          author->{name, email},
-          attachments[]{asset->{url, originalFilename}}
-        }
-      }`,
-      params: { id: clientId },
-    }),
-    sanityFetch({
-      query: `*[_type == "account" && status != "disabled" && type in ["admin","manager"]] | order(type asc, name asc, email asc){
-        _id, name, email, type
-      }`,
-    }),
-    sanityFetch({
-      query: `*[_type == "messageThread" && visibility == "client" && $id in participants[]._ref] | order(coalesce(updatedAt, createdAt) desc)[0..9]{
-        _id, title, type, visibility, createdAt, updatedAt,
-        "readStates": readStates[]{user, lastReadAt},
-        "messageCount": count(messages[visibility == "client"]),
-        "recentMessages": messages[visibility == "client"][-3..-1]{message, createdAt, author->{name, email}, attachments[]{asset->{url, originalFilename}}},
-        "lastMessage": messages[visibility == "client"][-1]{message, createdAt, author->{name, email}, attachments[]{asset->{url, originalFilename}}},
-        "participants": participants[]->{_id, name, email, type}
-      }`,
-      params: { id: clientId },
-    }),
-    sanityFetch({
-      query: `*[_type == "workItem" && isTemplate != true && visibility == "client" && clientAccount._ref == $id] | order(coalesce(dueDate, createdAt) asc)[0..19]{
-        _id, title, description, status, priority, dueDate, createdAt,
-        "commentsCount": count(comments),
-        attachments[]{asset->{url, originalFilename}}
-      }`,
-      params: { id: clientId },
-    }),
-    sanityFetch({
-      query: `*[_type == "clientService" && client._ref == $id] | order(coalesce(updatedAt, createdAt) desc)[0..49]{
-        _id, title, serviceType, status, statusNote, clientCanToggle, clientEnabled, createdAt, updatedAt
-      }`,
-      params: { id: clientId },
-    }),
-    sanityFetch({
-      query: `*[_type == "serviceRequest" && clientAccount._ref == $id] | order(createdAt desc)[0..19]{
-        _id, status, requestedServiceType, details, resolutionNote, createdAt, updatedAt,
-        attachments[]{asset->{url, originalFilename}}
-      }`,
-      params: { id: clientId },
-    }),
-    sanityFetch({
-      query: `*[_type == "deliverable" && campaign->client._ref == $id] | order(createdAt desc) {
-        _id, title, status, type, dueDate, createdAt,
-        "campaignTitle": campaign->title,
-        "latestAsset": versionHistory[-1].asset->{url, originalFilename, mimeType, extension}
-      }`,
-      params: { id: clientId },
-    }),
-    sanityFetch({
-        query: `*[_type == "campaign" && client._ref == $id && status in ["active", "planned"]] | order(startDate asc){
-          _id, title, description, startDate, endDate, status
-        }`,
-        params: { id: clientId },
-  }),
-  sanityFetch({
-      query: `*[_type == "contentItem" && client._ref == $id]{
-        _id, title, caption, scheduledAt, status, platform, postType,
-        "firstAssetUrl": media[0].asset->url,
-        "firstAssetMime": media[0].asset->mimeType
-      }`,
-      params: { id: clientId },
-  }),
-    sanityFetch({
-        query: `*[_type == "socialConnection" && client._ref == $id]{
-          _id, platform, pageName, status, pageId
-        }`,
-        params: { id: clientId },
-    }),
-  ]);
-
-  const myRequests = ((myRequestsRes as any)?.data ?? []) as any[];
-  const supportStaff = ((supportStaffRes as any)?.data ?? []) as any[];
-  const myThreads = ((myThreadsRes as any)?.data ?? []) as any[];
-  const clientWorkItems = ((clientWorkItemsRes as any)?.data ?? []) as any[];
-  const clientServices = ((clientServicesRes as any)?.data ?? []) as any[];
-  const myServiceRequests = ((myServiceRequestsRes as any)?.data ?? []) as any[];
-  const myDeliverables = ((myDeliverablesRes as any)?.data ?? []) as any[];
-  const campaigns = ((activeCampaignRes as any)?.data ?? []) as any[];
-  const contentItems = ((contentItemsRes as any)?.data ?? []) as any[];
-  const socialConnections = ((socialConnectionsRes as any)?.data ?? []) as any[];
-  const activeCampaign = campaigns.find((c: any) => c.status === "active") || campaigns[0];
-
-   // Prepare calendar events
-   const calendarEvents: any[] = [
-     ...campaigns.map((c: any) => ({
-       id: c._id,
-       title: c.title,
-       date: c.startDate || new Date().toISOString(),
-       endDate: c.endDate,
-       type: "campaign",
-       status: c.status,
-       description: c.description
-     })),
-     ...myDeliverables.map((d: any) => ({
-       id: d._id,
-       title: d.title,
-       date: d.dueDate || d.createdAt,
-       type: "deliverable",
-       status: d.status,
-       description: d.campaignTitle
-     })).filter((e: any) => e.date),
-    ...contentItems.map((c: any) => ({
-      id: c._id,
-      title: c.title,
-      date: c.scheduledAt || new Date().toISOString(),
-      type: "content",
-      status: c.status,
-      description: c.platform,
-      platform: c.platform,
-      postType: c.postType,
-    })).filter((e: any) => e.date)
-  ];
-
-  // Dummy actions that do nothing in read-only mode
-  // Note: approveDeliverable and rejectDeliverable are imported and technically work if the user has permission,
-  // but standard employees might not have 'deliverables.approve' permission (usually clients do).
-  // We'll pass them but UI will likely hide buttons if canWrite is false.
-  const noop = async (fd: FormData) => { "use server"; };
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" asChild>
-                    <Link href="/dashboard/business">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to HQ
-                    </Link>
-                </Button>
-                <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-full text-sm text-muted-foreground border">
-                    <Lock className="h-3 w-3" />
-                    <span>Viewing as {targetClient.name} (Read-Only)</span>
-                </div>
-            </div>
-        </div>
-
-        {targetClient.notes && (
-            <Card className="mb-8 border-yellow-200 bg-yellow-50">
-                <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-yellow-900">Internal Notes</CardTitle>
-                    <FileText className="h-4 w-4 ml-auto text-yellow-700" />
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-yellow-800 whitespace-pre-wrap">{targetClient.notes}</p>
-                </CardContent>
-            </Card>
-        )}
-
-      <ClientView
-        data={{
-          user: { name: targetClient.name, email: targetClient.email, id: targetClient._id },
-          myRequests,
-          supportStaff,
-          myThreads,
-          clientWorkItems,
-          clientServices,
-          myServiceRequests,
-          myDeliverables,
-          activeCampaign,
-          calendarEvents,
-          contentItems,
-          socialConnections,
-        }}
-        actions={{
-          submitClientRequest: noop,
-          addClientRequestMessage: noop,
-          createOrOpenSupportThread: noop,
-          setClientServiceEnabled: noop,
-          submitServiceRequest: noop,
-          approveDeliverable: noop, // Or pass real actions if employees can approve on behalf?
-          rejectDeliverable: noop,
-        }}
-        capabilities={{
-          canWrite: false, // Enforce read-only UI
-          canViewServices: true,
-          canManageConnections: true, // Allow managers to connect accounts
-        }}
-      />
-    </div>
-  );
+  return <ClientHQView data={data} />;
 }
+

@@ -46,7 +46,7 @@ export async function verifyApprovalToken(token: string) {
 }
 
 export async function approveContentPublic(id: string, token: string, comment?: string) {
-  const item = await client.fetch(`*[_type == "contentItem" && _id == $id && approvalToken == $token][0]._id`, { id, token } as any);
+  const item = await client.fetch(`*[_type == "contentItem" && _id == $id && approvalToken == $token][0]{_id, title, client->{_id}}`, { id, token } as any);
   if (!item) throw new Error("Invalid token or item");
 
   const writeClient = client.withConfig({
@@ -71,7 +71,21 @@ export async function approveContentPublic(id: string, token: string, comment?: 
 
   await patch.commit();
 
+  await writeAuditLog({
+    actorAccountId: item.client?._id,
+    action: "content.approved_public",
+    targetId: id,
+    targetType: "contentItem",
+    targetLabel: item.title,
+    context: { comment },
+  });
+
   revalidatePath(`/approve/${token}`);
+  revalidatePath("/dashboard/client");
+  revalidatePath("/dashboard/content");
+  if (item.client?._id) {
+    revalidatePath(`/dashboard/business/${item.client._id}`);
+  }
 }
 
 export async function createContentItem(formData: FormData) {
@@ -250,7 +264,21 @@ export async function rejectContentPublic(id: string, token: string, reason: str
     });
   }
 
+  await writeAuditLog({
+    actorAccountId: item.client?._id,
+    action: "content.rejected_public",
+    targetId: id,
+    targetType: "contentItem",
+    targetLabel: item.title,
+    context: { reason },
+  });
+
   revalidatePath(`/approve/${token}`);
+  revalidatePath("/dashboard/client");
+  revalidatePath("/dashboard/content");
+  if (item.client?._id) {
+    revalidatePath(`/dashboard/business/${item.client._id}`);
+  }
 }
 
 export async function approveContent(id: string, comment?: string) {

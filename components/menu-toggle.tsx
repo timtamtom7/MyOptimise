@@ -14,9 +14,11 @@ export function ModeToggle() {
     setMounted(true);
   }, []);
 
+  // Before hydration, render a default state (e.g. System/Light) to prevent layout shift or invisible button
   if (!mounted) {
     return (
-      <Button variant="ghost" size="icon" className="h-9 w-9">
+      <Button variant="ghost" size="icon" className="h-9 w-9 border-0 bg-transparent shadow-none hover:bg-muted/40 relative">
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
         <span className="sr-only">Toggle theme</span>
       </Button>
     );
@@ -39,6 +41,7 @@ export function ModeToggle() {
       {theme === "light" && <Sun className="h-[1.2rem] w-[1.2rem]" />}
       {theme === "dark" && <Moon className="h-[1.2rem] w-[1.2rem]" />}
       {theme === "system" && <Laptop className="h-[1.2rem] w-[1.2rem]" />}
+      <span className="sr-only">Toggle theme</span>
     </Button>
   );
 }

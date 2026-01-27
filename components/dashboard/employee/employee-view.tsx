@@ -19,6 +19,7 @@ interface EmployeeViewProps {
       unreadThreadsCount: number;
       blockedCount: number;
     };
+    isImpersonating?: boolean;
   };
   actions: {
     updateWorkItemStatus: (formData: FormData) => Promise<void>;
@@ -32,12 +33,26 @@ interface EmployeeViewProps {
     createWorkItem?: (formData: FormData) => Promise<void>;
     createWorkItemFromTemplate?: (formData: FormData) => Promise<void>;
     bulkUpdateWorkItems?: (formData: FormData) => Promise<void>;
+    stopImpersonation?: () => Promise<void>;
   };
 }
 
 export function EmployeeView({ data, actions }: EmployeeViewProps) {
   return (
     <div className="space-y-6">
+      {data.isImpersonating && actions.stopImpersonation && (
+        <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-4 flex justify-between items-center rounded shadow-sm">
+          <div>
+            <p className="font-bold">Impersonation Mode</p>
+            <p className="text-sm">You are currently viewing this dashboard as {data.user.name}.</p>
+          </div>
+          <form action={actions.stopImpersonation}>
+             <button className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded transition-colors">
+               Stop Impersonating
+             </button>
+          </form>
+        </div>
+      )}
       <EmployeeHeader user={data.user} />
 
       <div className="space-y-6">

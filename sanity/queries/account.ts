@@ -8,6 +8,8 @@ export const ACCOUNT_BY_EMAIL_QUERY = groq`
     type,
     status,
     passwordHash,
+    skills,
+    portfolioTags,
     capabilities,
     revokedCapabilities,
     avatar,
@@ -18,10 +20,13 @@ export const ACCOUNT_BY_EMAIL_QUERY = groq`
     lastLoginAt,
     loginHistory,
     brandAssets[]{
+      _key,
       title,
       type,
       "fileUrl": file.asset->url,
-      url
+      url,
+      tags,
+      aiTags
     },
     businessName,
     onboardingStatus,
@@ -39,6 +44,8 @@ export const ACCOUNT_BY_ID_QUERY = groq`
     type,
     status,
     passwordHash,
+    skills,
+    portfolioTags,
     capabilities,
     revokedCapabilities,
     avatar,
@@ -49,10 +56,13 @@ export const ACCOUNT_BY_ID_QUERY = groq`
     lastLoginAt,
     loginHistory,
     brandAssets[]{
+      _key,
       title,
       type,
       "fileUrl": file.asset->url,
-      url
+      url,
+      tags,
+      aiTags
     },
     businessName,
     onboardingStatus,

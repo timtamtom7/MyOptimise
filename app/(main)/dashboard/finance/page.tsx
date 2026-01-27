@@ -20,8 +20,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { CreateInvoiceDialog } from "@/components/dashboard/finance/create-invoice-dialog";
 import { InvoiceActions } from "@/components/dashboard/finance/invoice-actions";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -61,22 +64,36 @@ export default async function FinancePage() {
     }
   `);
 
-  const [{ data: invoices }, { data: clients }] = await Promise.all([
-    sanityFetch({ query }),
-    sanityFetch({ query: clientsQuery }),
-  ]);
+  const [{ data: invoices }, { data: clients }, { data: approvedBriefs }] =
+    await Promise.all([
+      sanityFetch({ query }),
+      sanityFetch({ query: clientsQuery }),
+      (supabaseAdmin as any)
+        .from("briefs")
+        .select("assignee_id, price, status, updated_at")
+        .eq("status", "approved"),
+    ]);
 
   const safeInvoices = invoices || [];
   const safeClients = clients || [];
+  const safeApprovedBriefs = approvedBriefs || [];
 
   // Calculate Metrics
   const totalRevenue = safeInvoices
     .filter((i: any) => i.status === "paid")
     .reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
-  
+
   const outstandingAmount = safeInvoices
     .filter((i: any) => i.status === "sent")
     .reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
+
+  const totalPayouts = safeApprovedBriefs.reduce(
+    (acc: number, brief: any) =>
+      acc + (typeof brief.price === "number" ? brief.price : 0),
+    0
+  );
+
+  const netAfterPayouts = totalRevenue - totalPayouts;
 
   const canCreate = hasAccountCapability(acct, "finance.create");
   const canUpdate = hasAccountCapability(acct, "finance.update");
@@ -87,19 +104,30 @@ export default async function FinancePage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Finance</h1>
           <p className="text-muted-foreground">
-            Financial overview, revenue, and invoices.
+            Financial overview, revenue, editor payouts, and invoices.
           </p>
         </div>
-        {canCreate && <CreateInvoiceDialog clients={safeClients} />}
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/admin">
+              Open admin financials
+            </Link>
+          </Button>
+          {canCreate && <CreateInvoiceDialog clients={safeClients} />}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue (Paid)</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Revenue (Paid)
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              ${totalRevenue.toLocaleString()}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -107,7 +135,33 @@ export default async function FinancePage() {
             <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${outstandingAmount.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              ${outstandingAmount.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Money Out (Editor payouts)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${totalPayouts.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Net (Money In − Money Out)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${netAfterPayouts.toLocaleString()}
+            </div>
           </CardContent>
         </Card>
       </div>

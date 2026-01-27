@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, X } from "lucide-react";
+import Image from "next/image";
 
 interface Annotation {
   id: string;
@@ -66,13 +67,16 @@ export function ImageAnnotator({
 
   return (
     <div className={cn("relative inline-block w-full", className)} ref={containerRef}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img 
+      <Image
         ref={imageRef}
         src={src} 
         alt={alt} 
-        className={cn("w-full h-auto rounded-md", canAnnotate && "cursor-crosshair")}
-        onClick={handleImageClick}
+        width={0}
+        height={0}
+        sizes="100vw"
+        style={{ width: '100%', height: 'auto' }}
+        className={cn("rounded-md", canAnnotate && "cursor-crosshair")}
+        onClick={(e) => handleImageClick(e as any)}
       />
 
       {/* Existing Annotations */}

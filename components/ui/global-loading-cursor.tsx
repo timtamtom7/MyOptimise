@@ -22,7 +22,7 @@ export function GlobalLoadingCursor() {
       }, 100); 
       return () => clearTimeout(timer);
     }
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, isNavigating, isMutating]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -50,7 +50,7 @@ export function GlobalLoadingCursor() {
     const originalReplaceState = window.history.replaceState;
 
     const patchHistory = (original: typeof window.history.pushState) => {
-      return function (this: History, data: any, unused: string, url?: string | URL | null) {
+      return function (data: any, unused: string, url?: string | URL | null) {
         // Defer state update to avoid "useInsertionEffect must not schedule updates" error
         requestAnimationFrame(() => {
           setIsMutating(true);
@@ -59,7 +59,7 @@ export function GlobalLoadingCursor() {
             setIsMutating(false);
           }, 5000);
         });
-        return original.call(this, data, unused, url);
+        return original.call(window.history, data, unused, url);
       };
     };
 

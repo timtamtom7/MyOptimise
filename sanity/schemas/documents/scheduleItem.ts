@@ -89,6 +89,13 @@ export default defineType({
       group: "links",
     }),
     defineField({
+      name: "relatedDeliverable",
+      title: "Related Deliverable",
+      type: "reference",
+      to: [{ type: "deliverable" }],
+      group: "links",
+    }),
+    defineField({
       name: "relatedClient",
       title: "Related Client",
       type: "reference",

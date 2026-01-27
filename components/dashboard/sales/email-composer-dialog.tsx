@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,17 +35,13 @@ Best,
 
 export function EmailComposerDialog({ lead, open, onOpenChange }: EmailComposerDialogProps) {
   const [subject, setSubject] = useState("Quick question");
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(() => {
+    if (!lead) return "";
+    return TEMPLATE
+      .replace("{name}", lead.contactName || "there")
+      .replace("{company}", lead.companyName || "your company");
+  });
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (lead && open) {
-        const filledBody = TEMPLATE
-            .replace("{name}", lead.contactName || "there")
-            .replace("{company}", lead.companyName || "your company");
-        setBody(filledBody);
-    }
-  }, [lead, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

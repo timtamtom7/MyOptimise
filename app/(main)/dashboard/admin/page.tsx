@@ -12,6 +12,7 @@ import { Resend } from "resend";
 import { writeAuditLog } from "@/lib/audit";
 import { AdminView } from "@/components/dashboard/admin/admin-view";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { updateDeliverableStatus, generateApprovalLink } from "@/app/actions/deliverables";
 
 export const dynamic = "force-dynamic";
 
@@ -1339,9 +1340,15 @@ export default async function AdminDashboardPage() {
     auditLogsRes,
     impersonatedRes,
     invoicesRes,
+    approvedBriefsRes,
+    scheduleItemsRes,
+    deliverablesRes,
   ] = await Promise.all([
     sanityFetch({
-      query: `*[_type == "account"] | order(_createdAt desc){_id, email, name, type, status, capabilities, revokedCapabilities, avatar}`,
+      query: `*[_type == "account"] | order(_createdAt desc){
+        _id, email, name, type, status, capabilities, revokedCapabilities, avatar,
+        "latestAnalytics": *[_type == "analyticsRecord" && client._ref == ^._id] | order(metricDate desc)[0..20]{metric, value, metricDate}
+      }`,
     }),
     sanityFetch({
       query: `*[_type == "account" && type == "employee" && status != "disabled"] | order(name asc, email asc){_id, name, email, avatar}`,
@@ -1357,7 +1364,8 @@ export default async function AdminDashboardPage() {
         "assigneeName": assignedTo->name,
         "assigneeEmail": assignedTo->email,
         blockedReason, reassignmentRequestedAt, reassignmentNote,
-        "commentsCount": count(comments)
+        "commentsCount": count(comments),
+        clientAccount->{_id, name, email}
       }`,
     }),
     canManageTaskTemplates
@@ -1433,6 +1441,32 @@ export default async function AdminDashboardPage() {
         client->{_id, name, email}
       }`,
     }),
+    (supabaseAdmin as any)
+      .from("briefs")
+      .select("assignee_id, price, status, updated_at")
+      .in("status", ["assigned", "in_review", "client_review", "approved"]),
+    sanityFetch({
+      query: `*[_type == "scheduleItem"] | order(startsAt asc)[0..49]{
+        _id, title, description, type, visibility, startsAt, endsAt, createdAt, updatedAt, changeRequested, changeRequestNote,
+        "createdById": createdBy->_id,
+        "participants": participants[]->{_id, name, email, type},
+        relatedDeliverable->{_id}
+      }`,
+    }),
+    sanityFetch({
+      query: `*[_type == "deliverable"] | order(createdAt desc)[0..99]{
+        _id, title, status, type, dueDate, createdAt, _updatedAt, description, price,
+        "assigneeName": assignedTo->name,
+        "assigneeEmail": assignedTo->email,
+        "clientName": campaign->client->name,
+        "versionCount": count(versionHistory),
+        "latestVersion": versionHistory[-1],
+        statusHistory[]{fromStatus, toStatus, changedAt, changedBy->{name, email}},
+        approvalToken,
+        approvalTokenExpiry,
+        feedback[]{content, createdAt}
+      }`,
+    }),
   ]);
 
   const accounts = ((accountsRes as any)?.data ?? []) as any[];
@@ -1448,6 +1482,8 @@ export default async function AdminDashboardPage() {
   const auditLogs = ((auditLogsRes as any)?.data ?? []) as any[];
   const impersonatedAccount = ((impersonatedRes as any)?.data ?? null) as any;
   const invoices = ((invoicesRes as any)?.data ?? []) as any[];
+  const allBriefs = ((approvedBriefsRes as any)?.data ?? []) as any[];
+  const deliverables = ((deliverablesRes as any)?.data ?? []) as any[];
 
   const clients = accounts.filter((a: any) => a.type === "client");
 
@@ -1456,6 +1492,108 @@ export default async function AdminDashboardPage() {
     activeTasks: openWorkItems.length,
     pendingRequests: openClientRequests.length + openServiceRequests.length,
     totalRevenue: invoices.reduce((acc: number, inv: any) => acc + (inv.status === "paid" ? (inv.totalAmount || 0) : 0), 0),
+  };
+
+  const clientWorkload = clients.map((client: any) => {
+    const tasksForClient = openWorkItems.filter(
+      (item: any) => item.clientAccount?._id === client._id
+    );
+    const now = new Date();
+    const activeTasks = tasksForClient.length;
+    const highPriority = tasksForClient.filter(
+      (item: any) => item.priority === "high"
+    ).length;
+    const overdue = tasksForClient.filter((item: any) => {
+      if (!item.dueDate) return false;
+      const due = new Date(item.dueDate);
+      return due < now && item.status !== "done";
+    }).length;
+
+    return {
+      clientName: client.name || client.email || "Unnamed client",
+      clientEmail: client.email || "",
+      activeTasks,
+      highPriority,
+      overdue,
+    };
+  }).filter((row: any) => row.activeTasks > 0);
+
+  const editorStatsMap = allBriefs.reduce((map: Map<string, any>, brief: any) => {
+    const assigneeId = brief.assignee_id;
+    if (!assigneeId) return map;
+    
+    const existing = map.get(assigneeId) || { editorId: assigneeId, totalEarned: 0, jobsCompleted: 0, activeJobs: 0 };
+    
+    if (brief.status === "approved") {
+        existing.totalEarned += (typeof brief.price === "number" ? brief.price : 0);
+        existing.jobsCompleted += 1;
+    } else {
+        existing.activeJobs += 1;
+    }
+    
+    map.set(assigneeId, existing);
+    return map;
+  }, new Map<string, any>());
+
+  const editorPayoutsList = Array.from(editorStatsMap.values()).map((row) => {
+    const account = accounts.find((a: any) => a._id === row.editorId);
+    return {
+      editorId: row.editorId,
+      editorName: account?.name || account?.email || "Unnamed editor",
+      editorEmail: account?.email || "",
+      totalEarned: row.totalEarned,
+      jobsCompleted: row.jobsCompleted,
+      activeJobs: row.activeJobs,
+    };
+  });
+
+  const scheduleItems = ((scheduleItemsRes as any)?.data ?? []) as any[];
+  const scheduleByDeliverable = new Map<string, any>();
+  for (const item of scheduleItems) {
+    const dId = String((item as any)?.relatedDeliverable?._id || "");
+    if (!dId) continue;
+    if (!scheduleByDeliverable.has(dId)) {
+      scheduleByDeliverable.set(dId, item);
+    }
+  }
+  const deliverablesWithSchedule = (deliverables as any[]).map((d) => {
+    const scheduled = scheduleByDeliverable.get(String(d._id));
+    return scheduled
+      ? {
+          ...d,
+          scheduledAt: String(scheduled.startsAt || ""),
+        }
+      : d;
+  });
+  const canCreateAny = hasAccountCapability(acct, "calendar.create");
+  const canUpdateAny = hasAccountCapability(acct, "calendar.update");
+  const canDeleteAny = hasAccountCapability(acct, "calendar.delete");
+  const canAssignAny = hasAccountCapability(acct, "calendar.assign");
+  const canCreateTeam = hasAccountCapability(acct, "calendar.team.create");
+  const canUpdateTeam = hasAccountCapability(acct, "calendar.team.update");
+  const canCreateOwn = hasAccountCapability(acct, "calendar.create.own");
+  const canUpdateOwn = hasAccountCapability(acct, "calendar.update.own");
+  const canRequestDateChange = hasAccountCapability(acct, "calendar.date_change.request");
+
+  const calendarConfig = {
+    items: scheduleItems,
+    effectiveAcct: acct,
+    effectiveType: type,
+    isImpersonating: Boolean(impersonateId),
+    canWrite: canWrite && !impersonateId,
+    canCreate: canCreateAny || canCreateTeam || canCreateOwn,
+    canUpdateAny,
+    canUpdateTeam,
+    canUpdateOwn,
+    canDeleteAny,
+    canRequestDateChange,
+    allowParticipantIds: canAssignAny,
+    allowClientVisibility: canAssignAny,
+    isAdmin: true,
+    isManager: false,
+    isEmployee: false,
+    isClient: false,
+    acctId: String(acct._id || ""),
   };
 
   return (
@@ -1474,8 +1612,12 @@ export default async function AdminDashboardPage() {
         auditLogs,
         invoices,
         impersonatedAccount,
+        clientWorkload,
+        editorPayouts: editorPayoutsList,
         stats,
         currentUser: { name, email },
+        calendar: calendarConfig,
+        deliverables: deliverablesWithSchedule,
       }}
       capabilities={{
         canCreateTasks,
@@ -1495,6 +1637,8 @@ export default async function AdminDashboardPage() {
         assignWorkItem,
         deleteWorkItem,
         updateStatus: updateWorkItemStatus,
+        updateDeliverableStatus,
+        generateApprovalLink,
         inviteGoogleAccount,
         updateAccount,
         removeAccount,

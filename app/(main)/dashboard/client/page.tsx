@@ -10,6 +10,7 @@ import { ClientView } from "@/components/dashboard/client/client-view";
 import { approveDeliverable, rejectDeliverable } from "@/app/actions/deliverables";
 import { sendEmail } from "@/lib/email";
 import { clientRequestSubmittedEmail, clientRequestReplyEmail } from "@/lib/email-templates";
+import { deepseek } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
 
@@ -333,6 +334,90 @@ export default async function ClientDashboardPage() {
     revalidatePath("/dashboard/client");
   }
 
+  async function suggestBrandAssetTags(formData: FormData) {
+    "use server";
+    const session = await safeGetServerSession();
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return;
+
+    const requester = await fetchSanityAccountByEmail({ email });
+    if (!requester || requester.status === "disabled") return;
+
+    const accountId = String(formData.get("accountId") || "").trim();
+    const assetKey = String(formData.get("assetKey") || "").trim();
+    const assetTitle = String(formData.get("assetTitle") || "").trim();
+    const assetType = String(formData.get("assetType") || "").trim();
+    const assetUrl = String(formData.get("assetUrl") || "").trim();
+
+    if (!accountId || !assetKey) return;
+
+    const requesterType = String(requester.type || "").toLowerCase();
+    const isAdminOrManager = requesterType === "admin" || requesterType === "manager";
+    const isSelfClient = requesterType === "client" && String(requester._id || "") === accountId;
+    if (!isAdminOrManager && !isSelfClient) return;
+
+    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+    if (!writeToken) return;
+    const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+    const details: string[] = [];
+    details.push(`Title: ${assetTitle || "Untitled asset"}`);
+    if (assetType) details.push(`Type: ${assetType}`);
+    if (assetUrl) details.push(`URL: ${assetUrl}`);
+
+    const prompt = `You are tagging brand assets for a marketing team.
+Based on the following information, generate 3-7 short, lowercase tags (single or double words)
+that will help editors search for this asset.
+Return ONLY a JSON array of strings, with no explanation.
+
+${details.join("\n")}`;
+
+    let tags: string[] = [];
+
+    try {
+      const response = await deepseek.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: "You generate concise, searchable tags for brand assets." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.4,
+      });
+
+      const raw = response.choices?.[0]?.message?.content || "[]";
+      const match = raw.match(/\[[\s\S]*\]/);
+      const json = match ? match[0] : raw;
+      const parsed = JSON.parse(json);
+
+      if (Array.isArray(parsed)) {
+        tags = parsed
+          .map((t: any) => String(t || "").trim().toLowerCase())
+          .filter((t: string) => t.length > 0)
+          .slice(0, 10);
+      }
+    } catch (error) {
+      console.error("Failed to generate brand asset tags", error);
+      return;
+    }
+
+    if (tags.length === 0) return;
+
+    try {
+      await writeClient
+        .patch(accountId)
+        .set({
+          [`brandAssets[_key=="${assetKey}"].aiTags`]: tags,
+        })
+        .commit();
+    } catch (error) {
+      console.error("Failed to save AI tags for brand asset", error);
+      return;
+    }
+
+    revalidatePath("/dashboard/client");
+    revalidatePath(`/dashboard/business/${accountId}`);
+  }
+
   const [
     myRequestsRes,
     supportStaffRes,
@@ -344,6 +429,7 @@ export default async function ClientDashboardPage() {
     activeCampaignRes,
     contentItemsRes,
     socialConnectionsRes,
+    analyticsRes,
   ] = await Promise.all([
     sanityFetch({
       query: `*[_type == "clientRequest" && clientEmail != null && lower(clientEmail) == $email] | order(createdAt desc)[0..9]{
@@ -399,8 +485,13 @@ export default async function ClientDashboardPage() {
     sanityFetch({
         query: `*[_type == "deliverable" && campaign->client._ref == $acctId] | order(createdAt desc) {
           _id, title, status, type, dueDate, createdAt,
+          hook, script, visualDirection, creativeGoal, contentConcept,
+          statusHistory[]{fromStatus, toStatus, changedAt, changedBy->{name, email}},
           "campaignTitle": campaign->title,
-          "latestAsset": versionHistory[-1].asset->{url, originalFilename, mimeType, extension}
+          "latestAsset": versionHistory[-1].asset->{url, originalFilename, mimeType, extension},
+          "latestVersion": versionHistory[-1]{versionNumber, url, notes, createdAt},
+          "assigneeName": assignedTo->name,
+          assets[]{url, originalFilename}
         }`,
         params: { acctId },
       }),
@@ -419,12 +510,18 @@ export default async function ClientDashboardPage() {
         }`,
         params: { acctId },
       }),
-      sanityFetch({
-        query: `*[_type == "socialConnection" && client._ref == $acctId]{
-          _id, platform, pageName, status, pageId
-        }`,
-        params: { acctId },
-      }),
+    sanityFetch({
+      query: `*[_type == "socialConnection" && client._ref == $acctId]{
+        _id, platform, pageName, status, pageId
+      }`,
+      params: { acctId },
+    }),
+    sanityFetch({
+      query: `*[_type == "analyticsRecord" && client._ref == $acctId] | order(metricDate desc)[0..49]{
+        _id, metric, value, period, metricDate, note, visibility
+      }`,
+      params: { acctId },
+    }),
     ]);
 
   const myRequests = ((myRequestsRes as any)?.data ?? []) as any[];
@@ -437,6 +534,7 @@ export default async function ClientDashboardPage() {
   const campaigns = ((activeCampaignRes as any)?.data ?? []) as any[];
   const contentItems = ((contentItemsRes as any)?.data ?? []) as any[];
   const socialConnections = ((socialConnectionsRes as any)?.data ?? []) as any[];
+  const analytics = ((analyticsRes as any)?.data ?? []) as any[];
   const activeCampaign = campaigns.find((c: any) => c.status === "active") || campaigns[0];
 
   // Prepare calendar events
@@ -493,6 +591,7 @@ export default async function ClientDashboardPage() {
           calendarEvents,
           contentItems,
           socialConnections,
+          analytics,
         }}
         actions={{
           submitClientRequest,
@@ -502,6 +601,7 @@ export default async function ClientDashboardPage() {
           submitServiceRequest,
           approveDeliverable,
           rejectDeliverable,
+          suggestBrandAssetTags,
         }}
         capabilities={{
           canWrite,

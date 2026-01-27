@@ -43,20 +43,6 @@ export function AccountForm({ action, writeTokenExists, initialData }: AccountFo
     return caps;
   });
 
-  useEffect(() => {
-    if (initialData) {
-        setRole(initialData.role || "employee");
-        const base = ROLE_CAPABILITIES[initialData.role as keyof typeof ROLE_CAPABILITIES] || ROLE_CAPABILITIES["employee"];
-        const effective = new Set<string>();
-        Object.entries(base).forEach(([k, v]) => {
-            if (v) effective.add(k);
-        });
-        initialData.capabilities?.forEach((c) => effective.add(c));
-        initialData.revokedCapabilities?.forEach((c) => effective.delete(c));
-        setCheckedCaps(effective);
-    }
-  }, [initialData]);
-
   const handleRoleChange = (newRole: string) => {
     setRole(newRole);
     const base = ROLE_CAPABILITIES[newRole] || {};

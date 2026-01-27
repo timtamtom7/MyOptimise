@@ -35,6 +35,8 @@ export interface UserCapabilities {
   'analytics.view.all': boolean;
   'security.audit.view': boolean;
   'task.status.override': boolean;
+  'task.status.change.own': boolean;
+  'task.status.change.team': boolean;
   'task.assign': boolean;
   'task.assign.team': boolean;
   'task.visibility.set': boolean;
@@ -51,6 +53,8 @@ export interface UserCapabilities {
   'users.activity_logs.view': boolean;
   'users.sessions.reset': boolean;
   'support.ticket.manage': boolean;
+  'support.ticket.assign': boolean;
+  'support.ticket.respond': boolean;
   'task.reassign.manage': boolean;
   'task.comment': boolean;
   'message.create': boolean;
@@ -93,6 +97,8 @@ export const ALL_CAPABILITIES: (keyof UserCapabilities)[] = [
   'analytics.view.all',
   'security.audit.view',
   'task.status.override',
+  'task.status.change.own',
+  'task.status.change.team',
   'task.assign',
   'task.assign.team',
   'task.visibility.set',
@@ -109,6 +115,8 @@ export const ALL_CAPABILITIES: (keyof UserCapabilities)[] = [
   'users.activity_logs.view',
   'users.sessions.reset',
   'support.ticket.manage',
+  'support.ticket.assign',
+  'support.ticket.respond',
   'task.reassign.manage',
   'task.comment',
   'message.create',
@@ -151,6 +159,8 @@ export const ROLE_CAPABILITIES: Record<string, Partial<UserCapabilities>> = {
     'analytics.view.all': true,
     'security.audit.view': true,
     'task.status.override': true,
+    'task.status.change.own': true,
+    'task.status.change.team': true,
     // Missing Admin Capabilities
     'users.invite': true,
     'users.remove': true,
@@ -158,6 +168,8 @@ export const ROLE_CAPABILITIES: Record<string, Partial<UserCapabilities>> = {
     'users.activity_logs.view': true,
     'users.sessions.reset': true,
     'support.ticket.manage': true,
+    'support.ticket.assign': true,
+    'support.ticket.respond': true,
     'task.reassign.manage': true,
     'task.comment': true,
     'message.create': true,
@@ -187,6 +199,10 @@ export const ROLE_CAPABILITIES: Record<string, Partial<UserCapabilities>> = {
     'analytics.view.all': true,
     'task.assign': true,
     'task.status.override': true,
+    'task.status.change.team': true,
+    'support.ticket.assign': true,
+    'support.ticket.respond': true,
+    'client.services.manage': true,
   },
   employee: {
     'content.view_drafts': true,
@@ -196,6 +212,9 @@ export const ROLE_CAPABILITIES: Record<string, Partial<UserCapabilities>> = {
     'chat.requires_approval': true,
     // Legacy
     'tasks.read': true,
+    'task.create': true,
+    'task.status.change.own': true,
+    'task.comment': true,
     'calendar.read': true,
     'message.read': true,
     'documents.view.shared': true,

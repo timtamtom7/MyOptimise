@@ -2,6 +2,9 @@ import { safeGetServerSession } from "@/lib/auth";
 import { fetchLeads } from "@/sanity/lib/fetch";
 import { redirect } from "next/navigation";
 import { PipelineBoard } from "@/components/dashboard/sales/pipeline-board";
+
+export const dynamic = "force-dynamic";
+
 import { hasCapability } from "@/lib/capabilities";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -11,8 +14,8 @@ export default async function SalesPage() {
   const session = await safeGetServerSession();
   if (!session) redirect("/login");
 
-  // Check capability
-  if (!hasCapability(session.capabilities, "sales.access")) {
+  // Check capability (session is augmented at runtime, so cast for TypeScript)
+  if (!hasCapability((session as any).capabilities, "sales.access")) {
     redirect("/dashboard");
   }
 

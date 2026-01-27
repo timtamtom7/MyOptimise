@@ -1,6 +1,9 @@
 import { sanityFetch } from "@/sanity/lib/live";
 import { AccountForm } from "@/components/admin/account-form";
 import { client } from "@/sanity/lib/client";
+
+export const dynamic = "force-dynamic";
+
 import { sanityConfigured } from "@/sanity/env";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";

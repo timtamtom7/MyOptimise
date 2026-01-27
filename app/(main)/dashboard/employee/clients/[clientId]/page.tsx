@@ -25,8 +25,9 @@ export default async function ClientHQPage({ params }: PageProps) {
         _id, title, status, endDate, description,
         "deliverableCount": count(*[_type == "deliverable" && campaign._ref == ^._id])
       },
-      "recentDeliverables": *[_type == "deliverable" && campaign->client._ref == $clientId] | order(updatedAt desc)[0...5]{
-        _id, title, status, type, dueDate, "campaignTitle": campaign->title
+      "recentDeliverables": *[_type == "deliverable" && campaign->client._ref == $clientId] | order(updatedAt desc)[0...50]{
+        _id, title, status, type, dueDate, "campaignTitle": campaign->title,
+        assignedTo->{name, avatar}
       },
       "openTickets": *[_type == "clientRequest" && clientAccount._ref == $clientId && status in ["new", "open", "in_progress"]] | order(_createdAt desc){
         _id, subject, status, priority, _createdAt, category

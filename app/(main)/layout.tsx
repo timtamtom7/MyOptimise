@@ -1,7 +1,6 @@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { DisableDraftMode } from "@/components/disable-draft-mode";
-import { VisualEditing } from "next-sanity/visual-editing";
 import { draftMode } from "next/headers";
 import { SanityLive } from "@/sanity/lib/live";
 
@@ -10,13 +9,14 @@ import { safeGetServerSession } from "@/lib/auth";
 import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 
+export const dynamic = "force-dynamic";
+
 export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const isDraftMode = (await draftMode()).isEnabled;
-  const allowVisualEditing = process.env.NODE_ENV !== "development";
   const session = await safeGetServerSession();
   const email = String((session as any)?.user?.email || "");
   const acct = email ? await fetchSanityAccountByEmail({ email }) : null;
@@ -74,12 +74,7 @@ export default async function MainLayout({
       <main>{children}</main>
       <CommandPalette enabled={canUseCommandPalette} commands={commands} />
       <SanityLive />
-      {isDraftMode && allowVisualEditing && (
-        <>
-          <DisableDraftMode />
-          <VisualEditing />
-        </>
-      )}
+      {isDraftMode && <DisableDraftMode />}
       <Footer />
     </>
   );

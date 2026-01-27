@@ -1,6 +1,8 @@
 import { fetchContentItems } from "@/sanity/lib/fetch";
 import { ContentBoard } from "@/components/content/ContentBoard";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Content Engine | Optimise",
 };

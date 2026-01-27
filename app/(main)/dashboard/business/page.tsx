@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Building2, AlertTriangle, CheckCircle, Clock, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,8 @@ export default async function BusinessDashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Client HQ</h1>
           <p className="text-muted-foreground mt-2">
-            Operational status and risk monitoring across all clients.
+            Operational status, risk, and performance signals across all clients. Click any row to open that
+            client&apos;s full strategy view.
           </p>
         </div>
       </div>
@@ -161,9 +163,9 @@ export default async function BusinessDashboardPage() {
                             {new Date(client.lastShipped).toLocaleDateString()}
                           </>
                         ) : "—"}
-                        <Button variant="ghost" size="icon" className="h-6 w-6 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "h-6 w-6 ml-2 opacity-0 group-hover:opacity-100 transition-opacity")}>
                             <ArrowRight className="h-4 w-4" />
-                        </Button>
+                        </div>
                       </Link>
                     </TableCell>
                   </TableRow>

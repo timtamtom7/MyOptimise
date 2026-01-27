@@ -2,6 +2,8 @@ import { fetchContentItems } from "@/sanity/lib/fetch";
 import { ContentApprovals } from "@/components/dashboard/client/content-approvals";
 import { approveContent, rejectContent } from "@/app/actions/content";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Approvals | Optimise",
 };

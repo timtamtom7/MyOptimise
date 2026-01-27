@@ -12,6 +12,7 @@ import { urlFor } from "@/sanity/lib/image";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import Image from "next/image";
 
 type ContentItem = {
   _id: string;
@@ -96,10 +97,11 @@ export function ContentApprovals({ items, onApprove, onReject }: ContentApproval
             <Card key={item._id} className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-video bg-muted relative group cursor-pointer" onClick={() => setSelectedItem(item)}>
                  {getImageUrl(item) ? (
-                    <img 
-                        src={getImageUrl(item)} 
-                        alt={item.title} 
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    <Image 
+                      src={getImageUrl(item)!} 
+                      alt={item.title} 
+                      fill
+                      className="object-cover transition-transform group-hover:scale-105"
                     />
                  ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground">

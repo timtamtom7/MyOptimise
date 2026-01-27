@@ -1,26 +1,18 @@
-import { verifyApprovalToken, approveContentPublic, rejectContentPublic } from "@/app/actions/content";
-import { ContentApprovals } from "@/components/dashboard/client/content-approvals";
+import { verifyApprovalToken } from "@/app/actions/deliverables";
+import { DeliverableApprovalView } from "@/components/dashboard/client/deliverable-approval-view";
 import { notFound } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 
 export default async function ApprovalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const item = await verifyApprovalToken(token);
+  const result = await verifyApprovalToken(token);
   
-  if (!item) {
+  if (!result.success || !result.deliverable) {
     return notFound();
   }
 
-  async function onApprove(id: string, comment?: string) {
-    "use server";
-    await approveContentPublic(id, token, comment);
-  }
-
-  async function onReject(id: string, comment: string) {
-    "use server";
-    await rejectContentPublic(id, token, comment);
-  }
+  const { deliverable } = result;
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -28,18 +20,24 @@ export default async function ApprovalPage({ params }: { params: Promise<{ token
              <div className="flex items-center gap-2">
                  <span className="font-display text-xl font-bold">Optimise.</span>
              </div>
-             {item.client && (
+             {deliverable.campaign?.client && (
                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="hidden sm:inline">for </span>
-                    <span>{item.client.name}</span>
+                    <span className="font-medium text-foreground">{deliverable.campaign.client.name}</span>
                  </div>
              )}
         </header>
-        <main className="container mx-auto py-4 md:py-8 px-4 max-w-6xl">
-            <ContentApprovals 
-                items={[item]} 
-                onApprove={onApprove} 
-                onReject={onReject} 
+        <main className="container mx-auto py-8 px-4 max-w-6xl">
+            <div className="mb-8">
+                <h1 className="text-2xl md:text-3xl font-bold mb-2">{deliverable.title}</h1>
+                <p className="text-muted-foreground">
+                    {deliverable.campaign?.title} • {new Date(deliverable.dueDate || new Date()).getFullYear()}
+                </p>
+            </div>
+            
+            <DeliverableApprovalView 
+                deliverable={deliverable} 
+                token={token} 
             />
         </main>
     </div>

@@ -11,6 +11,7 @@ import { Plus, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { createContentItem } from "@/app/actions/content";
 import { formatDate } from "@/lib/date-formatting";
+import Image from "next/image";
 
 interface CreatePostDialogProps {
   clientId: string;
@@ -126,7 +127,7 @@ export function CreatePostDialog({ clientId, open, onOpenChange, defaultDate, tr
             />
             {targetTimezone && (
               <p className="text-xs text-muted-foreground">
-                Target Timezone: {targetTimezone}. Note: This input uses your browser's local time.
+                Target timezone: {targetTimezone}. This input uses your browser local time.
               </p>
             )}
           </div>
@@ -164,11 +165,10 @@ export function CreatePostDialog({ clientId, open, onOpenChange, defaultDate, tr
             </div>
             {previewUrl && (
               <div className="mt-2 relative aspect-video bg-muted rounded-md overflow-hidden border">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                 {fileType.startsWith('video/') ? (
+                 {fileType.startsWith("video/") ? (
                    <video src={previewUrl} controls className="w-full h-full object-contain" />
                  ) : (
-                   <img src={previewUrl} alt="Preview" className="object-contain w-full h-full" />
+                   <Image src={previewUrl} alt="Preview" fill className="object-contain" />
                  )}
               </div>
             )}

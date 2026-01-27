@@ -1,3 +1,49 @@
+export function deliverableClaimedEmail({
+  deliverableTitle,
+  editorName,
+  link,
+}: {
+  deliverableTitle: string;
+  editorName: string;
+  link: string;
+}) {
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Deliverable Claimed</h2>
+      <p><strong>${editorName}</strong> has claimed the brief for <strong>${deliverableTitle}</strong>.</p>
+      <p>Work should begin shortly.</p>
+      <p>
+        <a href="${link}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+          View Brief
+        </a>
+      </p>
+    </div>
+  `;
+}
+
+export function deliverableSubmittedEmail({
+  deliverableTitle,
+  editorName,
+  link,
+}: {
+  deliverableTitle: string;
+  editorName: string;
+  link: string;
+}) {
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Deliverable Submitted</h2>
+      <p><strong>${editorName}</strong> has submitted work for <strong>${deliverableTitle}</strong>.</p>
+      <p>It is now ready for internal review.</p>
+      <p>
+        <a href="${link}" style="background: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+          Review Submission
+        </a>
+      </p>
+    </div>
+  `;
+}
+
 export function clientRequestSubmittedEmail({
   clientName,
   subject,

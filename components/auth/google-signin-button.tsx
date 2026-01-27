@@ -1,5 +1,6 @@
 "use client";
 import { signIn } from "next-auth/react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -14,27 +15,49 @@ export default function GoogleSignInButton({
   loginHint?: string;
 }) {
   const [loading, setLoading] = useState(false);
+  
+  const handleSignIn = async () => {
+    try {
+      setLoading(true);
+      console.log("Initiating Google sign-in...");
+      
+      const result = await signIn("google", { 
+        callbackUrl,
+        redirect: false,
+      }, loginHint ? { login_hint: loginHint } : undefined);
+      
+      console.log("Sign-in result:", result);
+
+      if (result?.error) {
+        toast.error("Sign-in failed: " + result.error);
+        setLoading(false);
+      } else if (result?.url) {
+        window.location.href = result.url;
+      } else {
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Sign-in error:", error);
+      toast.error("Sign-in exception: " + String(error));
+      setLoading(false);
+    }
+  };
+
   return (
     <Button
-      onClick={() => {
-        setLoading(true);
-        signIn(
-          "google",
-          { callbackUrl },
-          loginHint ? { login_hint: loginHint } : undefined
-        );
-      }}
+      type="button"
+      onClick={handleSignIn}
       className="w-full"
       disabled={loading}
       aria-busy={loading}
     >
       {loading ? (
-        <>
+        <span className="flex items-center gap-2">
           <Loader2 className="animate-spin" />
           Connecting to Google…
-        </>
+        </span>
       ) : (
-        <>
+        <span className="flex items-center gap-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 48 48"
@@ -48,7 +71,7 @@ export default function GoogleSignInButton({
             <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.7 3.7-5.2 6.5-9.3 6.5-6.1 0-11.2-3.8-13.1-9.1l-6.7 5.2C9.4 38.8 16.7 43.5 24 43.5c7.5 0 13.8-4.9 16.1-11.7.7-2.1 1.1-4.4 1.1-6.8 0-1.5-.2-2.9-.5-4.2z"/>
           </svg>
           <span>{label}</span>
-        </>
+        </span>
       )}
     </Button>
   );

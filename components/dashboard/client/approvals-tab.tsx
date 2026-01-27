@@ -1,20 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, FileText, Activity } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { CheckCircle2, Activity, PlayCircle, FileText, Image as ImageIcon } from "lucide-react";
+import { DeliverableReviewModal } from "@/components/dashboard/deliverable-review-modal";
+import { getMediaType } from "@/lib/media";
+import Image from "next/image";
 
 interface Deliverable {
   _id: string;
@@ -28,29 +21,63 @@ interface Deliverable {
     mimeType: string;
     originalFilename?: string;
   };
+  latestVersion?: {
+    url: string;
+    notes?: string;
+    versionNumber: number;
+    createdAt: string;
+  };
+  hook?: string;
+  script?: string;
+  visualDirection?: string;
+  creativeGoal?: string;
+  contentConcept?: string;
 }
 
 interface ApprovalsTabProps {
   deliverables: Deliverable[];
-  actions: {
-    approve: (formData: FormData) => Promise<void>;
-    reject: (formData: FormData) => Promise<void>;
-  };
+  onApprove: (formData: FormData) => Promise<void>;
+  onReject: (formData: FormData) => Promise<void>;
 }
 
-export function ApprovalsTab({ deliverables, actions }: ApprovalsTabProps) {
+export function ApprovalsTab({ deliverables, onApprove, onReject }: ApprovalsTabProps) {
+  const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
+  
   const pendingReviews = deliverables.filter(d => d.status === "client_review");
   const otherDeliverables = deliverables.filter(d => d.status !== "client_review");
 
   return (
     <div className="space-y-6">
+      <DeliverableReviewModal
+        deliverable={selectedDeliverable}
+        isOpen={!!selectedDeliverable}
+        onClose={() => setSelectedDeliverable(null)}
+        approveStatus="approved"
+        approveLabel="Approve Deliverable"
+        onStatusUpdate={async (id, status, feedback) => {
+          const formData = new FormData();
+          formData.append("deliverableId", id);
+          if (feedback) formData.append("notes", feedback); // Use 'notes' for rejection reason in onReject
+
+          if (status === "approved") {
+            await onApprove(formData);
+          } else if (status === "changes_requested") {
+            await onReject(formData);
+          }
+        }}
+      />
+
       <div className="flex flex-col gap-4">
         <h3 className="text-lg font-medium">Pending Approval ({pendingReviews.length})</h3>
         {pendingReviews.length === 0 && (
           <p className="text-muted-foreground text-sm">You&apos;re all caught up! No items waiting for your approval.</p>
         )}
         <div className="grid gap-4 md:grid-cols-2">
-          {pendingReviews.map((item) => (
+          {pendingReviews.map((item) => {
+            const assetUrl = item.latestVersion?.url || item.latestAsset?.url || "";
+            const mediaType = getMediaType(assetUrl);
+            
+            return (
             <Card key={item._id} className="border-l-4 border-l-blue-500">
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -62,83 +89,38 @@ export function ApprovalsTab({ deliverables, actions }: ApprovalsTabProps) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Asset Preview */}
-                <div className="rounded-lg border bg-muted/10 overflow-hidden">
-                  {item.latestAsset?.mimeType?.startsWith('image/') ? (
-                    <img 
-                      src={item.latestAsset.url} 
-                      alt={item.title}
-                      className="w-full h-48 object-contain bg-white" 
-                    />
-                  ) : item.latestAsset?.mimeType?.startsWith('video/') ? (
-                    <video 
-                      src={item.latestAsset.url} 
-                      controls 
-                      className="w-full h-48 bg-black"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-48 p-4">
-                      <FileText className="h-12 w-12 text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground text-center">
-                        {item.latestAsset?.originalFilename || "No preview available"}
-                      </p>
-                    </div>
-                  )}
+                <div className="rounded-lg border bg-muted/10 h-32 flex items-center justify-center overflow-hidden relative">
+                    {mediaType === "image" && assetUrl ? (
+                      <Image 
+                        src={assetUrl} 
+                        alt="Preview" 
+                        fill 
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    ) : mediaType === "video" || mediaType === "video_external" ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <PlayCircle className="h-10 w-10 text-muted-foreground/50" />
+                        <span className="text-xs text-muted-foreground">Video Preview</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <FileText className="h-10 w-10 text-muted-foreground/50" />
+                        <span className="text-xs text-muted-foreground">Document</span>
+                      </div>
+                    )}
                 </div>
-
-                {item.latestAsset?.url && (
-                  <div className="flex items-center gap-2 text-sm text-blue-600 justify-center">
-                     <a 
-                       href={item.latestAsset.url} 
-                       target="_blank" 
-                       rel="noopener noreferrer"
-                       className="flex items-center gap-2 hover:underline"
-                     >
-                       <FileText className="h-4 w-4" />
-                       View Original File
-                     </a>
-                  </div>
-                )}
                 
-                <div className="flex gap-2 pt-2">
-                   <form action={actions.approve}>
-                     <input type="hidden" name="deliverableId" value={item._id} />
-                     <Button type="submit" size="sm" className="bg-green-600 hover:bg-green-700">
-                       <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
-                     </Button>
-                   </form>
-                   
-                   <Dialog>
-                     <DialogTrigger asChild>
-                       <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50">
-                         <XCircle className="mr-2 h-4 w-4" /> Request Changes
-                       </Button>
-                     </DialogTrigger>
-                     <DialogContent>
-                       <DialogHeader>
-                         <DialogTitle>Request Changes</DialogTitle>
-                         <DialogDescription>
-                           Please describe what needs to be changed for {item.title}.
-                         </DialogDescription>
-                       </DialogHeader>
-                       <form action={actions.reject}>
-                         <input type="hidden" name="deliverableId" value={item._id} />
-                         <div className="space-y-4 py-4">
-                           <div className="space-y-2">
-                             <Label htmlFor="notes">Feedback</Label>
-                             <Textarea id="notes" name="notes" placeholder="Detailed feedback..." required />
-                           </div>
-                         </div>
-                         <DialogFooter>
-                           <Button type="submit" variant="destructive">Submit Feedback</Button>
-                         </DialogFooter>
-                       </form>
-                     </DialogContent>
-                   </Dialog>
-                </div>
+                <Button 
+                    className="w-full" 
+                    onClick={() => setSelectedDeliverable(item)}
+                >
+                    Review Deliverable
+                </Button>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
       </div>
 

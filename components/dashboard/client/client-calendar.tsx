@@ -31,6 +31,7 @@ interface ClientCalendarProps {
   onEventClick?: (eventId: string) => void;
   drafts?: any[];
   targetTimezone?: string;
+  canWrite?: boolean;
 }
 
 export function ClientCalendar({ events, onDateClick, onEventClick, drafts = [], targetTimezone }: ClientCalendarProps) {

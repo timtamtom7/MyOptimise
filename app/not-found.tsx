@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   title: "Page not found",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function NotFoundPage() {
   return (
     <>

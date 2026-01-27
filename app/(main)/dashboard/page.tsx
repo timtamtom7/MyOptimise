@@ -19,6 +19,8 @@ export default async function DashboardRouterPage() {
         ? "/dashboard/admin"
         : type === "manager"
           ? "/dashboard/manager"
+          : type === "editor"
+            ? "/dashboard/editor"
           : type === "employee"
             ? "/dashboard/employee"
             : "/";
