@@ -285,25 +285,105 @@ export async function postThreadMessage(formData: FormData) {
   }
 }
 
-export async function approveMessage(threadId: string, messageIndex: number) {
-    const session = await safeGetServerSession();
-    const email = String((session as any)?.user?.email || "");
-    if (!email) return;
-    
-    const acct = await fetchSanityAccountByEmail({ email });
-    if (!acct || acct.status === "disabled") return;
-    
-    // Only managers/admins can approve
-    if (acct.type !== "manager" && acct.type !== "admin") return;
+export async function createOrOpenDmThread(formData: FormData) {
+  const session = await safeGetServerSession();
+  const email = String((session as any)?.user?.email || "");
+  if (!email) return;
+  const acct = await fetchSanityAccountByEmail({ email });
+  if (!acct || acct.status === "disabled") return;
 
-    const writeToken = process.env.SANITY_API_WRITE_TOKEN;
-    if (!writeToken) return;
-    const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+  const recipientId = String(formData.get("recipientId") || "").trim();
+  if (!recipientId) return;
 
-    // Sanity array updates by index are tricky if list changed, but keyed update is better.
-    // However, messages are objects without keys unless we generated them.
-    // Sanity adds _key automatically. We should use _key if possible.
-    // For now, I'll assume we pass the _key.
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN;
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  const query = `*[_type == "messageThread" && type == "dm" && count(participants) == 2 && $u1 in participants[]._ref && $u2 in participants[]._ref][0]{_id}`;
+  const existing = await writeClient.fetch(query, { u1: acct._id, u2: recipientId });
+
+  if (existing?._id) {
+    return { success: true, threadId: String(existing._id) };
+  }
+
+  const created = await writeClient.create({
+    _type: "messageThread",
+    type: "dm",
+    visibility: "internal",
+    participants: [
+      { _type: "reference", _ref: acct._id },
+      { _type: "reference", _ref: recipientId }
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    messages: []
+  });
+
+  return { success: true, threadId: String(created._id) };
+}
+
+export async function createOrOpenTaskThread(formData: FormData) {
+  const session = await safeGetServerSession();
+  const email = String((session as any)?.user?.email || "");
+  if (!email) return;
+  const acct = await fetchSanityAccountByEmail({ email });
+  if (!acct || acct.status === "disabled" || acct.type !== "employee") return;
+
+  const workItemId = String(formData.get("workItemId") || "").trim();
+  if (!workItemId) return;
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  const w = await writeClient.fetch(
+    `*[_type == "workItem" && _id == $id][0]{
+      _id,
+      title,
+      assignedTo->{_id, type, status},
+      createdBy->{_id, type, status}
+    }`,
+    { id: workItemId },
+  );
+  if (!w?._id) return;
+
+  const assignedId = String(w.assignedTo?._id || "");
+  const createdById = String(w.createdBy?._id || "");
+  
+  if (!assignedId || !createdById) return;
+  if (assignedId === createdById) return;
+  if (String(w.assignedTo?.status || "") === "disabled") return;
+  if (String(w.createdBy?.status || "") === "disabled") return;
+  if (!["admin", "manager", "employee"].includes(String(w.assignedTo?.type || ""))) return;
+  if (!["admin", "manager", "employee"].includes(String(w.createdBy?.type || ""))) return;
+  if (![assignedId, createdById].includes(String(acct._id))) return;
+
+  const existing = await writeClient.fetch(
+    `*[_type == "messageThread" && type == "task" && visibility == "internal" && relatedWorkItem._ref == $id][0]{_id}`,
+    { id: workItemId },
+  );
+  if (existing?._id) {
+    revalidatePath("/dashboard/employee");
+    return { success: true, threadId: String(existing._id) };
+  }
+
+  const created = await writeClient.create({
+    _type: "messageThread",
+    title: `Task: ${String(w.title || "Work item")}`,
+    type: "task",
+    visibility: "internal",
+    relatedWorkItem: { _type: "reference", _ref: String(w._id) },
+    participants: [
+      { _type: "reference", _ref: createdById },
+      { _type: "reference", _ref: assignedId },
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    messages: [],
+  });
+
+  revalidatePath("/dashboard/employee");
+  return { success: true, threadId: String(created?._id || "") };
 }
 
 export async function approveMessageByKey(threadId: string, messageKey: string) {

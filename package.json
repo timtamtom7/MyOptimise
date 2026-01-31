@@ -3,7 +3,7 @@
   "version": "1.6.1",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack --hostname localhost",
+    "dev": "next dev --webpack --hostname localhost -p 2525",
     "build": "next build",
     "start": "next start",
     "lint": "eslint app components lib sanity",

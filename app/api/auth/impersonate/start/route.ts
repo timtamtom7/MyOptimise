@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sanityFetch } from "@/sanity/lib/live";
+import { IMPERSONATE_COOKIE_NAME, IMPERSONATE_ORIGINAL_EMAIL_COOKIE, safeGetServerSession } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -28,11 +29,43 @@ export async function POST(request: Request) {
     }
 
     const cookieStore = await cookies();
-    cookieStore.set("impersonateAccountId", targetId, { 
+    const isProduction = process.env.NODE_ENV === "production";
+    cookieStore.set(IMPERSONATE_COOKIE_NAME, targetId, { 
       httpOnly: true, 
       sameSite: "lax", 
-      path: "/" 
+      path: "/",
+      secure: isProduction,
     });
+    const session = await safeGetServerSession();
+    
+    // Ensure we have a valid session before allowing impersonation
+    if (!session || !(session as any).user?.email) {
+       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Prefer the explicitly stored original email if already impersonating
+    let originalEmail = (session as any)?.originalUserEmail;
+    // Fallback to current user email if not yet impersonating
+    if (!originalEmail) {
+      originalEmail = (session as any)?.user?.email;
+    }
+    
+    if (originalEmail) {
+      const cookieOptions = {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      };
+
+      cookieStore.set(IMPERSONATE_ORIGINAL_EMAIL_COOKIE, String(originalEmail), cookieOptions);
+      
+      // Double ensure by setting a non-secure cookie in dev if needed, 
+      // but simpler to just trust the options.
+      // If we are in dev, secure is false, which is correct.
+    } else {
+       console.error("CRITICAL: Could not determine original email for impersonation");
+    }
 
     return NextResponse.json({ success: true, targetType: target.type || "employee" });
   } catch (error) {

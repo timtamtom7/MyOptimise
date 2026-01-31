@@ -23,7 +23,12 @@ export function CreateCampaignForm({ clientId, clientName }: CreateCampaignFormP
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     try {
-      const res = await createCampaign(formData);
+      const res = await createCampaign({
+        title: String(formData.get("title")),
+        clientId: String(formData.get("clientId")),
+        managerId: "manager-id", // This should come from user session/context in a real scenario
+        description: String(formData.get("description") || ""),
+      });
       if (res?.error) {
         toast.error(res.error);
       } else if (res?.success && res.campaignId) {
@@ -49,7 +54,7 @@ export function CreateCampaignForm({ clientId, clientName }: CreateCampaignFormP
             <Label htmlFor="title">Campaign Title</Label>
             <Input id="title" name="title" placeholder="e.g. Q3 Brand Awareness" required />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" name="description" placeholder="Brief overview of the campaign..." />

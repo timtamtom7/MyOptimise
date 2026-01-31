@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { 
@@ -8,7 +9,8 @@ import {
   TrendingUp, 
   FileText,
   Settings,
-  LogOut 
+  LogOut,
+  Menu
 } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/use-user'
 import { useCapabilities } from '@/hooks/use-capabilities'

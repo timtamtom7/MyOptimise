@@ -61,15 +61,15 @@ export function ServicesDashboard() {
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                  <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
                   <div>
-                    <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-32 mb-2"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-24"></div>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded w-full"></div>
-                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-full"></div>
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
                 </div>
               </CardContent>
             </Card>
@@ -142,7 +142,7 @@ export function ServicesDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center justify-center mb-1">
-                    <Users className="h-4 w-4 text-purple-500" />
+                    <Users className="h-4 w-4 text-blue-500" />
                   </div>
                   <div className="text-2xl font-bold">
                     {((service.current_metrics as any)?.followers || 0).toLocaleString()}

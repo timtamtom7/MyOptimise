@@ -90,31 +90,58 @@ ${assetsContext}
   }
 }
 
-export async function generateContextSuggestions(clientName: string, industry: string) {
+export async function generateContextSuggestions(clientName: string, industry: string, currentContext?: any) {
     const session = await safeGetServerSession();
     if (!session) return { error: "Unauthorized" };
   
     if (!process.env.DEEPSEEK_API_KEY) {
       return { error: "API Key missing" };
     }
+
+    // "Learning": Fetch recent approved strategies to use as style examples
+    let examples = [];
+    try {
+        examples = await client.fetch(`*[_type == "campaign" && strategyDeck.status == "approved" && defined(strategyDeck.targetAudience)][0..2]{
+            strategyDeck {
+                targetAudience,
+                toneOfVoice,
+                strategicPillars
+            }
+        }`);
+    } catch (e) {
+        console.warn("Failed to fetch examples for AI context", e);
+    }
+
+    const examplesText = examples.length > 0 ? 
+        `Here are examples of high-quality approved strategies from our agency. Use the same professional tone and depth:\n${examples.map((e: any) => JSON.stringify(e.strategyDeck)).join("\n")}` 
+        : "";
   
     const prompt = `
       Client: ${clientName}
       Industry: ${industry}
+      ${currentContext ? `Current Draft Context (Refine or provide alternatives to this): ${JSON.stringify(currentContext)}` : ""}
+
+      ${examplesText}
   
-      Generate 3 suggested strategic components:
-      1. Target Audience (1 short sentence)
-      2. Tone of Voice (2 adjectives)
-      3. Strategic Pillars (3 short phrases)
+      Generate suggested strategic components. Provide multiple options for the user to choose from:
+      1. Target Audience: Provide 3 distinct options (1 short sentence each).
+      2. Tone of Voice: Provide 3 distinct options (2 adjectives each).
+      3. Strategic Pillars: Provide 3 distinct pillars (short phrases).
   
-      Return JSON: { "targetAudience": "...", "toneOfVoice": "...", "pillars": ["...", "...", "..."] }
+      Return JSON: { 
+        "targetAudience": "The best single option...", 
+        "targetAudienceOptions": ["Option 1...", "Option 2...", "Option 3..."],
+        "toneOfVoice": "The best single option...",
+        "toneOfVoiceOptions": ["Option 1...", "Option 2...", "Option 3..."],
+        "pillars": ["...", "...", "..."] 
+      }
     `;
   
     try {
       const response = await openai.chat.completions.create({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: "You are a marketing strategist. Output strict JSON." },
+          { role: "system", content: "You are a senior creative strategist at a luxury agency. Output strict JSON." },
           { role: "user", content: prompt }
         ],
         temperature: 0.7,
@@ -122,7 +149,8 @@ export async function generateContextSuggestions(clientName: string, industry: s
   
       const content = response.choices[0].message.content;
       const cleanContent = content?.replace(/```json/g, "").replace(/```/g, "").trim();
-      return JSON.parse(cleanContent || "{}");
+      const suggestions = JSON.parse(cleanContent || "{}");
+      return { success: true, suggestions };
     } catch (error) {
       console.error("AI Suggestion Error:", error);
       return { error: "Failed" };
@@ -211,6 +239,7 @@ export async function updateCampaignDeck(formData: FormData) {
 
     // Normalize deck data for Sanity
     const sanityDeck = {
+        status: deck.status || "drafting",
         slides: deck.slides?.map((s: any) => ({
             _key: s._key || crypto.randomUUID(),
             title: s.title,
@@ -218,7 +247,12 @@ export async function updateCampaignDeck(formData: FormData) {
             content: s.content || "",
             notes: s.notes || "",
             image: s.imageAssetId ? { _type: "image", asset: { _ref: s.imageAssetId } } : undefined,
-            comments: s.comments || []
+            comments: s.comments || [],
+            galleryImages: s.galleryImages?.map((g: any) => ({
+                _key: g._key || crypto.randomUUID(),
+                url: g.url,
+                assetId: g.assetId
+            }))
         })) || [],
         competitors: deck.competitors?.map((c: any) => ({
             _key: c._key || crypto.randomUUID(),
@@ -236,6 +270,7 @@ export async function updateCampaignDeck(formData: FormData) {
         moodboard: deck.moodboard?.map((m: any) => ({
             _key: m._key || crypto.randomUUID(),
             url: m.url || "",
+            note: m.note || "",
             image: m.imageAssetId ? { _type: "image", asset: { _ref: m.imageAssetId } } : undefined
         })) || [],
         proposedDeliverables: deck.proposedDeliverables?.map((d: any) => ({
@@ -276,6 +311,37 @@ export async function updateCampaignDeck(formData: FormData) {
     return { success: true };
 }
 
+export async function updateClientContext(formData: FormData) {
+  const session = await safeGetServerSession();
+  if (!session) return { error: "Unauthorized" };
+
+  const clientId = String(formData.get("clientId") || "");
+  const industry = String(formData.get("industry") || "");
+  const audience = String(formData.get("audience") || "");
+  const creativeGoal = String(formData.get("creativeGoal") || "");
+  const brandVoice = String(formData.get("brandVoice") || "");
+
+  if (!clientId) return { error: "Missing Client ID" };
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  const writeClient = client.withConfig({ token: writeToken });
+
+  try {
+    await writeClient.patch(clientId).set({
+      industry,
+      audience,
+      creativeGoal,
+      brandVoice
+    }).commit();
+    
+    revalidatePath("/flow/manager");
+    return { success: true };
+  } catch (error) {
+    console.error("Update Client Context Error:", error);
+    return { error: "Failed to update context" };
+  }
+}
+
 export async function submitStrategy(formData: FormData) {
   const session = await safeGetServerSession();
   const email = String((session as any)?.user?.email || "");
@@ -289,7 +355,7 @@ export async function submitStrategy(formData: FormData) {
 
   await writeClient
     .patch(campaignId)
-    .set({ "strategyDeck.status": "review" })
+    .set({ "strategyDeck.status": "internal_review" })
     .commit();
 
   revalidatePath(`/flow/manager/${campaignId}`);
@@ -310,17 +376,19 @@ export async function approveStrategy(formData: FormData) {
     // Fetch account for createdBy reference
     const acct = await fetchSanityAccountByEmail({ email });
 
-    // 1. Fetch current campaign to get proposed deliverables
+    // 1. Fetch current campaign to get proposed deliverables and manager
     const campaign = await client.fetch(`*[_type == "campaign" && _id == $id][0]{
         strategyDeck {
             proposedDeliverables
         },
-        deliverablesGenerated
+        deliverablesGenerated,
+        manager
     }`, { id: campaignId });
 
     if (!campaign) return { error: "Campaign not found" };
 
     const proposedDeliverables = campaign.strategyDeck?.proposedDeliverables || [];
+    const campaignManager = campaign.manager;
 
     // 2. Start transaction
     const transaction = writeClient.transaction();
@@ -331,19 +399,14 @@ export async function approveStrategy(formData: FormData) {
         .set({ deliverablesGenerated: true })
     );
 
-    // 4. Create deliverables from plan (only if not already generated)
-    // We check the flag on the FETCHED campaign object, but we didn't fetch that field.
-    // Let's assume if we are approving, we want to generate them if they aren't there.
-    // However, checking for existing deliverables is safer.
-    // But since we are in a transaction, we can't easily query "do deliverables exist" inside the transaction builder logic 
-    // without a separate query first.
-    
-    // Improved logic: Fetch 'deliverablesGenerated' field first.
+    // 4. Create deliverables and work items from plan (only if not already generated)
     const alreadyGenerated = campaign.deliverablesGenerated === true;
 
     if (!alreadyGenerated && proposedDeliverables.length > 0) {
         proposedDeliverables.forEach((item: any) => {
+            const deliverableId = crypto.randomUUID();
             const deliverableDoc: any = {
+                _id: deliverableId,
                 _type: "deliverable",
                 title: item.title,
                 campaign: { _type: "reference", _ref: campaignId },
@@ -362,13 +425,46 @@ export async function approveStrategy(formData: FormData) {
                 deliverableDoc.createdBy = { _type: "reference", _ref: acct._id };
             }
 
+            // Create Deliverable
             transaction.create(deliverableDoc);
+
+            // Create Work Item (Task) for the deliverable
+            const workItemDoc: any = {
+                _type: "workItem",
+                title: `Create: ${item.title}`,
+                description: item.description || `Production task for ${item.title}`,
+                status: "todo",
+                priority: "medium",
+                visibility: "internal",
+                relatedCampaign: { _type: "reference", _ref: campaignId },
+                relatedDeliverable: { _type: "reference", _ref: deliverableId },
+                createdAt: new Date().toISOString(),
+                checklist: [
+                    { item: "Review visual direction", completed: false, _key: crypto.randomUUID() },
+                    { item: "Create asset", completed: false, _key: crypto.randomUUID() },
+                    { item: "Upload draft", completed: false, _key: crypto.randomUUID() }
+                ]
+            };
+
+            // Assign to Campaign Manager if available, otherwise fallback to Admin/Creator
+            if (campaignManager) {
+                workItemDoc.assignedTo = { _type: "reference", _ref: campaignManager._ref };
+            } else if (acct) {
+                 workItemDoc.assignedTo = { _type: "reference", _ref: acct._id };
+            }
+
+            if (acct) {
+                workItemDoc.createdBy = { _type: "reference", _ref: acct._id };
+            }
+
+            transaction.create(workItemDoc);
         });
     }
 
     await transaction.commit();
 
     revalidatePath(`/flow/manager/${campaignId}`);
+    revalidatePath("/flow/client");
     return { success: true };
 }
 
@@ -509,4 +605,139 @@ export async function uploadMoodboardImage(formData: FormData) {
         console.error("Upload error:", error);
         return { error: "Upload failed" };
     }
+}
+
+export async function uploadClientAsset(formData: FormData) {
+    const session = await safeGetServerSession();
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return { error: "Unauthorized" };
+
+    const file = formData.get("file") as File;
+    const clientId = String(formData.get("clientId") || "");
+    const title = String(formData.get("title") || "");
+    const tagsString = String(formData.get("tags") || "");
+    
+    if (!file) return { error: "No file provided" };
+    if (!clientId) return { error: "No client ID provided" };
+
+    const tags = tagsString.split(",").map(t => t.trim()).filter(Boolean);
+
+    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+    const writeClient = client.withConfig({ token: writeToken });
+
+    try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const asset = await writeClient.assets.upload("image", buffer, {
+            filename: file.name
+        });
+
+        const newKey = Math.random().toString(36).slice(2);
+
+        // Add to client's brandAssets array
+        await writeClient
+            .patch(clientId)
+            .setIfMissing({ brandAssets: [] })
+            .append("brandAssets", [{
+                _key: newKey,
+                _type: "brandAsset",
+                title: title || file.name,
+                name: file.name,
+                url: asset.url,
+                tags: tags,
+                file: {
+                    _type: "image",
+                    asset: {
+                        _type: "reference",
+                        _ref: asset._id
+                    }
+                }
+            }])
+            .commit();
+
+        return { 
+            success: true, 
+            asset: {
+                _key: newKey,
+                title: title || file.name,
+                name: file.name,
+                url: asset.url,
+                tags: tags,
+                file: { asset: { _ref: asset._id } }
+            } 
+        };
+    } catch (error) {
+        console.error("Upload error:", error);
+        return { error: "Upload failed" };
+    }
+}
+
+export async function deleteClientAsset(clientId: string, assetKey: string) {
+    const session = await safeGetServerSession();
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return { error: "Unauthorized" };
+
+    if (!clientId || !assetKey) return { error: "Missing required fields" };
+
+    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+    const writeClient = client.withConfig({ token: writeToken });
+
+    try {
+        await writeClient
+            .patch(clientId)
+            .unset([`brandAssets[_key=="${assetKey}"]`])
+            .commit();
+
+        return { success: true };
+    } catch (error) {
+        console.error("Delete error:", error);
+        return { error: "Delete failed" };
+    }
+}
+
+export async function updateClientAssetTags(clientId: string, assetKey: string, tags: string[]) {
+    const session = await safeGetServerSession();
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return { error: "Unauthorized" };
+
+    if (!clientId || !assetKey) return { error: "Missing required fields" };
+
+    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+    const writeClient = client.withConfig({ token: writeToken });
+
+    try {
+        await writeClient
+            .patch(clientId)
+            .set({ [`brandAssets[_key=="${assetKey}"].tags`]: tags })
+            .commit();
+
+        return { success: true };
+    } catch (error) {
+        console.error("Update tags error:", error);
+        return { error: "Update failed" };
+    }
+}
+
+export async function publishToClient(formData: FormData) {
+    const session = await safeGetServerSession();
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return { error: "Unauthorized" };
+
+    const acct = await fetchSanityAccountByEmail({ email });
+    if (!acct || (acct.type !== "admin" && acct.type !== "manager")) {
+        return { error: "Unauthorized: Managers only" };
+    }
+
+    const campaignId = String(formData.get("campaignId") || "");
+    if (!campaignId) return { error: "Missing campaign ID" };
+
+    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+    const writeClient = client.withConfig({ token: writeToken });
+
+    await writeClient
+        .patch(campaignId)
+        .set({ "strategyDeck.status": "client_review" })
+        .commit();
+
+    revalidatePath(`/flow/manager/${campaignId}`);
+    return { success: true };
 }

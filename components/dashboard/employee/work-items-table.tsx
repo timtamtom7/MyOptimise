@@ -53,6 +53,7 @@ interface WorkItemsTableProps {
   onCreateWorkItem?: (formData: FormData) => Promise<void>;
   onCreateFromTemplate?: (formData: FormData) => Promise<void>;
   employees?: any[];
+  onSelectTask?: (task: WorkItem) => void;
 }
 
 export function WorkItemsTable({ 
@@ -63,7 +64,8 @@ export function WorkItemsTable({
   templates,
   onCreateWorkItem,
   onCreateFromTemplate,
-  employees
+  employees,
+  onSelectTask
 }: WorkItemsTableProps) {
   const [blockedDialogOpen, setBlockedDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -178,7 +180,12 @@ export function WorkItemsTable({
                     />
                 </TableCell>
                 <TableCell className="font-medium">
-                  <div>{item.title}</div>
+                  <div 
+                    className={cn(onSelectTask && "cursor-pointer hover:underline")}
+                    onClick={() => onSelectTask?.(item)}
+                  >
+                    {item.title}
+                  </div>
                   {item.description && (
                     <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{item.description}</div>
                   )}
@@ -204,7 +211,7 @@ export function WorkItemsTable({
                             "rounded-full font-normal capitalize cursor-pointer hover:opacity-80 transition-opacity",
                             item.status === "todo" && "bg-slate-100 text-slate-700",
                             item.status === "in_progress" && "bg-blue-50 text-blue-700",
-                            item.status === "review" && "bg-purple-50 text-purple-700",
+                            item.status === "review" && "bg-blue-100 text-blue-800",
                             item.status === "blocked" && "bg-red-50 text-red-700",
                             item.status === "done" && "bg-green-50 text-green-700"
                           )}

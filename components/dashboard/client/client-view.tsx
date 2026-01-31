@@ -24,6 +24,7 @@ import { SocialConnections } from "./social-connections";
 import { BrandTab } from "./brand-tab";
 import { BillingTab } from "./billing-tab";
 import { ResultsTab } from "./results-tab";
+import { StrategyReviewSection } from "@/components/flow/client/strategy-review-section";
 import Link from "next/link";
 import {
   FileText,
@@ -245,6 +246,13 @@ export function ClientView({ data, actions, capabilities }: ClientViewProps) {
         </div>
 
         <TabsContent value="overview" className="space-y-6">
+          {(() => {
+            const reviewableStrategies = data.activeCampaign ? [data.activeCampaign] : [];
+            return reviewableStrategies.length > 0 ? (
+              <StrategyReviewSection strategies={reviewableStrategies} />
+            ) : null;
+          })()}
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

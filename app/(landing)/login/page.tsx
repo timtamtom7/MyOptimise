@@ -4,10 +4,14 @@ import { t } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n-server";
 import { getGoogleOAuthConfig, safeGetServerSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { fetchSanityAccountByEmail, fetchSanitySettings } from "@/sanity/lib/fetch";
 import { sanityConfigured } from "@/sanity/env";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import Logo from "@/components/logo";
+
+import { devSkipAuth } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +125,14 @@ export default async function LoginPage(props: { searchParams?: Promise<{ next?:
                   Sign in with your email and password.
                 </p>
                 <CredentialsLoginForm callbackUrl={next} />
+                
+                <div className="pt-4 border-t border-border/50 mt-4">
+                  <form action={devSkipAuth}>
+                    <Button type="submit" variant="outline" className="w-full border-dashed border-yellow-500/50 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950/30">
+                      Skip Auth (Dev Only)
+                    </Button>
+                  </form>
+                </div>
               </div>
             </div>
           </CardContent>

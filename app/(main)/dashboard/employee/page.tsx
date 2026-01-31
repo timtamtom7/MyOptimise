@@ -1,4 +1,4 @@
-import { safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession, IMPERSONATE_COOKIE_NAME, IMPERSONATE_ORIGINAL_EMAIL_COOKIE } from "@/lib/auth";
 import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
@@ -7,11 +7,11 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { EmployeeView } from "@/components/dashboard/employee/employee-view";
-import { createWorkItem, createWorkItemFromTemplate, bulkUpdateWorkItems } from "@/app/actions/work-items";
+import { createWorkItem, createWorkItemFromTemplate, bulkUpdateWorkItems, toggleWorkItemChecklist } from "@/app/actions/work-items";
 
 export const dynamic = "force-dynamic";
 
-const IMPERSONATE_COOKIE = "impersonateAccountId";
+const IMPERSONATE_COOKIE = IMPERSONATE_COOKIE_NAME;
 
 export default async function EmployeeDashboardPage() {
   const session = await safeGetServerSession();
@@ -305,6 +305,8 @@ export default async function EmployeeDashboardPage() {
     revalidatePath("/dashboard/employee");
   }
 
+
+
   async function createOrOpenDmThread(formData: FormData) {
     "use server";
     const session = await safeGetServerSession();
@@ -428,9 +430,14 @@ export default async function EmployeeDashboardPage() {
   async function stopImpersonation() {
     "use server";
     const cookieStore = await cookies();
-    cookieStore.delete(IMPERSONATE_COOKIE);
+    // Force delete with explicit path and maxAge to ensure browser clears it
+    cookieStore.set(IMPERSONATE_COOKIE_NAME, "", { maxAge: 0, path: "/" });
+    cookieStore.delete(IMPERSONATE_COOKIE_NAME);
+    // Do NOT delete IMPERSONATE_ORIGINAL_EMAIL_COOKIE here, it is needed for session restoration
     redirect('/dashboard/admin');
   }
+
+
 
   const canWrite = Boolean(process.env.SANITY_API_WRITE_TOKEN) && !isImpersonating;
 
@@ -527,6 +534,7 @@ export default async function EmployeeDashboardPage() {
           createWorkItemFromTemplate,
           bulkUpdateWorkItems,
           stopImpersonation,
+          toggleWorkItemChecklist,
         }}
       />
     </div>

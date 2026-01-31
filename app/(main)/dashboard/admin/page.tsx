@@ -1,4 +1,4 @@
-import { safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession, IMPERSONATE_COOKIE_NAME, IMPERSONATE_ORIGINAL_EMAIL_COOKIE } from "@/lib/auth";
 import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
@@ -16,7 +16,7 @@ import { updateDeliverableStatus, generateApprovalLink } from "@/app/actions/del
 
 export const dynamic = "force-dynamic";
 
-const IMPERSONATE_COOKIE = "impersonateAccountId";
+const IMPERSONATE_COOKIE = IMPERSONATE_COOKIE_NAME;
 
 async function requireActiveAdmin() {
   const session = await safeGetServerSession();
@@ -965,22 +965,22 @@ async function updateServiceRequestStatus(formData: FormData) {
         // Sync to Supabase
         const clientEmail = await writeClient.fetch(`*[_type == "account" && _id == $id][0].email`, { id: clientId });
         if (clientEmail) {
-            const { data: userData } = await supabaseAdmin
+          const { data: userData } = await supabaseAdmin
             .from("users")
             .select("organization_id")
             .eq("email", clientEmail)
             .single();
 
-            if (userData?.organization_id) {
+          if (userData?.organization_id) {
             await supabaseAdmin.from("client_services").insert({
-                organization_id: userData.organization_id,
-                name: `Service: ${requestedServiceType}`,
-                service_type: requestedServiceType as any,
-                status: "active",
-                start_date: now.split("T")[0],
-                monthly_budget: 0,
+              organization_id: userData.organization_id,
+              name: `Service: ${requestedServiceType}`,
+              service_type: requestedServiceType as any,
+              status: "active",
+              start_date: now.split("T")[0],
+              monthly_budget: 0,
             });
-            }
+          }
         }
       }
     }
@@ -1102,7 +1102,7 @@ async function createOrOpenTaskThread(formData: FormData) {
         .setIfMissing({ participants: [] })
         .append("participants", [{ _type: "reference", _ref: adminId }])
         .commit();
-      
+
       await writeAuditLog({
         actorAccountId: String(admin.acct._id),
         action: "messageThread.participant_added",
@@ -1254,7 +1254,7 @@ async function startImpersonation(formData: FormData) {
 
   const cookieStore = await cookies();
   cookieStore.set(IMPERSONATE_COOKIE, targetId, { httpOnly: true, sameSite: "lax", path: "/" });
-  
+
   await writeAuditLog({
     actorAccountId: String(admin.acct._id),
     action: "user.impersonation_started",
@@ -1274,7 +1274,11 @@ async function stopImpersonation() {
   if (!hasAccountCapability(admin.acct, "users.impersonate.read_only")) return;
   const cookieStore = await cookies();
   const impersonatedId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
-  cookieStore.delete(IMPERSONATE_COOKIE);
+  
+  // Force delete with explicit path and maxAge to ensure browser clears it
+  cookieStore.set(IMPERSONATE_COOKIE_NAME, "", { maxAge: 0, path: "/" });
+  cookieStore.delete(IMPERSONATE_COOKIE_NAME);
+  // Do NOT delete IMPERSONATE_ORIGINAL_EMAIL_COOKIE here
 
   if (impersonatedId) {
     await writeAuditLog({
@@ -1370,10 +1374,10 @@ export default async function AdminDashboardPage() {
     }),
     canManageTaskTemplates
       ? sanityFetch({
-          query: `*[_type == "workItem" && isTemplate == true] | order(title asc)[0..49]{
+        query: `*[_type == "workItem" && isTemplate == true] | order(title asc)[0..49]{
             _id, title, description, priority, visibility, createdAt
           }`,
-        })
+      })
       : Promise.resolve({ data: [] }),
     sanityFetch({
       query: `*[_type == "clientRequest" && status in ["submitted","in_review"]] | order(createdAt desc)[0..9]{
@@ -1390,25 +1394,25 @@ export default async function AdminDashboardPage() {
     }),
     canManageServices
       ? sanityFetch({
-          query: `*[_type == "clientService"] | order(coalesce(updatedAt, createdAt) desc)[0..49]{
+        query: `*[_type == "clientService"] | order(coalesce(updatedAt, createdAt) desc)[0..49]{
             _id, title, serviceType, status, statusNote, clientCanToggle, clientEnabled, createdAt, updatedAt,
             client->{_id, name, email}
           }`,
-        })
+      })
       : Promise.resolve({ data: [] }),
     canManageServices
       ? sanityFetch({
-          query: `*[_type == "serviceRequest" && status in ["submitted","in_review"]] | order(createdAt desc)[0..49]{
+        query: `*[_type == "serviceRequest" && status in ["submitted","in_review"]] | order(createdAt desc)[0..49]{
             _id, status, requestedServiceType, details, resolutionNote, createdAt, updatedAt,
             clientAccount->{_id, name, email},
             attachments[]{asset->{url, originalFilename}}
           }`,
-        })
+      })
       : Promise.resolve({ data: [] }),
     canManageFeatureFlags
       ? sanityFetch({
-          query: `*[_type == "featureFlag"] | order(key asc){_id, key, enabled, description, _updatedAt}`,
-        })
+        query: `*[_type == "featureFlag"] | order(key asc){_id, key, enabled, description, _updatedAt}`,
+      })
       : Promise.resolve({ data: [] }),
     sanityFetch({
       query: `*[_type == "messageThread" && $acctId in participants[]._ref] | order(coalesce(updatedAt, createdAt) desc)[0..9]{
@@ -1423,17 +1427,17 @@ export default async function AdminDashboardPage() {
     }),
     canViewLogs
       ? sanityFetch({
-          query: `*[_type == "auditLog"] | order(createdAt desc, _createdAt desc)[0..49]{
+        query: `*[_type == "auditLog"] | order(createdAt desc, _createdAt desc)[0..49]{
             _id, action, createdAt, targetType, targetLabel, context,
             actor->{_id, name, email, type}
           }`,
-        })
+      })
       : Promise.resolve({ data: [] }),
     impersonateId && canImpersonate
       ? sanityFetch({
-          query: `*[_type == "account" && _id == $id][0]{_id, email, name, type, status}`,
-          params: { id: impersonateId },
-        })
+        query: `*[_type == "account" && _id == $id][0]{_id, email, name, type, status}`,
+        params: { id: impersonateId },
+      })
       : Promise.resolve({ data: null }),
     sanityFetch({
       query: `*[_type == "invoice"] | order(issueDate desc)[0..49]{
@@ -1521,16 +1525,16 @@ export default async function AdminDashboardPage() {
   const editorStatsMap = allBriefs.reduce((map: Map<string, any>, brief: any) => {
     const assigneeId = brief.assignee_id;
     if (!assigneeId) return map;
-    
+
     const existing = map.get(assigneeId) || { editorId: assigneeId, totalEarned: 0, jobsCompleted: 0, activeJobs: 0 };
-    
+
     if (brief.status === "approved") {
-        existing.totalEarned += (typeof brief.price === "number" ? brief.price : 0);
-        existing.jobsCompleted += 1;
+      existing.totalEarned += (typeof brief.price === "number" ? brief.price : 0);
+      existing.jobsCompleted += 1;
     } else {
-        existing.activeJobs += 1;
+      existing.activeJobs += 1;
     }
-    
+
     map.set(assigneeId, existing);
     return map;
   }, new Map<string, any>());
@@ -1560,9 +1564,9 @@ export default async function AdminDashboardPage() {
     const scheduled = scheduleByDeliverable.get(String(d._id));
     return scheduled
       ? {
-          ...d,
-          scheduledAt: String(scheduled.startsAt || ""),
-        }
+        ...d,
+        scheduledAt: String(scheduled.startsAt || ""),
+      }
       : d;
   });
   const canCreateAny = hasAccountCapability(acct, "calendar.create");

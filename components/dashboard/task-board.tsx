@@ -134,8 +134,8 @@ export function TaskBoard() {
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-4">
-                <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                <div className="h-8 bg-gray-200 rounded w-12"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20 mb-2"></div>
+                <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded w-12"></div>
               </CardContent>
             </Card>
           ))}

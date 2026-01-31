@@ -24,12 +24,11 @@ export default async function FlowLayout({
   };
 
   return (
-    <div className={cn(
-      "min-h-screen bg-slate-50 dark:bg-slate-950 font-sans antialiased relative",
-      fontDisplay.variable
-    )}>
+    <div className="min-h-screen bg-background font-sans antialiased relative transition-colors duration-500">
       <FlowSettingsNav user={user} />
-      {children}
+      <main className="animate-in fade-in duration-700 ease-out">
+        {children}
+      </main>
     </div>
   );
 }

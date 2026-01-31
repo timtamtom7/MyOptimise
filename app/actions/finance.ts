@@ -91,7 +91,7 @@ export async function updateInvoiceStatus(formData: FormData) {
     );
 
     if (invoice?.client?.email) {
-      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/billing`; // Client sees it in billing
+      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3100"}/dashboard/billing`; // Client sees it in billing
       await sendEmail({
         to: invoice.client.email,
         subject: `New Invoice: ${invoice.invoiceNumber}`,

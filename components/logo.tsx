@@ -35,7 +35,7 @@ export default function Logo({
             alt={siteName}
             width={150}
             height={40}
-            className="h-10 w-auto object-contain dark:hidden"
+            className="h-full w-auto object-contain dark:hidden"
             priority
             suppressHydrationWarning
           />
@@ -45,7 +45,7 @@ export default function Logo({
             alt={siteName}
             width={150}
             height={40}
-            className="h-10 w-auto object-contain hidden dark:block"
+            className="h-full w-auto object-contain hidden dark:block"
             priority
             suppressHydrationWarning
           />

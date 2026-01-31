@@ -1,4 +1,4 @@
-import { safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession, IMPERSONATE_COOKIE_NAME } from "@/lib/auth";
 import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
@@ -15,7 +15,7 @@ import type { Brief } from "@/types/briefs";
 
 export const dynamic = "force-dynamic";
 
-const IMPERSONATE_COOKIE = "impersonateAccountId";
+const IMPERSONATE_COOKIE = IMPERSONATE_COOKIE_NAME;
 
 async function sendResendEmailWithFallback({
   resend,
@@ -44,7 +44,12 @@ async function sendResendEmailWithFallback({
   }
 }
 
-export default async function ManagerDashboardPage() {
+export default async function ManagerDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const { tab } = await searchParams;
   const session = await safeGetServerSession();
   if (!session) {
     redirect("/login?next=/dashboard/manager");
@@ -546,7 +551,10 @@ export default async function ManagerDashboardPage() {
   async function stopImpersonation() {
     "use server";
     const cookieStore = await cookies();
-    cookieStore.delete(IMPERSONATE_COOKIE);
+    // Force delete with explicit path and maxAge to ensure browser clears it
+    cookieStore.set(IMPERSONATE_COOKIE_NAME, "", { maxAge: 0, path: "/" });
+    cookieStore.delete(IMPERSONATE_COOKIE_NAME);
+    // Do NOT delete IMPERSONATE_ORIGINAL_EMAIL_COOKIE here, it is needed for session restoration
     redirect("/dashboard/admin");
   }
 
@@ -1083,6 +1091,7 @@ export default async function ManagerDashboardPage() {
 
   return (
     <ManagerView
+      defaultTab={typeof tab === "string" ? tab : "overview"}
       data={{
         employees,
         clients,

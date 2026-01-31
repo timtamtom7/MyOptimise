@@ -10,10 +10,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, LayoutDashboard, User } from "lucide-react";
+import { Settings, LogOut, LayoutDashboard, User, Sun, Moon, Laptop } from "lucide-react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 
 interface FlowSettingsNavProps {
   user: {
@@ -24,6 +28,8 @@ interface FlowSettingsNavProps {
 }
 
 export function FlowSettingsNav({ user }: FlowSettingsNavProps) {
+  const { setTheme } = useTheme();
+
   return (
     <div className="fixed top-4 right-4 z-50">
       <DropdownMenu>
@@ -66,6 +72,27 @@ export function FlowSettingsNav({ user }: FlowSettingsNavProps) {
                     <span>Profile Settings</span>
                 </Link>
             </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <Sun className="mr-2 h-4 w-4 dark:hidden" />
+                <Moon className="mr-2 h-4 w-4 hidden dark:block" />
+                <span>Theme</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer">
+                  <Sun className="mr-2 h-4 w-4" />
+                  <span>Light</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer">
+                  <Moon className="mr-2 h-4 w-4" />
+                  <span>Dark</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer">
+                  <Laptop className="mr-2 h-4 w-4" />
+                  <span>System</span>
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem 

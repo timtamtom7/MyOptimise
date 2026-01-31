@@ -2,7 +2,7 @@ import { urlFor } from "@/sanity/lib/image";
 import { PAGE_QUERYResult, POST_QUERYResult } from "@/sanity.types";
 const isProduction = process.env.NEXT_PUBLIC_SITE_ENV === "production";
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3100")
 ).replace(/\/$/, "");
 
 export function generatePageMetadata({

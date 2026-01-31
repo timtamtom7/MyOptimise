@@ -1,4 +1,4 @@
-import { safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession, IMPERSONATE_COOKIE_NAME } from "@/lib/auth";
 import { hasAccountCapability } from "@/lib/capabilities";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-const IMPERSONATE_COOKIE = "impersonateAccountId";
+const IMPERSONATE_COOKIE = IMPERSONATE_COOKIE_NAME;
 
 export default async function DashboardFeedbackPage() {
   const session = await safeGetServerSession();

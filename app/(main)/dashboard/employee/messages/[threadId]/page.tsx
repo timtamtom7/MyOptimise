@@ -1,4 +1,4 @@
-import { safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession, IMPERSONATE_COOKIE_NAME } from "@/lib/auth";
 import { hasAccountCapability } from "@/lib/capabilities";
 import { postThreadMessage, markThreadRead } from "@/app/actions/messages";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
@@ -11,7 +11,7 @@ import { MessageList } from "@/components/messages/MessageList";
 
 export const dynamic = "force-dynamic";
 
-const IMPERSONATE_COOKIE = "impersonateAccountId";
+const IMPERSONATE_COOKIE = IMPERSONATE_COOKIE_NAME;
 
 export default async function EmployeeThreadPage(props: { params: Promise<{ threadId: string }> }) {
   const { threadId } = await props.params;

@@ -52,7 +52,7 @@ export function DeliverablesTab({ clientId, deliverables, activeCampaigns, brand
                     className={
                       d.status === 'approved' ? 'bg-green-500' : 
                       d.status === 'client_review' ? 'bg-blue-500' : 
-                      d.status === 'internal_review' ? 'bg-purple-500' :
+                      d.status === 'internal_review' ? 'bg-blue-600' :
                       d.status === 'changes_requested' ? 'bg-orange-500' :
                       'bg-slate-500'
                     }

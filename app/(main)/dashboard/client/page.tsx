@@ -122,7 +122,7 @@ export default async function ClientDashboardPage() {
     // Notify admins
     const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(Boolean);
     if (adminEmails.length > 0) {
-      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/admin/intake`;
+      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3100"}/dashboard/admin/intake`;
       await sendEmail({
         to: adminEmails,
         subject: `New Request from ${acct.name}: ${subject}`,
@@ -191,7 +191,7 @@ export default async function ClientDashboardPage() {
     // Notify admins of reply
     const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim()).filter(Boolean);
     if (adminEmails.length > 0) {
-      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/admin/intake`;
+      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3100"}/dashboard/admin/intake`;
       await sendEmail({
         to: adminEmails,
         subject: `New Reply from ${acct.name}: ${canUpdate.subject}`,
@@ -469,11 +469,11 @@ ${details.join("\n")}`;
     }),
     canViewServices
       ? sanityFetch({
-          query: `*[_type == "clientService" && client._ref == $acctId] | order(coalesce(updatedAt, createdAt) desc)[0..49]{
+        query: `*[_type == "clientService" && client._ref == $acctId] | order(coalesce(updatedAt, createdAt) desc)[0..49]{
             _id, title, serviceType, status, statusNote, clientCanToggle, clientEnabled, createdAt, updatedAt
           }`,
-          params: { acctId },
-        })
+        params: { acctId },
+      })
       : Promise.resolve({ data: [] }),
     sanityFetch({
       query: `*[_type == "serviceRequest" && clientAccount._ref == $acctId] | order(createdAt desc)[0..19]{
@@ -483,7 +483,7 @@ ${details.join("\n")}`;
       params: { acctId },
     }),
     sanityFetch({
-        query: `*[_type == "deliverable" && campaign->client._ref == $acctId] | order(createdAt desc) {
+      query: `*[_type == "deliverable" && campaign->client._ref == $acctId] | order(createdAt desc) {
           _id, title, status, type, dueDate, createdAt,
           hook, script, visualDirection, creativeGoal, contentConcept,
           statusHistory[]{fromStatus, toStatus, changedAt, changedBy->{name, email}},
@@ -493,23 +493,23 @@ ${details.join("\n")}`;
           "assigneeName": assignedTo->name,
           assets[]{url, originalFilename}
         }`,
-        params: { acctId },
-      }),
-      sanityFetch({
-        query: `*[_type == "campaign" && client._ref == $acctId && status in ["active", "planned"]] | order(startDate asc){
+      params: { acctId },
+    }),
+    sanityFetch({
+      query: `*[_type == "campaign" && client._ref == $acctId && status in ["active", "planned"]] | order(startDate asc){
           _id, title, description, startDate, endDate, status
         }`,
-        params: { acctId },
-      }),
-      sanityFetch({
-        query: `*[_type == "contentItem" && client._ref == $acctId]{
+      params: { acctId },
+    }),
+    sanityFetch({
+      query: `*[_type == "contentItem" && client._ref == $acctId]{
           _id, title, caption, scheduledAt, status, platform, postType,
           "firstAssetUrl": media[0].asset->url,
           "firstAssetMime": media[0].asset->mimeType,
           annotations
         }`,
-        params: { acctId },
-      }),
+      params: { acctId },
+    }),
     sanityFetch({
       query: `*[_type == "socialConnection" && client._ref == $acctId]{
         _id, platform, pageName, status, pageId
@@ -522,7 +522,7 @@ ${details.join("\n")}`;
       }`,
       params: { acctId },
     }),
-    ]);
+  ]);
 
   const myRequests = ((myRequestsRes as any)?.data ?? []) as any[];
   const supportStaff = ((supportStaffRes as any)?.data ?? []) as any[];
@@ -599,8 +599,8 @@ ${details.join("\n")}`;
           createOrOpenSupportThread,
           setClientServiceEnabled,
           submitServiceRequest,
-          approveDeliverable,
-          rejectDeliverable,
+          approveDeliverable: async (formData) => { await approveDeliverable(formData); },
+          rejectDeliverable: async (formData) => { await rejectDeliverable(formData); },
           suggestBrandAssetTags,
         }}
         capabilities={{

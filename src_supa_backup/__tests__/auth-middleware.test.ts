@@ -33,7 +33,7 @@ describe('AuthMiddleware', () => {
 
   describe('authenticateRequest', () => {
     it('should return null for missing authorization header', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test')
+      const request = new NextRequest('http://localhost:3100/api/test')
       const user = await middleware.authenticateRequest(request)
       expect(user).toBeNull()
     })

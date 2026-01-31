@@ -71,6 +71,21 @@ export default defineType({
       title: "Strategy Deck",
       fields: [
         defineField({
+            name: "status",
+            type: "string",
+            title: "Strategy Status",
+            options: {
+                list: [
+                    { title: "Drafting", value: "drafting" },
+                    { title: "Internal Review", value: "internal_review" },
+                    { title: "Client Review", value: "client_review" },
+                    { title: "Approved", value: "approved" }
+                ],
+                layout: "radio"
+            },
+            initialValue: "drafting"
+        }),
+        defineField({
             name: "slides",
             type: "array",
             title: "Slides",
@@ -90,14 +105,35 @@ export default defineType({
                                     { title: "Text Only", value: "text" },
                                     { title: "Split (Text + Image)", value: "split" },
                                     { title: "Grid (Data/Pillars)", value: "grid" },
-                                    { title: "Full Image", value: "image" }
+                                    { title: "Full Image", value: "image" },
+                                    { title: "Persona Profile", value: "persona" },
+                                    { title: "Mobile Mockup", value: "mockup" },
+                                    { title: "Visual Statement", value: "statement" },
+                                    { title: "Image Gallery", value: "gallery" }
                                 ] 
                             },
                             initialValue: "text"
                         }),
                         defineField({ name: "content", type: "text", title: "Content (Markdown)" }),
-                        defineField({ name: "image", type: "image", title: "Image" }),
-                        defineField({ name: "notes", type: "text", title: "Speaker Notes" }),
+                        defineField({
+                            name: "image",
+                            type: "image",
+                            title: "Image",
+                            options: { hotspot: true }
+                        }),
+                        defineField({
+                            name: "galleryImages",
+                            title: "Gallery Images",
+                            type: "array",
+                            of: [{ type: "image", options: { hotspot: true } }],
+                            hidden: ({ parent }) => parent?.layout !== 'gallery'
+                        }),
+                        defineField({
+                            name: "notes",
+                            type: "text",
+                            title: "Speaker Notes",
+                            rows: 3
+                        }),
                         defineField({
                             name: "comments",
                             type: "array",
@@ -255,7 +291,8 @@ export default defineType({
             options: {
                 list: [
                     { title: "Draft", value: "draft" },
-                    { title: "In Review", value: "review" },
+                    { title: "Internal Review", value: "review" },
+                    { title: "Client Review", value: "client_review" },
                     { title: "Approved", value: "approved" },
                     { title: "Changes Requested", value: "changes_requested" }
                 ],

@@ -8,6 +8,9 @@ import crypto from "crypto";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { cookies } from "next/headers";
 
+export const IMPERSONATE_COOKIE_NAME = "impersonateAccountId";
+export const IMPERSONATE_ORIGINAL_EMAIL_COOKIE = "impersonateOriginalEmail";
+
 export function getGoogleOAuthConfig(): { clientId: string; clientSecret: string } {
   const clientId =
     process.env.GOOGLE_CLIENT_ID?.trim() ||
@@ -100,7 +103,7 @@ export function getAuthOptions(): NextAuthOptions {
     },
     session: { strategy: "jwt" },
     callbacks: {
-      async signIn({ account, profile, user }) {
+      async signIn({ account, profile, user }: any) {
         if (account?.provider === "google") {
           const email = String((user as any)?.email || (profile as any)?.email || "");
           if (!email) return true;
@@ -143,7 +146,7 @@ export function getAuthOptions(): NextAuthOptions {
         }
         return true;
       },
-      async jwt({ token, account, user }) {
+      async jwt({ token, account, user }: any) {
         const provider = String(account?.provider || (token as any).provider || "");
         if (provider) (token as any).provider = provider;
 
@@ -188,15 +191,31 @@ export function getAuthOptions(): NextAuthOptions {
             
             if (isAdminOrImpersonating) {
               const cookieStore = await cookies();
-              const impersonateId = cookieStore.get("impersonateAccountId")?.value;
+              const impersonateId = cookieStore.get(IMPERSONATE_COOKIE_NAME)?.value;
+
               if (impersonateId) {
+                 // CASE 1: Impersonation Cookie Exists (Start or Continue Impersonation)
                  const impersonatedAcct = await fetchSanityAccountById({ id: impersonateId });
                  if (impersonatedAcct && impersonatedAcct.status !== "disabled") {
                     (token as any).isImpersonating = true;
                     // If we are starting impersonation, save the original details
-                    if (!(token as any).originalUserEmail) {
-                        (token as any).originalUserEmail = email;
-                        (token as any).originalAccountId = acct._id;
+                    // We check if we are currently the original user before saving
+                    // If isImpersonating is false, we are the original user
+                    
+                    // DEBUG LOGGING
+                    console.log("[Auth] Impersonation Check - Token:", { 
+                        isImpersonating: (token as any).isImpersonating, 
+                        originalEmail: (token as any).originalUserEmail,
+                        currentEmail: email 
+                    });
+
+                    if (!(token as any).isImpersonating || !(token as any).originalUserEmail) {
+                        // Use the current token/user info as the original
+                        if (!(token as any).originalUserEmail) {
+                           // If we are starting impersonation, 'email' variable holds the current user's email (Admin)
+                           (token as any).originalUserEmail = email;
+                           (token as any).originalAccountId = acct._id;
+                        }
                     }
                     
                     // Override with impersonated user details
@@ -205,6 +224,9 @@ export function getAuthOptions(): NextAuthOptions {
                     (token as any).name = impersonatedAcct.name;
                     (token as any).type = impersonatedAcct.type;
                     (token as any).isAdmin = impersonatedAcct.type === "admin"; // Usually false
+                    (token as any).sessionVersion = typeof impersonatedAcct.sessionVersion === "number" && Number.isFinite(impersonatedAcct.sessionVersion) 
+                        ? impersonatedAcct.sessionVersion 
+                        : 1;
                     
                     const impCaps = resolveCapabilities(
                       impersonatedAcct.type || "employee",
@@ -213,26 +235,56 @@ export function getAuthOptions(): NextAuthOptions {
                     );
                     (token as any).capabilities = impCaps;
                  }
-              } else if ((token as any).isImpersonating && (token as any).originalUserEmail) {
-                 // Restore original user
-                 const originalEmail = (token as any).originalUserEmail;
-                 const originalAcct = await fetchSanityAccountByEmail({ email: originalEmail });
-                 if (originalAcct && originalAcct.status !== "disabled") {
-                    (token as any).accountId = originalAcct._id;
-                    (token as any).email = originalAcct.email;
-                    (token as any).name = originalAcct.name;
-                    (token as any).type = originalAcct.type;
-                    (token as any).isAdmin = originalAcct.type === "admin";
-                    (token as any).capabilities = resolveCapabilities(
-                      originalAcct.type || "employee",
-                      (originalAcct.capabilities as string[]) || [],
-                      (originalAcct.revokedCapabilities as string[]) || []
-                    );
-                    
-                    delete (token as any).isImpersonating;
-                    delete (token as any).originalUserEmail;
-                    delete (token as any).originalAccountId;
-                 }
+              } else if ((token as any).isImpersonating) {
+                  // CASE 2: Impersonation Cookie Missing but Flag True (Stop Impersonation)
+                  // Restore original user
+                  const originalEmail = (token as any).originalUserEmail;
+                  const originalAccountId = (token as any).originalAccountId;
+                  
+                  // Fallback to cookie if token not populated (older sessions)
+                  const cookieStore = await cookies();
+                  const originalEmailCookie = cookieStore.get(IMPERSONATE_ORIGINAL_EMAIL_COOKIE)?.value;
+                  
+                  console.log("[Auth] Stopping impersonation. Token Original Email:", originalEmail, "Token Original ID:", originalAccountId, "Cookie Original:", originalEmailCookie);
+
+                  let originalAcct;
+
+                  if (originalAccountId) {
+                      originalAcct = await fetchSanityAccountById({ id: originalAccountId });
+                  }
+
+                  const emailToRestore = originalEmail || originalEmailCookie;
+
+                  if (!originalAcct && emailToRestore) {
+                      originalAcct = await fetchSanityAccountByEmail({ email: emailToRestore });
+                  }
+                  
+                  if (originalAcct && originalAcct.status !== "disabled") {
+                      console.log("[Auth] Restoring original account:", originalAcct.email);
+                      (token as any).accountId = originalAcct._id;
+                      (token as any).email = originalAcct.email;
+                      (token as any).name = originalAcct.name;
+                      (token as any).type = originalAcct.type;
+                      (token as any).isAdmin = originalAcct.type === "admin";
+                      (token as any).sessionVersion = typeof originalAcct.sessionVersion === "number" && Number.isFinite(originalAcct.sessionVersion)
+                        ? originalAcct.sessionVersion
+                        : 1;
+
+                      const caps = resolveCapabilities(
+                        originalAcct.type || "employee",
+                        (originalAcct.capabilities as string[]) || [],
+                        (originalAcct.revokedCapabilities as string[]) || []
+                      );
+                      (token as any).capabilities = caps;
+
+                      // Clean up
+                      delete (token as any).isImpersonating;
+                      delete (token as any).originalUserEmail;
+                      delete (token as any).originalAccountId;
+                  } else {
+                      console.error("[Auth] Original account disabled or not found:", emailToRestore);
+                      (token as any).invalid = true;
+                  }
               }
             }
 
@@ -243,7 +295,7 @@ export function getAuthOptions(): NextAuthOptions {
         }
         return token;
       },
-      async session({ session, token }) {
+      async session({ session, token }: any) {
         if ((token as any)?.invalid) {
           throw new Error("Session invalidated");
         }
@@ -265,7 +317,22 @@ export async function safeGetServerSession() {
   console.log("safeGetServerSession: start");
   try {
     const { getServerSession } = await import("next-auth");
-    const result = await getServerSession(getAuthOptions());
+    let result = await getServerSession(getAuthOptions());
+
+    // DEV ONLY block removed to prevent session forging bugs
+    /*
+    if (!result && (process.env.NODE_ENV !== 'production' || process.env.VERCEL_PREVIEW_URL)) {
+      try {
+        const cookieStore = await cookies();
+        const impersonateId = cookieStore.get("impersonateAccountId")?.value;
+        // ... (removed)
+      } catch (err) {
+        console.error("safeGetServerSession: dev bypass error", err);
+      }
+    }
+    */
+
+
     console.log("safeGetServerSession: success");
     return result;
   } catch (e) {
@@ -273,6 +340,3 @@ export async function safeGetServerSession() {
     return null;
   }
 }
-
-
-

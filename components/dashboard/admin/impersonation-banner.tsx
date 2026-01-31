@@ -14,8 +14,15 @@ export function ImpersonationBanner({ originalUserEmail }: ImpersonationBannerPr
   const handleStopImpersonating = async () => {
     try {
         await fetch("/api/auth/impersonate/stop", { method: "POST" });
-        router.push("/dashboard");
+        
+        // Manual cookie cleanup to ensure client-side state is cleared
+        document.cookie = "impersonateAccountId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+        document.cookie = "impersonateAccountId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure";
+        
+        // Use router.refresh() instead of window.location.href to avoid full page reload race conditions
+        // and allow the server component to re-render with the restored session.
         router.refresh();
+        router.push("/dashboard"); // Ensure we are on the dashboard
     } catch (error) {
         console.error("Failed to stop impersonating", error);
     }

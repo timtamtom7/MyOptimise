@@ -197,37 +197,68 @@ export async function predictDeliverableSuccess(context: any, deliverable: any) 
                     Pillars: ${context.strategicPillars?.join(", ")}
 
                     PROPOSED DELIVERABLE:
-                    Title: ${deliverable.title}
-                    Format: ${deliverable.type}
+                    Type: ${deliverable.type}
                     Platform: ${deliverable.platform}
-                    Visual Direction: ${deliverable.visualDirection}
+                    Title: ${deliverable.title}
                     Description: ${deliverable.description}
-                    
-                    Return strict JSON.`
+                    Visual Direction: ${deliverable.visualDirection}`
                 }
-            ]
+            ],
+            response_format: { type: "json_object" }
         });
-
+        
         const content = response.choices[0].message.content;
+        const result = JSON.parse(content || "{}");
         
-        // Find JSON object in response
-        const jsonStart = content?.indexOf('{');
-        const jsonEnd = content?.lastIndexOf('}');
-        
-        if (jsonStart !== undefined && jsonEnd !== undefined && jsonStart !== -1 && jsonEnd !== -1) {
-            const jsonString = content?.substring(jsonStart, jsonEnd + 1);
-            try {
-                const result = JSON.parse(jsonString || "{}");
-                return { success: true, prediction: result };
-            } catch (e) {
-                console.error("JSON Parse Error:", e);
-                return { error: "Failed to parse prediction" };
-            }
-        } else {
-             return { error: "No valid JSON found in AI response" };
-        }
+        return { success: true, prediction: result };
     } catch (e) {
         console.error("Prediction Error:", e);
         return { error: "Failed to predict success" };
+    }
+}
+
+export async function checkDeliverableQuality(deliverable: any) {
+    const session = await safeGetServerSession();
+    if (!session) return { error: "Unauthorized" };
+
+    try {
+        const response = await deepseek.chat.completions.create({
+            model: "deepseek-chat",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a Senior Content Manager. Your job is to review a brief for a content creator/editor and ensure it has absolutely everything they need to create the asset without asking questions.
+                    
+                    Analyze the deliverable brief.
+                    Return a JSON object: 
+                    { 
+                        "status": "approved" | "needs_improvement",
+                        "score": number (0-100),
+                        "missing_elements": ["list of what is missing or unclear"],
+                        "editor_clarity_score": number (0-100),
+                        "feedback": "Specific advice on how to make this clearer for an editor."
+                    }`
+                },
+                {
+                    role: "user",
+                    content: `DELIVERABLE BRIEF:
+                    Title: ${deliverable.title}
+                    Type: ${deliverable.type}
+                    Platform: ${deliverable.platform}
+                    Description: ${deliverable.description}
+                    Visual Direction: ${deliverable.visualDirection}
+                    Reference Assets: ${deliverable.assets?.length || 0} attached`
+                }
+            ],
+            response_format: { type: "json_object" }
+        });
+        
+        const content = response.choices[0].message.content;
+        const result = JSON.parse(content || "{}");
+        
+        return { success: true, qualityCheck: result };
+    } catch (e) {
+        console.error("Quality Check Error:", e);
+        return { error: "Failed to check quality" };
     }
 }

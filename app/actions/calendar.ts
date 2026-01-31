@@ -1,6 +1,6 @@
 "use server";
 
-import { safeGetServerSession } from "@/lib/auth";
+import { safeGetServerSession, IMPERSONATE_COOKIE_NAME } from "@/lib/auth";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { client } from "@/sanity/lib/client";
 import { revalidatePath } from "next/cache";
@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasAccountCapability } from "@/lib/capabilities";
 
-const IMPERSONATE_COOKIE = "impersonateAccountId";
+const IMPERSONATE_COOKIE = IMPERSONATE_COOKIE_NAME;
 
 function normalizeIdList(input: unknown): string[] {
   return String(input || "")

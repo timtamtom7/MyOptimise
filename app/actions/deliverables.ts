@@ -56,7 +56,6 @@ export async function updateDeliverableStatus(formData: FormData) {
   await patch.commit();
 
   revalidatePath("/flow/manager");
-  return { success: true };
 }
 
 export async function submitDeliverableVersion(formData: FormData) {
@@ -248,32 +247,39 @@ export async function approveDeliverable(formData: FormData) {
 
 export async function rejectDeliverable(formData: FormData) {
     const session = await safeGetServerSession();
-    if (!session) return { error: "Unauthorized" };
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return { error: "Unauthorized" };
 
     const id = String(formData.get("deliverableId"));
     const reason = String(formData.get("rejectionReason") || "");
 
     if (!id) return { error: "Missing ID" };
 
-    // Ideally add reason to comments or separate field
-    // For now just status change
-    await writeClient.patch(id).set({ status: "changes_requested" }).commit();
-    
-    // If reason exists, maybe add a comment?
-    if (reason) {
-        const acct = await fetchSanityAccountByEmail({ email: session.user?.email || "" });
-        if (acct) {
-            const comment = {
-                _key: randomUUID(),
-                text: `CHANGES REQUESTED: ${reason}`,
-                timestamp: 0,
-                createdAt: new Date().toISOString(),
-                author: { _type: "reference", _ref: acct._id }
-            };
-             // Need to find which version to attach to? Or just latest?
-             // For now, simple implementation or skip comment
-        }
+    const acct = await fetchSanityAccountByEmail({ email });
+    if (!acct) return { error: "Account not found" };
+
+    // Fetch deliverable to get version history length
+    const deliverable = await writeClient.fetch(`*[_type == "deliverable" && _id == $id][0]`, { id });
+    if (!deliverable) return { error: "Deliverable not found" };
+
+    const patch = writeClient.patch(id).set({ status: "changes_requested" });
+
+    // If reason exists and there are versions, add comment to latest version
+    if (reason && deliverable.versionHistory && deliverable.versionHistory.length > 0) {
+        const latestVersionIndex = deliverable.versionHistory.length - 1;
+        const comment = {
+            _key: randomUUID(),
+            text: `🔴 **CHANGES REQUESTED**\n${reason}`,
+            timestamp: 0,
+            createdAt: new Date().toISOString(),
+            author: { _type: "reference", _ref: acct._id }
+        };
+
+        patch.setIfMissing({ [`versionHistory[${latestVersionIndex}].comments`]: [] });
+        patch.append(`versionHistory[${latestVersionIndex}].comments`, [comment]);
     }
+
+    await patch.commit();
 
     revalidatePath("/flow/client");
     return { success: true };

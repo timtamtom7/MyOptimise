@@ -146,7 +146,7 @@ interface AdminViewProps {
     assignWorkItem: (formData: FormData) => Promise<void>;
     deleteWorkItem: (formData: FormData) => Promise<void>;
     updateStatus: (formData: FormData) => Promise<void>;
-     updateDeliverableStatus: (formData: FormData) => Promise<void>;
+    updateDeliverableStatus: (formData: FormData) => Promise<any>;
     inviteGoogleAccount: (formData: FormData) => Promise<void>;
     updateAccount: (formData: FormData) => Promise<void>;
     removeAccount: (formData: FormData) => Promise<void>;

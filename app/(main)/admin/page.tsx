@@ -155,7 +155,7 @@ export default async function AdminPage(props: {
   const inviteBaseUrl = (
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXTAUTH_URL ||
-    "http://localhost:3000"
+    "http://localhost:3100"
   ).replace(/\/$/, "");
   const inviteLink = inviteEmail
     ? `${inviteBaseUrl}/login?email=${encodeURIComponent(inviteEmail)}`
@@ -302,7 +302,7 @@ export default async function AdminPage(props: {
               const baseUrl = (
                 process.env.NEXT_PUBLIC_SITE_URL ||
                 process.env.NEXTAUTH_URL ||
-                "http://localhost:3000"
+                "http://localhost:3100"
               ).replace(/\/$/, "");
               const loginUrl = `${baseUrl}/login?email=${encodeURIComponent(email)}`;
               await sendResendEmailWithFallback({

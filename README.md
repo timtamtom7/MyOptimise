@@ -28,7 +28,7 @@ This command will:
 
 - Create a new Sanity project
 - Add API Read Token
-- Configure CORS origin for http://localhost:3000
+- Configure CORS origin for http://localhost:3100
 - Set up environment variables
 - Clone the repository
 - Install dependencies

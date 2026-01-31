@@ -57,7 +57,7 @@ export function ApprovalsTab({ deliverables, onApprove, onReject }: ApprovalsTab
         onStatusUpdate={async (id, status, feedback) => {
           const formData = new FormData();
           formData.append("deliverableId", id);
-          if (feedback) formData.append("notes", feedback); // Use 'notes' for rejection reason in onReject
+          if (feedback) formData.append("rejectionReason", feedback); // Use 'rejectionReason' for rejection
 
           if (status === "approved") {
             await onApprove(formData);

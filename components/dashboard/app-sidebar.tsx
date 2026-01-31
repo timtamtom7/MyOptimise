@@ -1,3 +1,5 @@
+"use client";
+
 import { hasAccountCapability } from "@/lib/capabilities";
 import { SidebarNav } from "./sidebar-nav";
 import {
@@ -17,7 +19,13 @@ import {
   LogOut,
   PenTool,
   TrendingUp,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
 } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface AppSidebarProps {
   account: any;
@@ -25,6 +33,8 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ account, className }: AppSidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const type = String(account?.type || "").toLowerCase();
   const menuItems: { title: string; href: string; icon: any; exact?: boolean; badge?: string }[] = [];
   const generalItems: { title: string; href: string; icon: any; exact?: boolean; badge?: string }[] = [];
@@ -41,7 +51,7 @@ export function AppSidebar({ account, className }: AppSidebarProps) {
 
   if (type === "employee" || type === "manager" || type === "admin") {
     if (hasAccountCapability(account, "tasks.read")) {
-      const tasksHref = type === "manager" ? `/dashboard/manager` : `/dashboard/${type}/tasks`;
+      const tasksHref = type === "manager" ? `/dashboard/manager?tab=tasks` : `/dashboard/${type}/tasks`;
       // TODO: Fetch real task count
       menuItems.push({ title: "Tasks", href: tasksHref, icon: "CheckSquare", badge: "12+" });
     }
@@ -101,7 +111,28 @@ export function AppSidebar({ account, className }: AppSidebarProps) {
 
 
   return (
-    <div className={`w-64 border-r border-border bg-background flex flex-col h-screen sticky top-0 ${className}`}>
+    <>
+      {/* Mobile Toggle Button */}
+      <div className="md:hidden fixed top-4 left-4 z-50">
+        <Button variant="outline" size="icon" onClick={() => setIsMobileOpen(!isMobileOpen)} className="bg-background/80 backdrop-blur">
+          <Menu className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+    <div className={cn(
+        "w-64 border-r border-border bg-background flex flex-col transition-transform duration-300 ease-in-out z-50",
+        "fixed md:sticky top-0 h-screen",
+        isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        className
+    )}>
       
       {/* Spacer / Logo Area */}
       <div className="p-6 pb-2">
@@ -129,17 +160,18 @@ export function AppSidebar({ account, className }: AppSidebarProps) {
       </div>
 
       {/* Footer / Profile minimal */}
-      <div className="p-4 border-t border-border bg-muted/10">
+      <div className="p-4 border-t border-border bg-slate-50 dark:bg-slate-900/50">
          <div className="flex items-center gap-3 px-2">
-           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0 text-xs">
+           <div className="h-8 w-8 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-white font-bold shrink-0 text-xs shadow-sm">
              {account.name?.charAt(0) || "O"}
            </div>
            <div className="flex flex-col overflow-hidden min-w-0">
-             <div className="font-medium truncate text-sm">{account.name}</div>
-             <div className="text-[10px] text-muted-foreground truncate capitalize">{type}</div>
+             <div className="font-medium truncate text-sm text-slate-900 dark:text-slate-100">{account.name}</div>
+             <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate capitalize">{type}</div>
            </div>
         </div>
       </div>
     </div>
+    </>
   );
 }

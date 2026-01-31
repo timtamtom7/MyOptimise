@@ -32,7 +32,7 @@ export function AdminInsights() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-indigo-500" />
+            <Sparkles className="h-5 w-5 text-blue-600" />
             AI Operations Radar
           </CardTitle>
           <CardDescription>Scanning for operational risks and opportunities...</CardDescription>
@@ -51,7 +51,7 @@ export function AdminInsights() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-indigo-500" />
+            <Sparkles className="h-5 w-5 text-blue-600" />
             AI Operations Radar
           </CardTitle>
           <CardDescription>All systems normal. No critical risks detected.</CardDescription>
@@ -61,12 +61,12 @@ export function AdminInsights() {
   }
 
   return (
-    <Card className="border-indigo-100 bg-indigo-50/10 dark:bg-indigo-950/10 dark:border-indigo-900">
+    <Card className="border-blue-100 bg-blue-50/10 dark:bg-blue-950/10 dark:border-blue-900">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-indigo-500" />
+              <Sparkles className="h-5 w-5 text-blue-600" />
               AI Operations Radar
             </CardTitle>
             <CardDescription>
@@ -74,7 +74,7 @@ export function AdminInsights() {
             </CardDescription>
           </div>
           {data.aiSummary && (
-             <Badge variant="outline" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300 border-indigo-200">
+             <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200">
                 AI Analysis Active
              </Badge>
           )}
@@ -82,8 +82,8 @@ export function AdminInsights() {
       </CardHeader>
       <CardContent className="space-y-6">
         {data.aiSummary && (
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900 shadow-sm">
-            <h4 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-2 flex items-center gap-2">
+          <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-blue-100 dark:border-blue-900 shadow-sm">
+            <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-2">
                 <Sparkles className="h-3 w-3" />
                 Strategic Summary
             </h4>
@@ -123,7 +123,7 @@ function InsightItem({ insight }: { insight: Insight }) {
         {insight.actionUrl && (
           <Link
             href={insight.actionUrl}
-            className="inline-flex items-center gap-1 mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="inline-flex items-center gap-1 mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
           >
             {insight.actionLabel || "Take Action"} <ArrowRight className="h-3 w-3" />
           </Link>

@@ -16,7 +16,7 @@ async function requireEditor() {
   const acct = await fetchSanityAccountByEmail({ email });
   if (!acct) return null;
   if (acct.status === "disabled") return null;
-  
+
   const type = String(acct.type || "").toLowerCase();
   // Allow editors, admins, and managers to view
   if (type !== "editor" && type !== "admin" && type !== "manager") return null;
@@ -67,8 +67,8 @@ export default async function EditorDashboardPage() {
 
   const mapStatus = (s: string): Brief['status'] => {
     switch (s) {
-      case 'todo': return 'draft'; 
-      case 'drafting': return 'assigned'; 
+      case 'todo': return 'draft';
+      case 'drafting': return 'assigned';
       case 'internal_review': return 'in_review';
       case 'client_review': return 'client_review';
       case 'approved': return 'approved';
@@ -93,23 +93,23 @@ export default async function EditorDashboardPage() {
 
     const requiredAssets = Array.isArray(d.assets)
       ? d.assets
-          .map((asset: any) => {
-            if (asset?._type === "file" && asset?.asset?.url) {
-              return { 
-                type: "file" as const, 
-                url: asset.asset.url,
-                name: asset.asset.originalFilename || "Attached File"
-              };
-            }
-            if (typeof asset === "string") {
-              return { type: "url" as const, url: asset };
-            }
-            if (asset && typeof asset.url === "string") {
-              return { type: "url" as const, url: asset.url };
-            }
-            return null;
-          })
-          .filter((item: { type: "file" | "url"; url: string } | null): item is { type: "file" | "url"; url: string; name?: string } => Boolean(item && item.url))
+        .map((asset: any) => {
+          if (asset?._type === "file" && asset?.asset?.url) {
+            return {
+              type: "file" as const,
+              url: asset.asset.url,
+              name: asset.asset.originalFilename || "Attached File"
+            };
+          }
+          if (typeof asset === "string") {
+            return { type: "url" as const, url: asset };
+          }
+          if (asset && typeof asset.url === "string") {
+            return { type: "url" as const, url: asset.url };
+          }
+          return null;
+        })
+        .filter((item: { type: "file" | "url"; url: string } | null): item is { type: "file" | "url"; url: string; name?: string } => Boolean(item && item.url))
       : null;
 
     return {
@@ -135,9 +135,9 @@ export default async function EditorDashboardPage() {
       deadline: d.dueDate || null,
       platform: d.platform || null,
       format: d.format || null,
-      metadata: { 
-        client: d.client?.name, 
-        campaign: d.campaign?.title, 
+      metadata: {
+        client: d.client?.name,
+        campaign: d.campaign?.title,
         dueDate: d.dueDate,
         format: d.format,
         brandTags,
@@ -189,41 +189,41 @@ export default async function EditorDashboardPage() {
   // Available: Not assigned, and status is "drafting" (Ready for Editor)
   // In our mapped Brief model, that appears as "assigned".
   const availableBriefs = briefs.filter((b: Brief) => !b.assignee_id && b.status === "assigned");
-  
+
   // Note: Sanity 'drafting' maps to Brief 'assigned'.
   // If no assignee, it means it's ready to be claimed.
 
   const allOpenBriefs = [...availableBriefs, ...assignedBriefs];
 
   const editorViewData = {
-    user: { 
-        name: ctx.acct.name || "Editor", 
-        email: ctx.email, 
-        id: ctx.acct._id 
+    user: {
+      name: ctx.acct.name || "Editor",
+      email: ctx.email,
+      id: ctx.acct._id
     },
     assignedBriefs: allOpenBriefs,
     completedBriefs: completedBriefs
   };
 
   const editorActions = {
-    submitDeliverable: submitDeliverableVersion,
-    updateBriefStatus: updateDeliverableStatus,
-    claimDeliverable: claimDeliverable,
+    submitDeliverable: async (formData: FormData) => { await submitDeliverableVersion(formData); },
+    updateBriefStatus: async (formData: FormData) => { await updateDeliverableStatus(formData); },
+    claimDeliverable: async (formData: FormData) => { await claimDeliverable(formData); },
     createUploadUrl: async (path: string) => {
       "use server";
       try {
-          // @ts-ignore
-          const { data, error } = await supabaseAdmin.storage
-              .from('deliverables')
-              .createSignedUploadUrl(path);
-          if (error || !data) {
-              console.error("Upload URL error:", error);
-              return null;
-          }
-          return { signedUrl: data.signedUrl, token: data.token, path: data.path };
-      } catch (e) {
-          console.error("Upload URL exception:", e);
+        // @ts-ignore
+        const { data, error } = await supabaseAdmin.storage
+          .from('deliverables')
+          .createSignedUploadUrl(path);
+        if (error || !data) {
+          console.error("Upload URL error:", error);
           return null;
+        }
+        return { signedUrl: data.signedUrl, token: data.token, path: data.path };
+      } catch (e) {
+        console.error("Upload URL exception:", e);
+        return null;
       }
     }
   };

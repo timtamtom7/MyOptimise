@@ -26,7 +26,7 @@ export default async function Header() {
       <div className="w-full px-6 flex h-16 items-center justify-between">
         <Link href="/" aria-label="Home page">
           <div className="flex items-center">
-            <Logo settings={settings} className="h-7 w-auto" />
+            <Logo settings={settings} className="h-5 w-auto" />
           </div>
         </Link>
         <div className="hidden xl:flex gap-7 items-center justify-between">

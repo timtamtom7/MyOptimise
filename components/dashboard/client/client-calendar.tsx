@@ -187,7 +187,7 @@ export function ClientCalendar({ events, onDateClick, onEventClick, drafts = [],
                                 event.type === 'campaign' && "bg-blue-100 text-blue-600",
                                 event.type === 'deliverable' && "bg-green-100 text-green-600",
                                 event.type === 'approval' && "bg-orange-100 text-orange-600",
-                                event.type === 'content' && "bg-purple-100 text-purple-600",
+                                event.type === 'content' && "bg-sky-100 text-sky-600",
                             )}>
                                 {event.type === 'campaign' && <Flag className="h-4 w-4" />}
                                 {event.type === 'deliverable' && <Package className="h-4 w-4" />}
@@ -358,7 +358,7 @@ function EventChip(props: {
         event.type === 'campaign' && "bg-blue-100 text-blue-700",
         event.type === 'deliverable' && "bg-green-100 text-green-700",
         event.type === 'approval' && "bg-orange-100 text-orange-700",
-        event.type === 'content' && "bg-purple-100 text-purple-700",
+        event.type === 'content' && "bg-sky-100 text-sky-700",
         dragged && "opacity-60"
       )}
       title={event.title}

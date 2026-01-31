@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { startOfWeek, addDays, isSameDay } from 'date-fns'
 import { formatDate } from '@/lib/date-formatting'
+import { cn } from "@/lib/utils"
 
 interface EventFormData {
   title: string
@@ -92,7 +93,7 @@ export function CalendarView() {
       case 'private': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
       case 'team': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
       case 'client': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      case 'public': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+      case 'public': return 'bg-slate-800 text-slate-100 dark:bg-slate-100 dark:text-slate-900'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
     }
   }
@@ -109,10 +110,10 @@ export function CalendarView() {
         <div className="grid grid-cols-7 gap-4">
           {weekDays.map((day, index) => (
             <div key={index} className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded mb-2"></div>
+              <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
               <div className="space-y-2">
                 {[...Array(2)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                  <div key={i} className="h-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
                 ))}
               </div>
             </div>

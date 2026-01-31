@@ -15,7 +15,7 @@ interface PipelineTabProps {
     canWrite: boolean;
   };
   actions: {
-    updateDeliverableStatus: (formData: FormData) => Promise<void>;
+    updateDeliverableStatus: (formData: FormData) => Promise<any>;
     generateApprovalLink?: (formData: FormData) => Promise<any>;
   };
   onScheduleClick?: (deliverable: any) => void;
@@ -24,7 +24,7 @@ interface PipelineTabProps {
 const COLUMNS = [
   { id: "drafting", title: "Drafting", color: "bg-slate-100" },
   { id: "internal_review", title: "Internal Review", color: "bg-blue-50" },
-  { id: "client_review", title: "Client Review", color: "bg-purple-50" },
+  { id: "client_review", title: "Client Review", color: "bg-blue-100" },
   { id: "approved", title: "Approved", color: "bg-green-50" },
   { id: "scheduled", title: "Scheduled", color: "bg-emerald-50" },
   { id: "changes_requested", title: "Changes Requested", color: "bg-red-50" },
@@ -238,7 +238,7 @@ export function PipelineTab({ deliverables, capabilities, actions, onScheduleCli
                                   (item.type || "").includes("video") || (item.type || "").includes("reel") 
                                     ? "bg-blue-50 text-blue-700 border-blue-200" 
                                     : (item.type || "").includes("post") || (item.type || "").includes("image")
-                                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                                    ? "bg-blue-50 text-blue-700 border-blue-200"
                                     : "bg-slate-50 text-slate-700 border-slate-200"
                                 }`}
                               >

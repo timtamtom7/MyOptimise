@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,10 +17,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { generateResearch } from "@/app/actions/research";
 import { analyzeUrl, searchWeb } from "@/app/actions/research-tools";
-import { Sparkles, Loader2, Copy, Plus, Trash2, Globe, Search } from "lucide-react";
+import { Sparkles, Loader2, Copy, Plus, Trash2, Globe, Search, Mic, MicOff, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
+import { cn } from "@/lib/utils";
 
 interface AIResearchAssistantProps {
   client: any;
@@ -36,6 +37,48 @@ export function AIResearchAssistant({ client, activeCampaigns, context }: AIRese
   const [referenceUrls, setReferenceUrls] = useState<string[]>([]);
   const [newUrl, setNewUrl] = useState("");
   const [useWebSearch, setUseWebSearch] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const startListening = () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognitionRef.current = recognition;
+      setIsListening(true);
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setPrompt((prev) => prev + (prev ? " " : "") + transcript);
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        recognitionRef.current = null;
+      };
+
+      recognition.start();
+    } else {
+      toast.error("Voice input not supported in this browser");
+    }
+  };
+
+  const stopListening = () => {
+      if (recognitionRef.current) {
+          recognitionRef.current.stop();
+          setIsListening(false);
+      }
+  };
 
   const suggestions = [
     "Generate 3 campaign ideas for next month",
@@ -43,6 +86,14 @@ export function AIResearchAssistant({ client, activeCampaigns, context }: AIRese
     "Suggest content pillars based on service scope",
     "Identify potential risks and opportunities",
   ];
+
+  const competitorSuggestions =
+    Array.isArray(context?.competitors)
+      ? context.competitors
+          .map((comp: any) => comp.url || "")
+          .filter((url: string) => url && !referenceUrls.includes(url))
+          .slice(0, 4)
+      : [];
 
   const addUrl = () => {
     if (newUrl && !referenceUrls.includes(newUrl)) {
@@ -129,14 +180,14 @@ export function AIResearchAssistant({ client, activeCampaigns, context }: AIRese
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
-          <Sparkles className="h-4 w-4 text-purple-500" />
+          <Sparkles className="h-4 w-4 text-blue-600" />
           AI Strategist
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
+            <Sparkles className="h-5 w-5 text-blue-600" />
             AI Research Assistant
           </DialogTitle>
           <DialogDescription>
@@ -149,12 +200,34 @@ export function AIResearchAssistant({ client, activeCampaigns, context }: AIRese
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>What do you need help with?</Label>
-                <Textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="E.g., Suggest a Q3 content strategy focusing on..."
-                  className="h-32"
-                />
+                <div className="relative group">
+                    <Textarea
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder="E.g., Suggest a Q3 content strategy focusing on..."
+                        className="h-32 pr-10 resize-none focus-visible:ring-offset-0 p-3"
+                    />
+                    <div className="absolute right-2 bottom-2 flex items-center gap-2">
+                        {isListening && (
+                            <span className="text-[10px] text-red-500 animate-pulse font-medium bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-full border border-red-100 dark:border-red-900/50">
+                                Listening...
+                            </span>
+                        )}
+                        <Button
+                            size="icon"
+                            variant={isListening ? "destructive" : "ghost"}
+                            className={cn(
+                                "h-8 w-8 transition-all duration-200",
+                                isListening ? "animate-pulse shadow-md" : "text-slate-400 hover:text-slate-600"
+                            )}
+                            onClick={isListening ? stopListening : startListening}
+                            title={isListening ? "Stop Recording" : "Voice Input"}
+                            type="button"
+                        >
+                            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        </Button>
+                    </div>
+                </div>
               </div>
 
               <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border">
@@ -199,6 +272,32 @@ export function AIResearchAssistant({ client, activeCampaigns, context }: AIRese
                         ))}
                     </div>
                 )}
+                {competitorSuggestions.length > 0 && (
+                    <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <Label className="flex items-center gap-2 text-[11px] text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wider">
+                            <Sparkles className="w-3 h-3" />
+                            Suggested Links
+                        </Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {competitorSuggestions.map((url: string, i: number) => (
+                                <div
+                                    key={url + i}
+                                    className="group flex items-center gap-2 p-2 rounded-lg border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 transition-all"
+                                    onClick={() => {
+                                        if (!referenceUrls.includes(url)) {
+                                            setReferenceUrls([...referenceUrls, url]);
+                                        }
+                                    }}
+                                >
+                                    <div className="h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
+                                        <Plus className="w-3 h-3 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                                    </div>
+                                    <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{url}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
               </div>
               
               <div className="space-y-2">
@@ -208,7 +307,7 @@ export function AIResearchAssistant({ client, activeCampaigns, context }: AIRese
                     <Badge 
                       key={s} 
                       variant="secondary" 
-                      className="cursor-pointer hover:bg-secondary/80 py-1"
+                      className="cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 py-1.5 px-3 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/20"
                       onClick={() => setPrompt(s)}
                     >
                       {s}

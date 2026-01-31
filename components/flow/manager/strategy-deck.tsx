@@ -61,54 +61,54 @@ export function StrategyDeck({ user, campaigns, clients }: StrategyDeckProps) {
   })).sort((a, b) => a.client.name.localeCompare(b.client.name));
 
   return (
-    <div className="container max-w-6xl mx-auto py-12 px-4">
-      <header className="mb-12 flex items-end justify-between">
+    <div className="container max-w-6xl mx-auto py-16 px-6">
+      <header className="mb-16 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-            <h1 className="text-4xl font-display font-medium text-slate-900 dark:text-slate-50 mb-2">
-            Strategy Deck
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 font-sans">
-            Manage your active campaigns and reviews.
-            </p>
+          <h1 className="text-5xl font-display font-medium text-foreground mb-3 tracking-tight">
+            The Deck
+          </h1>
+          <p className="text-muted-foreground text-lg font-sans max-w-md leading-relaxed font-normal">
+            A high-level overview of active client campaigns and strategic pipelines.
+          </p>
         </div>
         <div className="flex gap-3">
-             <NewStrategyDialog clients={clients} managerId={user.id} />
+          <NewStrategyDialog clients={clients} managerId={user.id} />
         </div>
       </header>
 
-      <div className="space-y-12">
+      <div className="space-y-20">
         {clientGroups.map((group) => (
-          <div key={group.client._id} className="relative p-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/80 shadow-sm">
-            
-            <div className="flex items-center justify-between mb-6">
-               <div className="flex items-center gap-4">
-                  {group.client.avatar ? (
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-slate-700 shadow-sm">
-                      <Image 
-                        src={urlFor(group.client.avatar).width(100).url()} 
-                        alt={group.client.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-500 font-bold text-xl shadow-sm">
-                      {group.client.name.charAt(0)}
-                    </div>
-                  )}
-                  <div>
-                    <h2 className="text-2xl font-display text-slate-900 dark:text-slate-100">
-                      {group.client.name}
-                    </h2>
-                    <p className="text-sm text-slate-500 font-medium">
-                      {group.campaigns.length} Active {group.campaigns.length === 1 ? 'Campaign' : 'Campaigns'}
-                    </p>
+          <div key={group.client._id} className="relative">
+
+            <div className="flex items-center justify-between mb-8 border-b border-slate-100 dark:border-slate-900 pb-6">
+              <div className="flex items-center gap-6">
+                {group.client.avatar ? (
+                  <div className="relative w-14 h-14 rounded-full overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm transition-transform hover:scale-105 duration-300">
+                    <Image
+                      src={urlFor(group.client.avatar).width(120).url()}
+                      alt={group.client.name}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
-               </div>
-               
-               {group.campaigns.length === 0 && (
-                 <NewStrategyDialog clients={clients} managerId={user.id} defaultClientId={group.client._id} />
-               )}
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 font-medium text-xl">
+                    {group.client.name.charAt(0)}
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-3xl font-display font-medium text-foreground tracking-tight">
+                    {group.client.name}
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-[0.2em] mt-1">
+                    {group.campaigns.length} Active {group.campaigns.length === 1 ? 'Campaign' : 'Campaigns'}
+                  </p>
+                </div>
+              </div>
+
+              {group.campaigns.length === 0 && (
+                <NewStrategyDialog clients={clients} managerId={user.id} defaultClientId={group.client._id} />
+              )}
             </div>
 
             {group.campaigns.length > 0 ? (
@@ -127,10 +127,10 @@ export function StrategyDeck({ user, campaigns, clients }: StrategyDeckProps) {
         ))}
 
         {clients.length === 0 && (
-            <div className="col-span-full py-16 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
-                <p className="text-slate-500 text-lg mb-2">No clients assigned.</p>
-                <p className="text-slate-400 text-sm">Contact an administrator to get clients assigned to your account.</p>
-            </div>
+          <div className="col-span-full py-16 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/50">
+            <p className="text-slate-500 text-lg mb-2">No clients assigned.</p>
+            <p className="text-slate-400 text-sm">Contact an administrator to get clients assigned to your account.</p>
+          </div>
         )}
       </div>
     </div>
@@ -143,45 +143,45 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   return (
     <Link href={`/flow/manager/${campaign._id}`} className="block group">
       <Card className={cn(
-        "h-full transition-all duration-300 hover:shadow-lg border-slate-200 dark:border-slate-800",
-        hasReviewItems ? "ring-1 ring-amber-500/20 bg-amber-50/10" : "bg-white dark:bg-slate-900"
+        "h-full transition-all duration-500 hover:shadow-2xl hover:translate-y-[-4px] border-border bg-card shadow-sm overflow-hidden",
+        hasReviewItems && "border-slate-900 dark:border-slate-100 border-opacity-20"
       )}>
-        <CardHeader className="pb-3">
+        <CardHeader className="p-8 pb-4">
           <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Campaign</p>
-              <h3 className="text-xl font-display text-slate-900 dark:text-slate-50 group-hover:text-blue-600 transition-colors">
-                 {campaign.title}
+            <div className="space-y-4 w-full">
+              <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted-foreground block">
+                {hasReviewItems ? "Attention Required" : "Campaign"}
+              </span>
+              <h3 className="text-3xl font-display text-foreground leading-tight tracking-tight group-hover:underline underline-offset-8 decoration-slate-200 transition-all">
+                {campaign.title}
               </h3>
             </div>
             {hasReviewItems && (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none">
-                    {campaign.needsReview} to Review
-                </Badge>
+              <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-slate-100 animate-pulse mt-1" />
             )}
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 py-2">
-             <div className="flex flex-col">
-                <span className="text-2xl font-display text-slate-900 dark:text-slate-50">
-                    {campaign.activeBriefs}
-                </span>
-                <span className="text-xs text-slate-500">Active Briefs</span>
-             </div>
-             <div className="flex flex-col">
-                <span className="text-2xl font-display text-slate-900 dark:text-slate-50">
-                    {campaign.totalBriefs}
-                </span>
-                <span className="text-xs text-slate-500">Total Created</span>
-             </div>
+        <CardContent className="px-8 py-6">
+          <div className="flex gap-10">
+            <div className="flex flex-col">
+              <span className="text-4xl font-display font-medium text-foreground">
+                {campaign.activeBriefs}
+              </span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground mt-2">Active</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-4xl font-display font-medium text-slate-300 dark:text-slate-700">
+                {campaign.totalBriefs}
+              </span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground mt-2">Total</span>
+            </div>
           </div>
         </CardContent>
-        <CardFooter className="pt-2 pb-6 border-t border-slate-100 dark:border-slate-800 mt-2">
-            <div className="flex items-center text-sm font-medium text-slate-600 group-hover:text-blue-600 transition-colors w-full justify-between">
-                <span>Open Deck</span>
-                <ArrowRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-            </div>
+        <CardFooter className="px-8 pb-8 pt-0 mt-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+          <div className="flex items-center text-xs font-medium text-foreground tracking-wide font-sans">
+            <span>View Strategy Pipeline</span>
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </div>
         </CardFooter>
       </Card>
     </Link>

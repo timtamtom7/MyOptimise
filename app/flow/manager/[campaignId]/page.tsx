@@ -3,12 +3,11 @@ import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { redirect, notFound } from "next/navigation";
 import { CampaignView } from "@/components/flow/manager/campaign-view";
-import { 
-  claimDeliverable, 
-  updateDeliverableStatus, 
-  submitDeliverableVersion,
-  generateApprovalLink 
+import {
+  updateDeliverableStatus,
+  generateApprovalLink
 } from "@/app/actions/deliverables";
+import { mapSanityToBrief } from "@/lib/flow-service";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +15,7 @@ export default async function CampaignFlowPage({ params }: { params: Promise<{ c
   const { campaignId } = await params;
   const session = await safeGetServerSession();
   const email = String((session as any)?.user?.email || "");
-  
+
   if (!email) redirect("/api/auth/signin");
 
   const acct = await fetchSanityAccountByEmail({ email });
@@ -31,12 +30,39 @@ export default async function CampaignFlowPage({ params }: { params: Promise<{ c
     status,
     description,
     strategy,
-    strategyDeck,
+    strategyDeck{
+        status, 
+        strategicPillars,
+        targetAudience,
+        toneOfVoice,
+        moodboard[]{
+            _key,
+            url, 
+            note,
+            image{asset->{url}}
+        },
+        slides[]{
+            _key,
+            title,
+            layout,
+            content,
+            notes,
+            image{asset->{url}},
+            galleryImages[]{
+                _key,
+                asset->{url}
+            }
+        },
+        competitors,
+        proposedDeliverables
+    },
     client->{
+      _id,
       name, 
       email, 
       avatar, 
       brandAssets[]{
+        _key,
         title,
         type,
         tags,
@@ -61,10 +87,42 @@ export default async function CampaignFlowPage({ params }: { params: Promise<{ c
       hook,
       script,
       visualDirection,
-      assignedTo->{name, email, avatar},
-      versionHistory,
+      assignedTo->{_id, name, email, avatar},
+      versionHistory[] {
+        versionNumber,
+        url,
+        notes,
+        createdAt
+      },
+      statusHistory[]{fromStatus, toStatus, changedAt, changedBy->{name, email}, notes},
       approvalToken,
-      approvalTokenExpiry
+      approvalTokenExpiry,
+      _createdAt,
+      _updatedAt,
+      campaign->{
+        title,
+        strategyDeck{
+            status, 
+            strategicPillars,
+            targetAudience,
+            toneOfVoice,
+            moodboard[]{
+                url, 
+                image{asset->{url}}
+            }
+        }
+      },
+      client->{
+        name,
+        brandAssets[]{
+          title, 
+          type, 
+          tags, 
+          aiSuggestedTags, 
+          url, 
+          file{asset->{_id, url, originalFilename}}
+        }
+      }
     }
   }`;
 
@@ -75,16 +133,20 @@ export default async function CampaignFlowPage({ params }: { params: Promise<{ c
 
   if (!campaign) notFound();
 
-  // Actions for the UI
+  // Map deliverables to unified type
+  const unifiedDeliverables = (campaign.deliverables || []).map(mapSanityToBrief);
+
   const actions = {
     updateStatus: updateDeliverableStatus,
     generateApproval: generateApprovalLink,
-    // Add createBrief later
   };
 
   return (
-    <CampaignView 
-      campaign={campaign as any} 
+    <CampaignView
+      campaign={{
+        ...campaign,
+        deliverables: unifiedDeliverables
+      } as any}
       actions={actions}
       user={{ name: acct.name, email: acct.email, id: acct._id }}
     />

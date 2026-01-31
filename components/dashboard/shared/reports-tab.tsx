@@ -50,7 +50,7 @@ export function ReportsTab({ deliverables = [], editorPayouts = [], clients = []
     switch (status) {
       case "scheduled": return "bg-emerald-500";
       case "approved": return "bg-green-500";
-      case "client_review": return "bg-purple-500";
+      case "client_review": return "bg-blue-500";
       case "internal_review": return "bg-blue-500";
       case "changes_requested": return "bg-red-500";
       default: return "bg-slate-500";

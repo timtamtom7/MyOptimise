@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { EmployeeHeader } from "./header";
 import { WorkItemsTable } from "./work-items-table";
 import { ScheduleList } from "./schedule-list";
+import { TaskDetailSheet } from "./task-detail-sheet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckSquare, MessageSquare, Calendar, Activity } from "lucide-react";
 
@@ -34,10 +36,13 @@ interface EmployeeViewProps {
     createWorkItemFromTemplate?: (formData: FormData) => Promise<void>;
     bulkUpdateWorkItems?: (formData: FormData) => Promise<void>;
     stopImpersonation?: () => Promise<void>;
+    toggleWorkItemChecklist?: (formData: FormData) => Promise<void>;
   };
 }
 
 export function EmployeeView({ data, actions }: EmployeeViewProps) {
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+
   return (
     <div className="space-y-6">
       {data.isImpersonating && actions.stopImpersonation && (
@@ -120,6 +125,13 @@ export function EmployeeView({ data, actions }: EmployeeViewProps) {
                employees={data.staff}
                onCreateWorkItem={actions.createWorkItem}
                onCreateFromTemplate={actions.createWorkItemFromTemplate}
+               onSelectTask={setSelectedTask}
+             />
+             <TaskDetailSheet 
+               task={selectedTask} 
+               isOpen={!!selectedTask} 
+               onClose={() => setSelectedTask(null)} 
+               actions={actions}
              />
           </div>
           <div className="lg:col-span-1 space-y-6">

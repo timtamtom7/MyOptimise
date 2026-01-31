@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,24 +22,22 @@ export function AssignEditorDialog({ deliverableId, currentAssignee, onAssignSuc
   const [selectedEditorId, setSelectedEditorId] = useState<string | null>(null);
   const [isAssigning, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (open && deliverableId) {
-      setLoading(true);
-      findMatchingEditors(deliverableId)
-        .then((result) => {
-          if (result.error) {
-            toast.error(result.error);
-          } else {
-            setEditors(result.editors);
-            // Auto-select the best match if available
-            if (result.editors.length > 0) {
-              setSelectedEditorId(result.editors[0].id);
-            }
+  const loadEditors = () => {
+    if (!deliverableId) return;
+    setLoading(true);
+    findMatchingEditors(deliverableId)
+      .then((result) => {
+        if (result.error) {
+          toast.error(result.error);
+        } else {
+          setEditors(result.editors);
+          if (result.editors.length > 0) {
+            setSelectedEditorId(result.editors[0].id);
           }
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [open, deliverableId]);
+        }
+      })
+      .finally(() => setLoading(false));
+  };
 
   const handleAssign = () => {
     if (!deliverableId || !selectedEditorId) return;
@@ -70,7 +68,13 @@ export function AssignEditorDialog({ deliverableId, currentAssignee, onAssignSuc
                 <span className="truncate max-w-[100px]">{currentAssignee.name}</span>
             </div>
             {/* We duplicate the dialog here to support re-assigning */}
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog 
+              open={open} 
+              onOpenChange={(val) => {
+                setOpen(val);
+                if (val) loadEditors();
+              }}
+            >
                 <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 <DialogHeader>
                     <DialogTitle>Re-assign Editor</DialogTitle>
@@ -182,7 +186,13 @@ export function AssignEditorDialog({ deliverableId, currentAssignee, onAssignSuc
         Assign Editor
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog 
+        open={open} 
+        onOpenChange={(val) => {
+          setOpen(val);
+          if (val) loadEditors();
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>Assign Editor</DialogTitle>

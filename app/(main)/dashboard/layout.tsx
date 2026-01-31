@@ -1,6 +1,7 @@
 import { safeGetServerSession } from "@/lib/auth";
 import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { redirect } from "next/navigation";
+import { AppSidebar } from "@/components/dashboard/app-sidebar";
 
 export default async function DashboardLayout({
   children,
@@ -19,8 +20,13 @@ export default async function DashboardLayout({
   if (!acct || acct.status === "disabled") return redirect("/login");
 
   return (
-    <div className="min-h-screen px-4 py-4 md:px-8 md:py-8">
-      <div className="mx-auto max-w-6xl">{children}</div>
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
+      <AppSidebar account={acct} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 overflow-y-auto p-4 pt-16 md:p-6 md:pt-6 lg:p-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

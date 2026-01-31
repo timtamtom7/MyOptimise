@@ -3,10 +3,11 @@ import { fetchSanityAccountByEmail } from "@/sanity/lib/fetch";
 import { sanityFetch } from "@/sanity/lib/live";
 import { redirect, notFound } from "next/navigation";
 import { ManagerDeliverableReview } from "@/components/flow/manager/deliverable-review";
-import { 
-  updateDeliverableStatus, 
-  generateApprovalLink 
+import {
+  updateDeliverableStatus,
+  generateApprovalLink
 } from "@/app/actions/deliverables";
+import { mapSanityToBrief } from "@/lib/flow-service";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function ManagerBriefPage({ params }: { params: Promise<{ b
   const { briefId } = await params;
   const session = await safeGetServerSession();
   const email = String((session as any)?.user?.email || "");
-  
+
   if (!email) redirect("/api/auth/signin");
 
   const acct = await fetchSanityAccountByEmail({ email });
@@ -35,8 +36,33 @@ export default async function ManagerBriefPage({ params }: { params: Promise<{ b
     visualDirection,
     creativeGoal,
     contentConcept,
-    campaign->{_id, title, client->{name}},
-    assignedTo->{name, email, avatar},
+    campaign->{
+        _id, 
+        title, 
+        client->{name},
+        strategyDeck{
+            status, 
+            strategicPillars,
+            targetAudience,
+            toneOfVoice,
+            moodboard[]{
+                url, 
+                image{asset->{url}}
+            }
+        }
+    },
+    client->{
+      name, 
+      brandAssets[]{
+        title, 
+        type, 
+        tags, 
+        aiSuggestedTags, 
+        url, 
+        file{asset->{_id, url, originalFilename}}
+      }
+    },
+    assignedTo->{_id, name, email, avatar},
     versionHistory[]{
         versionNumber,
         url,
@@ -50,7 +76,10 @@ export default async function ManagerBriefPage({ params }: { params: Promise<{ b
             author->{name, avatar}
         }
     },
-    approvalToken
+    statusHistory[]{fromStatus, toStatus, changedAt, changedBy->{name, email}, notes},
+    approvalToken,
+    _createdAt,
+    _updatedAt
   }`;
 
   const { data: brief } = await sanityFetch({
@@ -60,14 +89,17 @@ export default async function ManagerBriefPage({ params }: { params: Promise<{ b
 
   if (!brief) notFound();
 
+  // Normalize Brief
+  const unifiedBrief = mapSanityToBrief(brief);
+
   const actions = {
     updateStatus: updateDeliverableStatus,
     generateApproval: generateApprovalLink,
   };
 
   return (
-    <ManagerDeliverableReview 
-      brief={brief as any} 
+    <ManagerDeliverableReview
+      brief={unifiedBrief as any}
       actions={actions}
       user={{ name: acct.name, email: acct.email }}
     />

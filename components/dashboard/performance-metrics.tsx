@@ -34,12 +34,12 @@ export function PerformanceMetrics() {
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader>
-                <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-24"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-32 mb-2"></div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-24"></div>
               </CardHeader>
               <CardContent>
-                <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-32"></div>
+                <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded w-16 mb-2"></div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-32"></div>
               </CardContent>
             </Card>
           ))}
@@ -294,7 +294,7 @@ export function PerformanceMetrics() {
             </div>
             
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                 {Object.keys(demographics?.interests || {}).length}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Interest Categories</p>

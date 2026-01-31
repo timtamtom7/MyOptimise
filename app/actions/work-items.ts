@@ -57,7 +57,7 @@ export async function createTaskInternal(data: {
     );
     if (assignee?.email) {
       const creator = await writeClient.fetch(`*[_type == "account" && _id == $id][0]{name}`, { id: data.creatorId });
-      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/dashboard/employee/tasks`;
+      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3100"}/dashboard/employee/tasks`;
       await sendEmail({
         to: assignee.email,
         subject: `New Task Assigned: ${data.title}`,
@@ -114,6 +114,48 @@ export async function createWorkItem(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+export async function toggleWorkItemChecklist(formData: FormData) {
+  const session = await safeGetServerSession();
+  const email = String((session as any)?.user?.email || "");
+  if (!email) return;
+  const acct = await fetchSanityAccountByEmail({ email });
+  if (!acct || acct.status === "disabled") return;
+  
+  // Check capability - reusing "task.status.change.own" or similar implies edit rights
+  if (!hasAccountCapability(acct, "task.status.change.own")) return;
+
+  const id = String(formData.get("id") || "");
+  const itemKey = String(formData.get("itemKey") || "");
+  const checked = String(formData.get("checked") || "") === "true";
+  
+  if (!id || !itemKey) return;
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  // Allow Admin override or check ownership
+  if (acct.type !== "admin") {
+    const canUpdate = await writeClient.fetch(
+      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
+      { id, email: email.toLowerCase() },
+    );
+    if (!canUpdate?._id) return;
+  }
+
+  try {
+    // Sanity supports deep patching with keyed arrays
+    await writeClient
+      .patch(id)
+      .set({ [`checklist[_key=="${itemKey}"].completed`]: checked })
+      .commit();
+    
+    revalidatePath("/dashboard/employee");
+  } catch (err) {
+    console.error("Failed to toggle checklist", err);
+  }
+}
+
 export async function createWorkItemFromTemplate(formData: FormData) {
   const session = await safeGetServerSession();
   const email = String((session as any)?.user?.email || "");
@@ -153,7 +195,7 @@ export async function createWorkItemFromTemplate(formData: FormData) {
     priority: String(template.priority || "medium"),
     status: "todo",
     createdAt: new Date().toISOString(),
-    checklist: template.checklist || [], // Copy checklist
+    checklist: template.checklist?.map((item: any) => ({ ...item, _key: crypto.randomUUID() })) || [], // Copy checklist with new keys
     ...(dueDate ? { dueDate } : {}),
   });
 
@@ -222,7 +264,7 @@ export async function markWorkItemBlocked(formData: FormData) {
   if (!acct || acct.status === "disabled") return;
 
   const id = String(formData.get("id") || "");
-  const reason = String(formData.get("reason") || "");
+  const reason = String(formData.get("blockedReason") || String(formData.get("reason") || ""));
   if (!id || !reason) return;
 
   const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
@@ -231,6 +273,172 @@ export async function markWorkItemBlocked(formData: FormData) {
 
   await writeClient.patch(id).set({ status: "blocked", blockedReason: reason }).commit();
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/employee");
+}
+
+export async function addWorkItemComment(formData: FormData) {
+  const session = await safeGetServerSession();
+  const email = String((session as any)?.user?.email || "");
+  if (!email) return;
+  const acct = await fetchSanityAccountByEmail({ email });
+  if (!acct || acct.status === "disabled") return;
+  if (acct.type !== "employee" && acct.type !== "admin") return;
+  if (!hasAccountCapability(acct, "task.comment")) return;
+
+  const id = String(formData.get("id") || "");
+  const message = String(formData.get("message") || "").trim();
+  if (!id || !message) return;
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  // Allow Admin override
+  if (acct.type === "admin") {
+    const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id}`, { id });
+    if (!exists?._id) return;
+  } else {
+    const canUpdate = await writeClient.fetch(
+      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
+      { id, email: email.toLowerCase() },
+    );
+    if (!canUpdate?._id) return;
+  }
+
+  await writeClient
+    .patch(id)
+    .setIfMissing({ comments: [] })
+    .append("comments", [
+      {
+        _type: "workItemComment",
+        author: { _type: "reference", _ref: String(acct._id) },
+        message,
+        createdAt: new Date().toISOString(),
+      },
+    ])
+    .commit();
+  revalidatePath("/dashboard/employee");
+}
+
+export async function requestReassignment(formData: FormData) {
+  const session = await safeGetServerSession();
+  const email = String((session as any)?.user?.email || "");
+  if (!email) return;
+  const acct = await fetchSanityAccountByEmail({ email });
+  if (!acct || acct.status === "disabled") return;
+  if (acct.type !== "employee" && acct.type !== "admin") return;
+  if (!hasAccountCapability(acct, "task.reassign.request")) return;
+
+  const id = String(formData.get("id") || "");
+  const note = String(formData.get("note") || "").trim();
+  if (!id) return;
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  let currentStatus = "";
+  // Allow Admin override
+  if (acct.type === "admin") {
+    const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id, status}`, { id });
+    if (!exists?._id) return;
+    currentStatus = String(exists.status || "");
+  } else {
+    const canUpdate = await writeClient.fetch(
+      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id, status}`,
+      { id, email: email.toLowerCase() },
+    );
+    if (!canUpdate?._id) return;
+    currentStatus = String(canUpdate.status || "");
+  }
+
+  const now = new Date().toISOString();
+  const patch: Record<string, unknown> = {
+    reassignmentRequestedAt: now,
+    ...(note ? { reassignmentNote: note } : {}),
+  };
+  if (currentStatus !== "done") patch.status = "blocked";
+
+  await writeClient.patch(id).set(patch).commit();
+  revalidatePath("/dashboard/employee");
+}
+
+export async function updateWorkItemDescription(formData: FormData) {
+  const session = await safeGetServerSession();
+  const email = String((session as any)?.user?.email || "");
+  if (!email) return;
+  const acct = await fetchSanityAccountByEmail({ email });
+  if (!acct || acct.status === "disabled") return;
+  if (acct.type !== "employee" && acct.type !== "admin") return;
+  if (!hasAccountCapability(acct, "task.update.description.own")) return;
+  const id = String(formData.get("id") || "");
+  const description = String(formData.get("description") || "").trim();
+  if (!id) return;
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  // Allow Admin override
+  if (acct.type === "admin") {
+    const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id}`, { id });
+    if (!exists?._id) return;
+  } else {
+    const canUpdate = await writeClient.fetch(
+      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
+      { id, email: email.toLowerCase() },
+    );
+    if (!canUpdate?._id) return;
+  }
+
+  await writeClient.patch(id).set({ description }).commit();
+  revalidatePath("/dashboard/employee");
+}
+
+export async function uploadWorkItemAttachment(formData: FormData) {
+  const session = await safeGetServerSession();
+  const email = String((session as any)?.user?.email || "");
+  if (!email) return;
+  const acct = await fetchSanityAccountByEmail({ email });
+  if (!acct || acct.status === "disabled") return;
+  if (acct.type !== "employee" && acct.type !== "admin") return;
+  if (!hasAccountCapability(acct, "task.attachments.upload")) return;
+
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const attachment = formData.get("attachment");
+
+  const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+  if (!writeToken) return;
+  const writeClient = client.withConfig({ token: writeToken, perspective: "published" });
+
+  // Allow Admin override
+  if (acct.type === "admin") {
+    const exists = await writeClient.fetch(`*[_type == "workItem" && _id == $id][0]{_id}`, { id });
+    if (!exists?._id) return;
+  } else {
+    const canUpdate = await writeClient.fetch(
+      `*[_type == "workItem" && _id == $id && assignedTo->email != null && lower(assignedTo->email) == $email][0]{_id}`,
+      { id, email: email.toLowerCase() },
+    );
+    if (!canUpdate?._id) return;
+  }
+
+  if (!attachment || typeof attachment === "string") return;
+  const file = attachment as File;
+  if (!file || file.size <= 0) return;
+
+  const asset = await writeClient.assets.upload("file", file, { filename: file.name });
+  const uploadedAssetId = String(asset?._id || "");
+  if (!uploadedAssetId) return;
+
+  await writeClient
+    .patch(id)
+    .setIfMissing({ attachments: [] })
+    .append("attachments", [{ _type: "file", asset: { _type: "reference", _ref: uploadedAssetId } }])
+    .commit();
+
+  revalidatePath("/dashboard/employee");
 }
 
 export async function bulkUpdateWorkItems(formData: FormData) {
