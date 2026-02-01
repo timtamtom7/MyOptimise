@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { uploadMoodboardImage, generateDeliverablePlan } from "@/app/actions/campaigns";
 import { analyzeUrl, refreshCompetitorFeed, checkDeliverableQuality } from "@/app/actions/research-tools";
 import { useCampaignContext, ProposedDeliverable } from "./campaign-provider";
+import { urlFor } from "@/sanity/lib/image";
 
 export function CampaignPlanTab() {
   const { 
@@ -368,7 +369,7 @@ export function CampaignPlanTab() {
                                        <div className="space-y-2">
                                            <div className="flex items-center justify-between">
                                                 <Label>Recent Activity Feed</Label>
-                                                <Button variant="ghost" size="xs" onClick={() => handleRefreshFeed(i, comp.name)} disabled={refreshingFeed[i]}>
+                                                <Button variant="ghost" size="sm" onClick={() => handleRefreshFeed(i, comp.name)} disabled={refreshingFeed[i]}>
                                                     {refreshingFeed[i] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3 mr-1" />}
                                                     Refresh
                                                 </Button>
@@ -505,7 +506,7 @@ export function CampaignPlanTab() {
                                                    <ShieldCheck className="w-4 h-4 text-blue-500" />
                                                    Quality Check
                                                </h4>
-                                               <Button size="xs" variant="outline" onClick={() => handleQualityCheck(i)} disabled={checkingQuality[i]}>
+                                               <Button size="sm" variant="outline" onClick={() => handleQualityCheck(i)} disabled={checkingQuality[i]}>
                                                    {checkingQuality[i] ? <Loader2 className="w-3 h-3 animate-spin" /> : "Run Check"}
                                                </Button>
                                            </div>

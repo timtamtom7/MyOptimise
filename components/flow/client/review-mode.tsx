@@ -131,7 +131,7 @@ export function ReviewMode({ deliverable, actions }: ReviewModeProps) {
                src={mediaUrl} 
                controls 
                className="w-full h-full object-contain"
-               poster={latestVersion.url + "?w=1920&h=1080&fit=crop&auto=format"} 
+               poster={latestVersion?.url ? latestVersion.url + "?w=1920&h=1080&fit=crop&auto=format" : undefined} 
              />
            ) : (
              <img 
@@ -161,7 +161,7 @@ export function ReviewMode({ deliverable, actions }: ReviewModeProps) {
           <div>
              <h3 className="text-sm font-medium text-slate-400 mb-2 uppercase tracking-wider">Editor Notes</h3>
              <p className="text-slate-300 text-sm leading-relaxed">
-               {latestVersion.notes || "No notes provided for this version."}
+               {latestVersion?.notes || "No notes provided for this version."}
              </p>
           </div>
           <div className="flex justify-start md:justify-end items-start">

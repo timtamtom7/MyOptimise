@@ -2,8 +2,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -440,7 +442,7 @@ export function CampaignSlidesTab() {
                         <Textarea 
                             ref={editorRef}
                             value={activeSlide.content} 
-                            onChange={(e) => updateSlide(activeSlide._key, { content: e.target.value })}
+                            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateSlide(activeSlide._key, { content: e.target.value })}
                             className="min-h-[400px] font-mono text-sm leading-relaxed p-6 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-blue-500 shadow-sm rounded-xl resize-none"
                             placeholder="# Heading&#10;Body text..."
                         />
@@ -489,7 +491,7 @@ export function CampaignSlidesTab() {
                                 <Textarea 
                                     ref={editorRef}
                                     value={activeSlide.content} 
-                                    onChange={(e) => updateSlide(activeSlide._key, { content: e.target.value })}
+                                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateSlide(activeSlide._key, { content: e.target.value })}
                                     className="min-h-[300px] font-mono text-sm leading-relaxed p-4 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-blue-500 shadow-sm rounded-xl resize-none"
                                 />
                              </div>
@@ -537,7 +539,7 @@ export function CampaignSlidesTab() {
                             <Label className="text-sm font-medium text-slate-500">Caption / Description</Label>
                             <Textarea 
                                 value={activeSlide.content} 
-                                onChange={(e) => updateSlide(activeSlide._key, { content: e.target.value })}
+                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateSlide(activeSlide._key, { content: e.target.value })}
                                 className="min-h-[100px]"
                             />
                         </div>
@@ -554,7 +556,7 @@ export function CampaignSlidesTab() {
                         <Textarea 
                             ref={editorRef}
                             value={activeSlide.content} 
-                            onChange={(e) => updateSlide(activeSlide._key, { content: e.target.value })}
+                            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateSlide(activeSlide._key, { content: e.target.value })}
                             className="min-h-[400px] font-mono text-sm leading-relaxed p-6 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-blue-500 shadow-sm rounded-xl resize-none"
                         />
                      </div>

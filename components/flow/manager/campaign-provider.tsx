@@ -125,8 +125,8 @@ export function CampaignProvider({ children, campaign, user }: { children: React
   );
   const [clientAssets, setClientAssets] = useState<any[]>(campaign.client.brandAssets || []);
 
-  const [targetAudience, setTargetAudience] = useState(campaign.strategyDeck?.targetAudience || "");
-  const [toneOfVoice, setToneOfVoice] = useState(campaign.strategyDeck?.toneOfVoice || "");
+  const [targetAudience, setTargetAudience] = useState(campaign.strategyDeck?.targetAudience || campaign.client.audience || "");
+  const [toneOfVoice, setToneOfVoice] = useState(campaign.strategyDeck?.toneOfVoice || campaign.client.brandVoice || "");
   const [strategicPillars, setStrategicPillars] = useState<string>((campaign.strategyDeck?.strategicPillars || []).join('\n'));
 
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);

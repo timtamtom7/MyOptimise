@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Slide } from "./campaign-strategy-tab";
+import { Slide } from "./campaign-provider";
 import { cn } from "@/lib/utils";
 import { Plus, Image as ImageIcon, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";

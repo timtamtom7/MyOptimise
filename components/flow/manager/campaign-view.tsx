@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { NewBriefDialog } from "./new-brief-dialog";
-import { CampaignStrategyTab } from "./campaign-strategy-tab";
+import { CampaignPlanTab } from "./campaign-plan-tab";
+import { CampaignSlidesTab } from "./campaign-slides-tab";
 import { CampaignAssetsTab } from "./campaign-assets-tab";
 import { CampaignContextTab } from "./campaign-context-tab";
 import { CampaignProvider } from "./campaign-provider";
@@ -45,7 +46,8 @@ export function CampaignView({ campaign, actions, user }: CampaignViewProps) {
   const clientItems = deliverables.filter(d => d.status === "client_review");
 
   return (
-    <div className="w-full px-6 py-8 max-w-[1600px] mx-auto">
+    <CampaignProvider campaign={campaign} user={user}>
+      <div className="w-full px-6 py-8 max-w-[1600px] mx-auto">
       {/* Header */}
       <header className="mb-12">
         <Link href="/flow/manager" className="text-sm text-slate-500 hover:text-slate-800 flex items-center mb-6 transition-colors">
@@ -83,7 +85,11 @@ export function CampaignView({ campaign, actions, user }: CampaignViewProps) {
         </TabsContent>
 
         <TabsContent value="plan" className="pt-4">
-          <CampaignStrategyTab campaign={campaign} user={user} />
+          <CampaignPlanTab />
+        </TabsContent>
+
+        <TabsContent value="slides" className="pt-4">
+          <CampaignSlidesTab />
         </TabsContent>
 
         <TabsContent value="briefs" className="space-y-8 max-w-6xl mx-auto pt-4">
@@ -96,7 +102,8 @@ export function CampaignView({ campaign, actions, user }: CampaignViewProps) {
 
         <TabsContent value="client" className="max-w-6xl mx-auto pt-4">
           <ClientQueue deliverables={deliverables} />
-        </TabsContent></Tabs>
+        </TabsContent>
+      </Tabs>
       </div>
     </CampaignProvider>
   );

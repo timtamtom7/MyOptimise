@@ -314,29 +314,46 @@ export function getAuthOptions(): NextAuthOptions {
 }
 
 export async function safeGetServerSession() {
-  console.log("safeGetServerSession: start");
   try {
     const { getServerSession } = await import("next-auth");
     let result = await getServerSession(getAuthOptions());
 
-    // DEV ONLY block removed to prevent session forging bugs
-    /*
-    if (!result && (process.env.NODE_ENV !== 'production' || process.env.VERCEL_PREVIEW_URL)) {
-      try {
-        const cookieStore = await cookies();
-        const impersonateId = cookieStore.get("impersonateAccountId")?.value;
-        // ... (removed)
-      } catch (err) {
-        console.error("safeGetServerSession: dev bypass error", err);
+    if (!result) {
+      const isPreview = Boolean(process.env.VERCEL_PREVIEW_URL);
+      const isDev = process.env.NODE_ENV !== "production";
+      if (isDev || isPreview) {
+        try {
+          const cookieStore = await cookies();
+          const impersonateId = cookieStore.get(IMPERSONATE_COOKIE_NAME)?.value;
+          if (impersonateId) {
+            const acct = await fetchSanityAccountById({ id: impersonateId });
+            if (acct && acct.status !== "disabled") {
+              const caps = resolveCapabilities(
+                acct.type || "employee",
+                (acct.capabilities as string[]) || [],
+                (acct.revokedCapabilities as string[]) || []
+              );
+              return {
+                user: { name: acct.name, email: acct.email, image: null },
+                expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                provider: "dev-bypass",
+                isAdmin: acct.type === "admin",
+                type: acct.type,
+                accountId: acct._id,
+                sessionVersion:
+                  typeof (acct as any).sessionVersion === "number" && Number.isFinite((acct as any).sessionVersion)
+                    ? (acct as any).sessionVersion
+                    : 1,
+                capabilities: caps,
+              } as any;
+            }
+          }
+        } catch {}
       }
     }
-    */
 
-
-    console.log("safeGetServerSession: success");
     return result;
-  } catch (e) {
-    console.error("safeGetServerSession: error", e);
+  } catch {
     return null;
   }
 }
