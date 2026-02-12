@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,7 @@ import { CampaignPlanTab } from "./campaign-plan-tab";
 import { CampaignSlidesTab } from "./campaign-slides-tab";
 import { CampaignAssetsTab } from "./campaign-assets-tab";
 import { CampaignContextTab } from "./campaign-context-tab";
-import { CampaignProvider } from "./campaign-provider";
+import { CampaignProvider, useCampaignContext } from "./campaign-provider";
 import { BriefingBoard, Deliverable } from "./briefing-board";
 import { ReviewQueue, ClientQueue } from "./review-queue";
 
@@ -50,7 +50,7 @@ export function CampaignView({ campaign, actions, user }: CampaignViewProps) {
       <div className="w-full px-6 py-8 max-w-[1600px] mx-auto">
       {/* Header */}
       <header className="mb-12">
-        <Link href="/flow/manager" className="text-sm text-slate-500 hover:text-slate-800 flex items-center mb-6 transition-colors">
+        <Link href="/dashboard/manager" className="text-sm text-slate-500 hover:text-slate-800 flex items-center mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to Dashboard
         </Link>
         <div className="flex justify-between items-end">
@@ -60,7 +60,11 @@ export function CampaignView({ campaign, actions, user }: CampaignViewProps) {
             </h1>
             <p className="text-lg text-slate-500 font-light">{campaign.title}</p>
           </div>
-          <NewBriefDialog campaignId={campaign._id} strategyDeck={campaign.strategyDeck} />
+          <div className="flex items-center gap-4">
+            <SaveStatus />
+            <StrategyHistoryDialog campaignId={campaign._id} history={campaign.strategyDeck?.history || []} />
+            <NewBriefDialog campaignId={campaign._id} strategyDeck={campaign.strategyDeck} />
+          </div>
         </div>
       </header>
 
@@ -126,4 +130,37 @@ function TabTrigger({ value, label, count, highlight }: { value: string, label: 
       )}
     </TabsTrigger>
   )
+}
+
+function SaveStatus() {
+  const { isSaving, hasUnsavedChanges, lastSaved } = useCampaignContext();
+
+  if (isSaving) {
+    return (
+      <div className="flex items-center gap-2 text-slate-500 text-sm font-medium animate-pulse bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Saving...
+      </div>
+    );
+  }
+
+  if (hasUnsavedChanges) {
+    return (
+      <div className="flex items-center gap-2 text-amber-600 text-sm font-medium bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-full">
+        <AlertCircle className="w-4 h-4" />
+        Unsaved changes
+      </div>
+    );
+  }
+
+  if (lastSaved) {
+    return (
+      <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full transition-opacity duration-1000" key={lastSaved.getTime()}>
+        <CheckCircle className="w-4 h-4" />
+        Saved
+      </div>
+    );
+  }
+
+  return null;
 }

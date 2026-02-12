@@ -16,10 +16,11 @@ import {
   NAVIGATION_QUERYResult,
   SETTINGS_QUERYResult,
 } from "@/sanity.types";
-import { ACCOUNT_BY_EMAIL_QUERY, ACCOUNT_BY_ID_QUERY } from "../queries/account";
+import { ACCOUNT_BY_EMAIL_QUERY, ACCOUNT_BY_ID_QUERY, ACCOUNT_BY_ACCESS_PASSWORD_QUERY } from "../queries/account";
 import { CONTENT_ITEMS_QUERY } from "@/sanity/queries/contentItem";
 import { LEADS_QUERY } from "@/sanity/queries/lead";
 import { ANALYTICS_QUERY } from "@/sanity/queries/analytics";
+import { CAMPAIGN_BY_ID_QUERY } from "@/sanity/queries/campaign";
 
 export const fetchLeads = async () => {
   const { data } = await sanityFetch({
@@ -45,6 +46,19 @@ export const fetchContentItems = async () => {
   return data || [];
 };
 
+export const fetchClients = async () => {
+  const { data } = await sanityFetch({
+    query: `*[_type == "account" && type == "client"] | order(name asc) {
+      _id,
+      name,
+      businessName,
+      avatar
+    }`,
+    tags: ["account"],
+  });
+  return data || [];
+};
+
 export const fetchSanityPageBySlug = async ({
   slug,
   locale,
@@ -63,6 +77,15 @@ export const fetchSanityPageBySlug = async ({
 export const fetchSanityAccountById = async ({ id }: { id: string }): Promise<any> => {
   const { data } = await sanityFetch({
     query: ACCOUNT_BY_ID_QUERY,
+    params: { id },
+    perspective: "published",
+  });
+  return data;
+};
+
+export const fetchSanityCampaignById = async ({ id }: { id: string }): Promise<any> => {
+  const { data } = await sanityFetch({
+    query: CAMPAIGN_BY_ID_QUERY,
     params: { id },
     perspective: "published",
   });
@@ -145,6 +168,15 @@ export const fetchSanityAccountByEmail = async ({ email }: { email: string }): P
   const { data } = await sanityFetch({
     query: ACCOUNT_BY_EMAIL_QUERY,
     params: { email: normalizedEmail },
+    perspective: "published",
+  });
+  return data;
+};
+
+export const fetchSanityAccountByAccessPassword = async ({ accessPassword }: { accessPassword: string }): Promise<any> => {
+  const { data } = await sanityFetch({
+    query: ACCOUNT_BY_ACCESS_PASSWORD_QUERY,
+    params: { accessPassword },
     perspective: "published",
   });
   return data;

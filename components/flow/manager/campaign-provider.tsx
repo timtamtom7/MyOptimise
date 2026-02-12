@@ -10,7 +10,7 @@ import { SLIDE_TEMPLATES } from "./slide-templates";
 export interface Slide {
   _key: string;
   title: string;
-  layout: "title" | "text" | "split" | "grid" | "image" | "quote" | "stats" | "comparison" | "roadmap" | "persona" | "mockup" | "statement" | "gallery";
+  layout: "title" | "text" | "split" | "grid" | "image" | "persona" | "mockup" | "statement" | "gallery" | "timeline" | "data-grid" | "video";
   content: string;
   notes?: string;
   imageUrl?: string;
@@ -81,13 +81,14 @@ interface CampaignContextType {
   hasUnsavedChanges: boolean;
   setHasUnsavedChanges: (has: boolean) => void;
   isSaving: boolean;
+  lastSaved: Date | null;
   
   // Actions
   addSlideWithTemplate: (templateId: string) => void;
   updateSlide: (key: string, updates: Partial<Slide>) => void;
   removeSlide: (index: number) => void;
   moveSlide: (index: number, direction: 'up' | 'down') => void;
-  handleSave: () => Promise<void>;
+  handleSave: (silent?: boolean) => Promise<void>;
   handleSubmit: () => Promise<void>;
   handlePublish: () => Promise<void>;
 }
@@ -132,13 +133,14 @@ export function CampaignProvider({ children, campaign, user }: { children: React
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // Debounced Save
   useEffect(() => {
        if (!hasUnsavedChanges) return;
 
        const timer = setTimeout(() => {
-           handleSave();
+           handleSave(true);
            setHasUnsavedChanges(false);
        }, 2000);
 
@@ -150,9 +152,9 @@ export function CampaignProvider({ children, campaign, user }: { children: React
     const template = SLIDE_TEMPLATES.find(t => t.id === templateId)?.slide || SLIDE_TEMPLATES[0].slide;
     const newSlide: Slide = {
         _key: Math.random().toString(36).slice(2, 11),
-        title: template.title,
-        layout: template.layout,
-        content: template.content
+        title: template.title || "New Slide",
+        layout: (template.layout || "text") as any,
+        content: template.content || ""
     };
     setSlides([...slides, newSlide]);
     setActiveSlideIndex(slides.length);
@@ -186,7 +188,7 @@ export function CampaignProvider({ children, campaign, user }: { children: React
     setHasUnsavedChanges(true);
   };
 
-  async function handleSave() {
+  async function handleSave(silent = false) {
     setIsSaving(true);
     
     // Format for Sanity
@@ -206,8 +208,8 @@ export function CampaignProvider({ children, campaign, user }: { children: React
     const formattedMoodboard = moodboard.map(m => ({
         ...m,
         image: m.assetId ? {
-             _type: "image",
-             asset: { _type: "reference", _ref: m.assetId }
+            _type: "image",
+            asset: { _type: "reference", _ref: m.assetId }
         } : undefined
     }));
 
@@ -243,7 +245,8 @@ export function CampaignProvider({ children, campaign, user }: { children: React
     try {
       const result = await updateCampaignDeck(formData);
       if (result.success) {
-        toast.success("Strategy Deck saved successfully");
+        if (!silent) toast.success("Strategy Deck saved successfully");
+        setLastSaved(new Date());
       } else {
         toast.error("Failed to save deck");
       }
@@ -256,7 +259,7 @@ export function CampaignProvider({ children, campaign, user }: { children: React
 
   async function handleSubmit() {
       setIsSaving(true);
-      await handleSave();
+      await handleSave(true);
 
       const formData = new FormData();
       formData.append("campaignId", campaign._id);
@@ -279,7 +282,7 @@ export function CampaignProvider({ children, campaign, user }: { children: React
   async function handlePublish() {
       if (!confirm("Publish to Client? They will be able to view the deck.")) return;
       setIsSaving(true);
-      await handleSave();
+      await handleSave(true);
       
       const formData = new FormData();
       formData.append("campaignId", campaign._id);
@@ -325,6 +328,7 @@ export function CampaignProvider({ children, campaign, user }: { children: React
     hasUnsavedChanges,
     setHasUnsavedChanges,
     isSaving,
+    lastSaved,
     addSlideWithTemplate,
     updateSlide,
     removeSlide,

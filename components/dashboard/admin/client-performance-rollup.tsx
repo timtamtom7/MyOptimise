@@ -66,67 +66,80 @@ export function ClientPerformanceRollup({ clients }: ClientPerformanceRollupProp
 
   if (clientMetrics.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Client Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">No analytics data available for active clients.</p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+        <Minus className="h-8 w-8 mb-2 opacity-50" />
+        <p>No analytics data available.</p>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Client Performance</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead className="text-right">Followers</TableHead>
-                <TableHead className="text-right">Reach</TableHead>
-                <TableHead className="text-right">Engagement</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clientMetrics.map((client) => (
-                <TableRow key={client._id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        {client.avatar ? (
-                          <AvatarImage src={client.avatar.asset?.url || client.avatar.url} />
-                        ) : (
-                          <AvatarFallback>{(client.name || client.email || "?").substring(0, 2).toUpperCase()}</AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span>{client.name || "Unnamed"}</span>
-                        <span className="text-xs text-muted-foreground">{client.email}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <MetricCell data={client.followers} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <MetricCell data={client.reach} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <MetricCell data={client.engagement} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent border-white/10">
+            <TableHead className="text-muted-foreground/60 font-light">Client</TableHead>
+            <TableHead className="text-right text-muted-foreground/60 font-light">Followers</TableHead>
+            <TableHead className="text-right text-muted-foreground/60 font-light">Reach</TableHead>
+            <TableHead className="text-right text-muted-foreground/60 font-light">Engagement</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {clientMetrics.map((client) => (
+            <TableRow key={client._id} className="hover:bg-white/5 border-white/5 transition-colors">
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8 ring-2 ring-white/10">
+                    <AvatarImage src={client.avatar?.asset?.url} />
+                    <AvatarFallback>{client.name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-foreground/90">{client.name}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
+                {client.followers ? (
+                  <div className="flex flex-col items-end">
+                    <span className="font-mono text-sm">{client.followers.value.toLocaleString()}</span>
+                    {client.followers.trend !== 0 && (
+                      <span className={`text-[10px] flex items-center ${client.followers.trend > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {client.followers.trend > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                        {Math.abs(client.followers.trend).toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                ) : <span className="text-muted-foreground">-</span>}
+              </TableCell>
+              <TableCell className="text-right">
+                 {client.reach ? (
+                  <div className="flex flex-col items-end">
+                    <span className="font-mono text-sm">{client.reach.value.toLocaleString()}</span>
+                    {client.reach.trend !== 0 && (
+                      <span className={`text-[10px] flex items-center ${client.reach.trend > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {client.reach.trend > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                        {Math.abs(client.reach.trend).toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                ) : <span className="text-muted-foreground">-</span>}
+              </TableCell>
+              <TableCell className="text-right">
+                 {client.engagement ? (
+                  <div className="flex flex-col items-end">
+                    <span className="font-mono text-sm">{client.engagement.value.toLocaleString()}</span>
+                    {client.engagement.trend !== 0 && (
+                      <span className={`text-[10px] flex items-center ${client.engagement.trend > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {client.engagement.trend > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                        {Math.abs(client.engagement.trend).toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                ) : <span className="text-muted-foreground">-</span>}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 

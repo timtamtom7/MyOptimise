@@ -1313,19 +1313,19 @@ export default async function AdminDashboardPage() {
     redirect("/dashboard");
   }
 
-  const name = String((session as any)?.user?.name || "");
+  const name = String(acct?.name || (session as any)?.user?.name || "");
   const canWrite = Boolean(process.env.SANITY_API_WRITE_TOKEN);
-  const canInvite = hasAccountCapability(acct, "users.invite");
-  const canRemove = hasAccountCapability(acct, "users.remove");
-  const canImpersonate = hasAccountCapability(acct, "users.impersonate.read_only");
-  const canCreateTasks = hasAccountCapability(acct, "task.create");
-  const canSetTaskVisibility = hasAccountCapability(acct, "task.visibility.set");
-  const canManageTaskTemplates = hasAccountCapability(acct, "task.templates.manage");
-  const canDeleteTasks = hasAccountCapability(acct, "task.delete.all");
-  const canManageServices = hasAccountCapability(acct, "client.services.manage");
-  const canManageFeatureFlags = hasAccountCapability(acct, "system.feature_flags.manage");
+  const canInvite = type === 'admin' || hasAccountCapability(acct, "users.invite");
+  const canRemove = type === 'admin' || hasAccountCapability(acct, "users.remove");
+  const canImpersonate = type === 'admin' || hasAccountCapability(acct, "users.impersonate.read_only");
+  const canCreateTasks = type === 'admin' || hasAccountCapability(acct, "task.create");
+  const canSetTaskVisibility = type === 'admin' || hasAccountCapability(acct, "task.visibility.set");
+  const canManageTaskTemplates = type === 'admin' || hasAccountCapability(acct, "task.templates.manage");
+  const canDeleteTasks = type === 'admin' || hasAccountCapability(acct, "task.delete.all");
+  const canManageServices = type === 'admin' || hasAccountCapability(acct, "client.services.manage");
+  const canManageFeatureFlags = type === 'admin' || hasAccountCapability(acct, "system.feature_flags.manage");
   const canViewLogs =
-    hasAccountCapability(acct, "users.activity_logs.view") || hasAccountCapability(acct, "security.audit.view");
+    type === 'admin' || hasAccountCapability(acct, "users.activity_logs.view") || hasAccountCapability(acct, "security.audit.view");
 
   const cookieStore = await cookies();
   const impersonateId = cookieStore.get(IMPERSONATE_COOKIE)?.value || "";
@@ -1492,10 +1492,10 @@ export default async function AdminDashboardPage() {
   const clients = accounts.filter((a: any) => a.type === "client");
 
   const stats = {
-    totalUsers: accounts.length,
-    activeTasks: openWorkItems.length,
-    pendingRequests: openClientRequests.length + openServiceRequests.length,
-    totalRevenue: invoices.reduce((acc: number, inv: any) => acc + (inv.status === "paid" ? (inv.totalAmount || 0) : 0), 0),
+    totalClients: clients.length,
+    activeProjects: openWorkItems.length,
+    revenue: invoices.reduce((acc: number, inv: any) => acc + (inv.status === "paid" ? (inv.totalAmount || 0) : 0), 0),
+    teamSize: employees.length,
   };
 
   const clientWorkload = clients.map((client: any) => {

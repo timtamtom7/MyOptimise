@@ -92,6 +92,12 @@ export default defineType({
       ],
     }),
     defineField({ name: "passwordHash", type: "string", title: "Password Hash", description: "Only for Credentials login" }),
+    defineField({ 
+      name: "accessPassword", 
+      type: "string", 
+      title: "Unique Access Password", 
+      description: "For password-only login. Must be unique across all users." 
+    }),
     defineField({ name: "notes", type: "text", title: "Notes" }),
     
     // Client-specific fields

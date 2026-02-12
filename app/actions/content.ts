@@ -28,6 +28,51 @@ export async function generateApprovalLink(id: string) {
   return `/approve/${token}`;
 }
 
+export async function getMediaLibrary(clientId: string) {
+  const session = await getServerSession(getAuthOptions());
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const query = `{
+    "brandAssets": *[_type == "account" && _id == $clientId][0].brandAssets[] {
+      title,
+      type,
+      "url": file.asset->url,
+      "assetId": file.asset._ref,
+      "mimeType": file.asset->mimeType
+    },
+    "history": *[_type == "contentItem" && client._ref == $clientId && defined(media)] | order(_createdAt desc) [0...50] {
+      media[] {
+        "url": asset->url,
+        "assetId": asset._ref,
+        "mimeType": asset->mimeType
+      }
+    }
+  }`;
+
+  const result = await client.fetch(query, { clientId });
+  
+  // Flatten history
+  const historyImages = result.history?.flatMap((item: any) => item.media?.map((m: any) => ({ 
+      url: m.url, 
+      assetId: m.assetId,
+      type: m.mimeType?.startsWith('image/') ? 'image' : 'video'
+  }))).filter((m: any) => m.url && m.assetId) || [];
+  
+  // Deduplicate by assetId
+  const uniqueHistoryMap = new Map();
+  historyImages.forEach((item: any) => {
+      if (!uniqueHistoryMap.has(item.assetId)) {
+          uniqueHistoryMap.set(item.assetId, item);
+      }
+  });
+  const uniqueHistory = Array.from(uniqueHistoryMap.values());
+
+  return {
+    brandAssets: result.brandAssets || [],
+    history: uniqueHistory
+  };
+}
+
 export async function verifyApprovalToken(token: string) {
   // Use a stronger query to get all needed fields
   return await client.fetch(`*[_type == "contentItem" && approvalToken == $token][0]{
@@ -98,7 +143,8 @@ export async function createContentItem(formData: FormData) {
   const scheduledAt = formData.get("scheduledAt") as string; // ISO string
   const clientId = formData.get("clientId") as string;
   const caption = formData.get("caption") as string;
-  const file = formData.get("file") as File | null;
+  const files = formData.getAll("files") as File[];
+  const manifestStrings = formData.getAll("mediaManifest") as string[];
 
   if (!title || !platform || !clientId) {
     throw new Error("Missing required fields");
@@ -108,18 +154,77 @@ export async function createContentItem(formData: FormData) {
     token: process.env.SANITY_API_WRITE_TOKEN,
   });
 
-  let assetId = null;
-  if (file && file.size > 0) {
-    // Determine type (image or file/video)
-    const isImage = file.type.startsWith("image/");
-    const assetType = isImage ? "image" : "file";
-    
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const asset = await writeClient.assets.upload(assetType, buffer, {
-      filename: file.name,
-      contentType: file.type,
-    });
-    assetId = asset._id;
+  const mediaItems: any[] = [];
+  let fileIndex = 0;
+
+  // Process manifest items
+  for (const str of manifestStrings) {
+      const item = JSON.parse(str);
+      let assetId = item.assetId;
+      let assetType = "image";
+
+      if (item.type === 'new' && files[fileIndex]) {
+          const file = files[fileIndex];
+          fileIndex++;
+          
+          if (file.size > 0) {
+              const isImage = file.type.startsWith("image/");
+              assetType = isImage ? "image" : "file";
+              
+              const buffer = Buffer.from(await file.arrayBuffer());
+              const asset = await writeClient.assets.upload(assetType as any, buffer, {
+                  filename: file.name,
+                  contentType: file.type,
+              });
+              assetId = asset._id;
+          }
+      } else if (item.type === 'existing' && assetId) {
+          // Infer type from asset ID or fetch? 
+          // Schema distinguishes 'image' vs 'file' object types in the array, but both point to assets.
+          // The 'file' type usually implies video/doc.
+          // Let's check the assetId prefix.
+          // image-.... -> image
+          // file-.... -> file
+          if (assetId.startsWith("file-")) assetType = "file";
+      }
+
+      if (assetId) {
+          mediaItems.push({
+              _key: randomUUID(),
+              _type: assetType,
+              asset: { _type: "reference", _ref: assetId }
+          });
+      }
+  }
+
+  // Legacy fallback for single file upload (if any code still uses it, though we updated the dialog)
+  if (mediaItems.length === 0) {
+      const file = formData.get("file") as File | null;
+      const existingAssetId = formData.get("existingAssetId") as string;
+      
+      let assetId = existingAssetId || null;
+      let assetType = "image";
+
+      if (file && file.size > 0) {
+        const isImage = file.type.startsWith("image/");
+        assetType = isImage ? "image" : "file";
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const asset = await writeClient.assets.upload(assetType as any, buffer, {
+          filename: file.name,
+          contentType: file.type,
+        });
+        assetId = asset._id;
+      } else if (existingAssetId) {
+         if (existingAssetId.startsWith("file-")) assetType = "file";
+      }
+      
+      if (assetId) {
+        mediaItems.push({
+            _key: randomUUID(),
+            _type: assetType,
+            asset: { _type: "reference", _ref: assetId },
+        });
+      }
   }
 
   const doc: any = {
@@ -137,15 +242,8 @@ export async function createContentItem(formData: FormData) {
     doc.status = "scheduled"; // Auto-schedule if date provided
   }
 
-  if (assetId) {
-    // Schema expects 'media' array
-    doc.media = [
-      {
-        _key: randomUUID(),
-        _type: file?.type.startsWith("image/") ? "image" : "file",
-        asset: { _type: "reference", _ref: assetId },
-      },
-    ];
+  if (mediaItems.length > 0) {
+    doc.media = mediaItems;
   }
 
   const created = await writeClient.create(doc);

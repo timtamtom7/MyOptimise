@@ -69,13 +69,13 @@ export default async function MainLayout({
     }
   }
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <Header />
-      <main>{children}</main>
+      <main className="flex-1">{children}</main>
       <CommandPalette enabled={canUseCommandPalette} commands={commands} />
       <SanityLive />
       {isDraftMode && <DisableDraftMode />}
       <Footer />
-    </>
+    </div>
   );
 }

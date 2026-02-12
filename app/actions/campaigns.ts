@@ -538,6 +538,99 @@ export async function addStrategySlideComment(formData: FormData) {
     return { success: true, comment };
 }
 
+export async function saveStrategyVersion(formData: FormData) {
+    const session = await safeGetServerSession();
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return { error: "Unauthorized" };
+
+    const acct = await fetchSanityAccountByEmail({ email });
+    if (!acct) return { error: "Unauthorized" };
+
+    const campaignId = String(formData.get("campaignId") || "");
+    const description = String(formData.get("description") || "Manual Save");
+    
+    if (!campaignId) return { error: "Missing campaign ID" };
+
+    const campaign = await client.fetch(`*[_type == "campaign" && _id == $id][0]{strategyDeck}`, { id: campaignId });
+    if (!campaign || !campaign.strategyDeck) return { error: "Campaign not found" };
+
+    // Create snapshot (remove history itself to avoid recursion if we were storing the whole object, but history is inside strategyDeck, so we should exclude it or just store the slides/config)
+    // Actually, let's store the 'content' parts: slides, moodboard, pillars, etc.
+    // Basically copy strategyDeck but exclude 'history'.
+    const { history, ...snapshotData } = campaign.strategyDeck;
+    const snapshot = JSON.stringify(snapshotData);
+
+    const version = {
+        _key: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        author: acct.name || email,
+        snapshot,
+        description
+    };
+
+    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+    const writeClient = client.withConfig({ token: writeToken });
+
+    await writeClient
+        .patch(campaignId)
+        .setIfMissing({ "strategyDeck.history": [] })
+        .prepend("strategyDeck.history", [version])
+        .commit();
+
+    revalidatePath(`/dashboard/manager/strategy/${campaignId}`);
+    return { success: true };
+}
+
+export async function restoreStrategyVersion(formData: FormData) {
+    const session = await safeGetServerSession();
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return { error: "Unauthorized" };
+
+    const acct = await fetchSanityAccountByEmail({ email });
+    if (!acct || (acct.type !== "admin" && acct.type !== "manager")) {
+        return { error: "Unauthorized" };
+    }
+
+    const campaignId = String(formData.get("campaignId") || "");
+    const versionKey = String(formData.get("versionKey") || "");
+    
+    if (!campaignId || !versionKey) return { error: "Missing required fields" };
+
+    const campaign = await client.fetch(`*[_type == "campaign" && _id == $id][0]{strategyDeck}`, { id: campaignId });
+    if (!campaign || !campaign.strategyDeck?.history) return { error: "Version not found" };
+
+    const version = campaign.strategyDeck.history.find((v: any) => v._key === versionKey);
+    if (!version) return { error: "Version not found" };
+
+    const snapshotData = JSON.parse(version.snapshot);
+
+    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+    const writeClient = client.withConfig({ token: writeToken });
+
+    // We want to restore the data but KEEP the history.
+    // So we update strategyDeck fields with snapshotData, but preserve 'history'.
+    // The easiest way is to patch the strategyDeck object, but that might overwrite history if we are not careful.
+    // However, since history is a field inside strategyDeck, and snapshotData does NOT contain history (we excluded it),
+    // if we just set strategyDeck = snapshotData, we lose history!
+    
+    // So we need to set individual fields or merge.
+    // Better: set strategyDeck to snapshotData + current history.
+    
+    const newStrategyDeck = {
+        ...snapshotData,
+        history: campaign.strategyDeck.history,
+        updatedAt: new Date().toISOString()
+    };
+
+    await writeClient
+        .patch(campaignId)
+        .set({ strategyDeck: newStrategyDeck })
+        .commit();
+
+    revalidatePath(`/dashboard/manager/strategy/${campaignId}`);
+    return { success: true };
+}
+
 export async function resolveStrategySlideComment(formData: FormData) {
     const session = await safeGetServerSession();
     const email = String((session as any)?.user?.email || "");
@@ -604,6 +697,67 @@ export async function uploadMoodboardImage(formData: FormData) {
     } catch (error) {
         console.error("Upload error:", error);
         return { error: "Upload failed" };
+    }
+}
+
+export async function updateCampaignStatus(formData: FormData) {
+    const session = await safeGetServerSession();
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return { error: "Unauthorized" };
+
+    const acct = await fetchSanityAccountByEmail({ email });
+    if (!acct || (acct.type !== "admin" && acct.type !== "manager")) return { error: "Unauthorized" };
+
+    const campaignId = String(formData.get("campaignId") || "");
+    const status = String(formData.get("status") || "");
+
+    if (!campaignId || !status) return { error: "Missing required fields" };
+
+    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+    const writeClient = client.withConfig({ token: writeToken });
+
+    try {
+        await writeClient
+            .patch(campaignId)
+            .set({ "strategyDeck.status": status })
+            .commit();
+
+        revalidatePath(`/dashboard/manager/strategy/${campaignId}`);
+        return { success: true };
+    } catch (e) {
+        console.error("Update status error", e);
+        return { error: "Failed to update status" };
+    }
+}
+
+export async function generateCampaignApproval(formData: FormData) {
+    const session = await safeGetServerSession();
+    const email = String((session as any)?.user?.email || "");
+    if (!email) return { error: "Unauthorized" };
+
+    const acct = await fetchSanityAccountByEmail({ email });
+    if (!acct || (acct.type !== "admin" && acct.type !== "manager")) return { error: "Unauthorized" };
+
+    const campaignId = String(formData.get("campaignId") || "");
+    if (!campaignId) return { error: "Missing campaign ID" };
+
+    const token = crypto.randomUUID();
+    const writeToken = process.env.SANITY_API_WRITE_TOKEN || "";
+    const writeClient = client.withConfig({ token: writeToken });
+
+    try {
+        await writeClient
+            .patch(campaignId)
+            .set({ approvalToken: token })
+            .commit();
+
+        revalidatePath(`/dashboard/manager/strategy/${campaignId}`);
+        // Return the full approval URL (assuming a route exists)
+        // For now, just return the token
+        return { success: true, token, url: `${process.env.NEXT_PUBLIC_URL}/approve/${token}` };
+    } catch (e) {
+        console.error("Generate approval error", e);
+        return { error: "Failed to generate approval link" };
     }
 }
 

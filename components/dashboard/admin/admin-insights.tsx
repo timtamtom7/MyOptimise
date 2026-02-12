@@ -29,77 +29,74 @@ export function AdminInsights() {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
             <Sparkles className="h-5 w-5 text-blue-600" />
-            AI Operations Radar
-          </CardTitle>
-          <CardDescription>Scanning for operational risks and opportunities...</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </CardContent>
-      </Card>
+            <span className="font-medium">AI Analysis Active</span>
+        </div>
+        <Skeleton className="h-20 w-full bg-white/5" />
+        <Skeleton className="h-12 w-full bg-white/5" />
+      </div>
     );
   }
 
   if (!data || data.insights.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-blue-600" />
-            AI Operations Radar
-          </CardTitle>
-          <CardDescription>All systems normal. No critical risks detected.</CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <Sparkles className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
+        <p className="text-muted-foreground">No critical insights detected.</p>
+      </div>
     );
   }
 
   return (
-    <Card className="border-blue-100 bg-blue-50/10 dark:bg-blue-950/10 dark:border-blue-900">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-blue-600" />
-              AI Operations Radar
-            </CardTitle>
-            <CardDescription>
-              {data.insights.length} active alerts require attention.
-            </CardDescription>
-          </div>
-          {data.aiSummary && (
-             <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-200">
-                AI Analysis Active
-             </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {data.aiSummary && (
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-blue-100 dark:border-blue-900 shadow-sm">
-            <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-2">
-                <Sparkles className="h-3 w-3" />
-                Strategic Summary
-            </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {data.aiSummary}
-            </p>
-          </div>
-        )}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+         <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                {data.insights.length} Active
+            </Badge>
+         </div>
+      </div>
 
-        <div className="space-y-3">
-          {data.insights.slice(0, 5).map((insight) => (
-            <InsightItem key={insight.id} insight={insight} />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+      <div className="space-y-4">
+        {data.insights.map((insight) => (
+          <div
+            key={insight.id}
+            className="group relative overflow-hidden rounded-xl border border-white/5 bg-white/5 p-4 hover:bg-white/10 transition-colors"
+          >
+            <div className="flex items-start gap-4">
+              <div className={`p-2 rounded-lg mt-1 ${
+                  insight.severity === "high" ? "bg-red-500/10 text-red-500" :
+                  insight.severity === "medium" ? "bg-orange-500/10 text-orange-500" :
+                  "bg-blue-500/10 text-blue-500"
+              }`}>
+                {insight.severity === "high" ? <AlertTriangle className="h-4 w-4" /> :
+                 insight.type === "risk" ? <UserX className="h-4 w-4" /> :
+                 <Sparkles className="h-4 w-4" />}
+              </div>
+              
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-foreground">{insight.title}</h4>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {insight.description}
+                </p>
+                
+                {insight.actionLabel && (
+                    <div className="mt-3 text-sm bg-black/20 rounded-lg p-3 border border-white/5 flex items-center gap-2">
+                        <span className="font-semibold text-primary">Action: </span>
+                        <span>{insight.actionLabel}</span>
+                        <ArrowRight className="h-3 w-3 opacity-50" />
+                    </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

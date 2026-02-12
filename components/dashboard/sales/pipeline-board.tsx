@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { updateLeadStatus } from "@/app/actions/sales";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmailComposerDialog } from "./email-composer-dialog";
 import { LeadDetailsDialog } from "./lead-details-dialog";
 import { ConvertClientDialog } from "./convert-client-dialog";
+import { MoreHorizontal, DollarSign, Calendar, User } from "lucide-react";
 
 interface Lead {
   _id: string;
@@ -25,13 +25,13 @@ interface PipelineBoardProps {
 }
 
 const COLUMNS = [
-  { id: "cold", title: "Cold" },
-  { id: "contacted", title: "Contacted" },
-  { id: "discovery", title: "Discovery Call" },
-  { id: "proposal", title: "Proposal Sent" },
-  { id: "negotiation", title: "Negotiation" },
-  { id: "won", title: "Won" },
-  { id: "lost", title: "Lost" },
+  { id: "cold", title: "Cold", color: "bg-slate-100 dark:bg-slate-800" },
+  { id: "contacted", title: "Contacted", color: "bg-blue-50 dark:bg-blue-900/20" },
+  { id: "discovery", title: "Discovery", color: "bg-purple-50 dark:bg-purple-900/20" },
+  { id: "proposal", title: "Proposal", color: "bg-amber-50 dark:bg-amber-900/20" },
+  { id: "negotiation", title: "Negotiation", color: "bg-orange-50 dark:bg-orange-900/20" },
+  { id: "won", title: "Won", color: "bg-emerald-50 dark:bg-emerald-900/20" },
+  { id: "lost", title: "Lost", color: "bg-red-50 dark:bg-red-900/20" },
 ];
 
 export function PipelineBoard({ initialLeads }: PipelineBoardProps) {
@@ -97,95 +97,106 @@ export function PipelineBoard({ initialLeads }: PipelineBoardProps) {
       } catch (err) {
         console.error(err);
         toast.error("Failed to move lead");
-        // Revert? In a real app we might revert state here.
+        // Revert logic would go here
       }
     }
   };
 
-  const isStale = (dateStr?: string) => {
-    if (!dateStr) return false;
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-    return diffDays > 7;
+  const openDetails = (lead: Lead) => {
+    setSelectedLeadId(lead._id);
+    setDetailsOpen(true);
   };
 
   return (
-    <div className="flex h-full gap-4 overflow-x-auto pb-4 items-start">
-      {COLUMNS.map(col => (
-        <div 
-          key={col.id} 
-          className="min-w-[280px] w-[300px] bg-muted/30 rounded-xl p-3 flex flex-col max-h-full border border-transparent hover:border-border/50 transition-colors"
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, col.id)}
-        >
-          <div className="font-semibold mb-3 px-1 flex justify-between items-center text-sm">
-             <span className="uppercase tracking-wider text-muted-foreground text-xs font-bold">{col.title}</span>
-             <Badge variant="outline" className="text-xs bg-background">
-               {leads.filter(l => l.status === col.id).length}
-             </Badge>
-          </div>
-          <div className="flex-1 space-y-3 overflow-y-auto min-h-[100px]">
-            {leads.filter(l => l.status === col.id).map(lead => (
-              <Card 
-                key={lead._id} 
-                className={cn(
-                  "cursor-grab active:cursor-grabbing hover:shadow-md transition-all",
-                  draggedId === lead._id && "opacity-50 rotate-2",
-                  isStale(lead._updatedAt) && "border-red-200 bg-red-50/50"
-                )}
-                draggable
-                onDragStart={(e) => handleDragStart(e, lead._id)}
-                onClick={() => {
-                  setSelectedLeadId(lead._id);
-                  setDetailsOpen(true);
-                }}
-              >
-                <CardHeader className="p-3 pb-1">
-                  <CardTitle className="text-sm font-semibold">{lead.companyName}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 pt-1 text-xs text-muted-foreground">
-                  <div className="line-clamp-1">{lead.contactName || "No contact"}</div>
-                  {lead.value && (
-                    <div className="mt-2 font-medium text-foreground bg-green-500/10 text-green-600 w-fit px-1.5 py-0.5 rounded">
-                      ${lead.value.toLocaleString()}
-                    </div>
-                  )}
-                  {lead._updatedAt && (
-                     <div className="mt-2 text-[10px] text-muted-foreground/50">
-                        Last update: {new Date(lead._updatedAt).toLocaleDateString()}
-                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-            {leads.filter(l => l.status === col.id).length === 0 && (
-                <div className="h-full flex items-center justify-center text-xs text-muted-foreground/30 italic py-8 border-2 border-dashed border-muted-foreground/10 rounded-lg">
-                    Empty
-                </div>
+    <>
+      <div className="flex gap-6 h-full pb-4 overflow-x-auto px-1 min-w-full w-max">
+        {COLUMNS.map((col) => (
+          <div
+            key={col.id}
+            className={cn(
+              "flex flex-col w-[350px] min-w-[350px] rounded-[2.5rem] p-4 transition-colors",
+              col.color,
+              "border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
             )}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, col.id)}
+          >
+            <div className="flex items-center justify-between px-4 py-2 mb-2">
+              <h3 className="font-bold text-lg text-slate-700 dark:text-slate-200">{col.title}</h3>
+              <Badge variant="secondary" className="rounded-full px-3 py-1 bg-white/50 dark:bg-black/20 text-slate-600 dark:text-slate-300 font-bold">
+                {leads.filter(l => l.status === col.id).length}
+              </Badge>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 px-2 pb-2">
+              {leads
+                .filter((l) => l.status === col.id)
+                .map((lead) => (
+                  <div
+                    key={lead._id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, lead._id)}
+                    onClick={() => openDetails(lead)}
+                    className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 shadow-sm border border-slate-100 dark:border-slate-800 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:-translate-y-1 group relative"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="font-bold text-lg text-slate-900 dark:text-slate-100">{lead.companyName}</div>
+                        <button className="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+                            <MoreHorizontal className="h-5 w-5" />
+                        </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        {lead.value && (
+                            <div className="flex items-center gap-2 text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-900/10 px-3 py-1.5 rounded-xl w-fit">
+                                <DollarSign className="h-4 w-4" />
+                                {lead.value.toLocaleString()}
+                            </div>
+                        )}
+                        
+                        {lead.contactName && (
+                            <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                                <User className="h-4 w-4" />
+                                {lead.contactName}
+                            </div>
+                        )}
+                        
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(lead._updatedAt || Date.now()).toLocaleDateString()}
+                        </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
           </div>
-        </div>
-      ))}
-      <EmailComposerDialog 
-        lead={selectedLead} 
-        open={composerOpen} 
-        onOpenChange={setComposerOpen} 
-      />
-      <LeadDetailsDialog 
-        lead={selectedLead} 
-        open={detailsOpen} 
-        onOpenChange={setDetailsOpen} 
-      />
-      <ConvertClientDialog 
-        lead={leads.find(l => l._id === convertLeadId) || null} 
-        open={convertOpen} 
-        onOpenChange={setConvertOpen}
-        onSuccess={(id) => {
-          setLeads(prev => prev.map(l => l._id === id ? { ...l, status: "won", _updatedAt: new Date().toISOString() } : l));
-        }}
-      />
-    </div>
+        ))}
+      </div>
+
+      {/* Dialogs */}
+      {selectedLead && (
+        <>
+            <EmailComposerDialog 
+                open={composerOpen} 
+                onOpenChange={setComposerOpen} 
+                lead={selectedLead} 
+            />
+            <LeadDetailsDialog 
+                open={detailsOpen} 
+                onOpenChange={setDetailsOpen} 
+                lead={selectedLead} 
+            />
+        </>
+      )}
+
+      {convertLeadId && (
+        <ConvertClientDialog 
+            open={convertOpen} 
+            onOpenChange={setConvertOpen} 
+            leadId={convertLeadId}
+            leadName={leads.find(l => l._id === convertLeadId)?.companyName || "Lead"}
+        />
+      )}
+    </>
   );
 }

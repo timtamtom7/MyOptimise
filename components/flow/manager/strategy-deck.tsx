@@ -141,10 +141,10 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   const hasReviewItems = campaign.needsReview > 0;
 
   return (
-    <Link href={`/flow/manager/${campaign._id}`} className="block group">
+    <Link href={`/dashboard/manager/strategy/${campaign._id}`} className="block group">
       <Card className={cn(
-        "h-full transition-all duration-500 hover:shadow-2xl hover:translate-y-[-4px] border-border bg-card shadow-sm overflow-hidden",
-        hasReviewItems && "border-slate-900 dark:border-slate-100 border-opacity-20"
+        "h-full transition-all duration-500 hover:shadow-2xl hover:translate-y-[-4px] border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden rounded-[2.5rem]",
+        hasReviewItems && "ring-2 ring-blue-500 border-blue-500 shadow-blue-500/20"
       )}>
         <CardHeader className="p-8 pb-4">
           <div className="flex justify-between items-start">

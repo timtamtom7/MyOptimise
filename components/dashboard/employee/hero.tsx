@@ -23,7 +23,7 @@ export function EmployeeHero({ name, dueTodayCount }: EmployeeHeroProps) {
               {today}
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Good Morning, {firstName}
+              <span className="font-bold">Good Morning,</span> <span className="font-light">{firstName}</span>
             </h1>
             <div className="flex items-center gap-2 text-muted-foreground">
               <CheckCircle2 className="h-4 w-4 text-primary" />

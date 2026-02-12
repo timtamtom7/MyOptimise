@@ -301,7 +301,29 @@ export default defineType({
             initialValue: "draft"
         }),
         defineField({ name: "approvalToken", type: "string", title: "Approval Token" }),
-        defineField({ name: "approvedAt", type: "datetime", title: "Approved At" })
+        defineField({ name: "approvedAt", type: "datetime", title: "Approved At" }),
+        defineField({
+            name: "history",
+            type: "array",
+            title: "Version History",
+            of: [
+                {
+                    type: "object",
+                    fields: [
+                        defineField({ name: "timestamp", type: "datetime", title: "Saved At" }),
+                        defineField({ name: "author", type: "string", title: "Saved By" }),
+                        defineField({ name: "snapshot", type: "text", title: "Snapshot Data" }),
+                        defineField({ name: "description", type: "string", title: "Description" })
+                    ],
+                    preview: {
+                        select: {
+                            title: "timestamp",
+                            subtitle: "author"
+                        }
+                    }
+                }
+            ]
+        })
       ]
     })
   ],

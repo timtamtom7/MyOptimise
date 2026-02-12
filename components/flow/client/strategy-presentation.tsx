@@ -1222,9 +1222,15 @@ export function StrategyPresentation({ campaign, onClose, mode = "slideshow" }: 
                         )}
 
                         {/* Footer / Page Number */}
-                        <div className={cn("absolute bottom-6 left-16 right-16 flex justify-between items-end border-t pt-4", printTheme === 'dark' ? "border-slate-800" : "border-slate-100")}>
-                            <span className={cn("text-sm font-medium uppercase tracking-widest", printTheme === 'dark' ? "text-slate-600" : "text-slate-400")}>{campaign.title} Strategy</span>
-                            <span className={cn("text-sm font-mono", printTheme === 'dark' ? "text-slate-600" : "text-slate-400")}>{idx + 1}</span>
+                        <div className={cn("absolute bottom-8 left-12 right-12 flex justify-between items-center text-[10px] uppercase tracking-[0.2em] font-medium border-t pt-6 print:bottom-4 print:left-8 print:right-8", printTheme === 'dark' ? "border-slate-800 text-slate-500" : "border-slate-200 text-slate-400")}>
+                            <div className="flex gap-6">
+                                <span className="font-bold text-blue-600">{campaign.client.name}</span>
+                                <span>{campaign.title}</span>
+                            </div>
+                            <div className="flex gap-6">
+                                <span className="text-slate-300 dark:text-slate-600">Confidential</span>
+                                <span>Page {idx + 1} / {pages.length}</span>
+                            </div>
                         </div>
                     </div>
                 ))}

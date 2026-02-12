@@ -21,21 +21,13 @@ export default function GoogleSignInButton({
       setLoading(true);
       console.log("Initiating Google sign-in...");
       
-      const result = await signIn("google", { 
-        callbackUrl,
-        redirect: false,
+      // Use default redirect behavior for better reliability with OAuth
+      await signIn("google", { 
+        callbackUrl: callbackUrl || "/",
       }, loginHint ? { login_hint: loginHint } : undefined);
       
-      console.log("Sign-in result:", result);
-
-      if (result?.error) {
-        toast.error("Sign-in failed: " + result.error);
-        setLoading(false);
-      } else if (result?.url) {
-        window.location.href = result.url;
-      } else {
-        setLoading(false);
-      }
+      // The page will redirect, so we don't need to handle the result
+      // But if it returns (e.g. error), we can catch it
     } catch (error) {
       console.error("Sign-in error:", error);
       toast.error("Sign-in exception: " + String(error));
@@ -47,28 +39,28 @@ export default function GoogleSignInButton({
     <Button
       type="button"
       onClick={handleSignIn}
-      className="w-full"
+      className="w-full rounded-full h-14 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-lg font-medium border border-blue-600 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
       disabled={loading}
       aria-busy={loading}
     >
       {loading ? (
         <span className="flex items-center gap-2">
-          <Loader2 className="animate-spin" />
-          Connecting to Google…
+          <Loader2 className="animate-spin h-5 w-5" />
+          Connecting...
         </span>
       ) : (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 48 48"
-            width="18"
-            height="18"
+            width="24"
+            height="24"
             aria-hidden="true"
           >
-            <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C34.7 31.7 30.1 35 24 35c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.3 1.2 8.6 3.2l5.7-5.7C34.6 3.5 29.6 1.5 24 1.5 11.5 1.5 1.5 11.5 1.5 24S11.5 46.5 24 46.5c12.5 0 22.5-10 22.5-22.5 0-1.5-.2-2.9-.5-4.2z"/>
-            <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.3 16.5 18.8 13 24 13c3.3 0 6.3 1.2 8.6 3.2l5.7-5.7C34.6 3.5 29.6 1.5 24 1.5 15.4 1.5 8.1 6.2 4.3 13.2z"/>
-            <path fill="#4CAF50" d="M24 46.5c6 0 11.4-2.3 15.5-6l-6.9-5.7C30.1 35 26.7 36.5 24 36.5c-6.1 0-11.2-3.8-13.1-9.1l-6.7 5.2c3.7 7.2 11 11.9 19.8 11.9z"/>
-            <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.7 3.7-5.2 6.5-9.3 6.5-6.1 0-11.2-3.8-13.1-9.1l-6.7 5.2C9.4 38.8 16.7 43.5 24 43.5c7.5 0 13.8-4.9 16.1-11.7.7-2.1 1.1-4.4 1.1-6.8 0-1.5-.2-2.9-.5-4.2z"/>
+            <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z" />
+            <path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z" />
+            <path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.44 2 24c0 3.56.85 6.91 2.34 9.88l7.35-5.7z" />
+            <path fill="#EA4335" d="M24 9.5c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 2.48 29.93 0 24 0 15.4 0 7.96 4.93 4.34 12.18l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z" />
           </svg>
           <span>{label}</span>
         </span>

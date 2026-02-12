@@ -1,4 +1,4 @@
-import { fetchContentItems } from "@/sanity/lib/fetch";
+import { fetchContentItems, fetchClients } from "@/sanity/lib/fetch";
 import { ContentBoard } from "@/components/content/ContentBoard";
 
 export const dynamic = "force-dynamic";
@@ -8,14 +8,17 @@ export const metadata = {
 };
 
 export default async function ContentPage() {
-  const items = await fetchContentItems();
+  const [items, clients] = await Promise.all([
+    fetchContentItems(),
+    fetchClients()
+  ]);
   
   return (
     <div className="flex flex-col gap-4 h-[calc(100vh-6rem)]">
       <div className="flex items-center justify-between">
          <h1 className="text-2xl font-bold">Content Engine</h1>
       </div>
-      <ContentBoard items={items} />
+      <ContentBoard items={items} clients={clients} />
     </div>
   );
 }

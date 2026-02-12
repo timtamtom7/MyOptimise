@@ -36,60 +36,70 @@ export function MessagesTab({ threads, employees, basePath = "/dashboard/admin",
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t('messages')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{t('messages')}</h2>
           <p className="text-muted-foreground">{t('messagesDesc')}</p>
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> {t('newMessage')}
+            <Button className="h-14 px-8 rounded-[2rem] font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all">
+              <Plus className="mr-2 h-5 w-5" /> {t('newMessage')}
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('newMessage')}</DialogTitle>
-              <DialogDescription>{t('newMessageDesc')}</DialogDescription>
-            </DialogHeader>
-            <form action={actions.createOrOpenDmThread} className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label>{t('recipient')}</Label>
-                <Select name="recipientId" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('selectTeamMember')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((e) => (
-                      <SelectItem key={e._id} value={e._id}>
-                        {e.name || e.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">Start Chat</Button>
-            </form>
+          <DialogContent className="rounded-[3rem] p-0 overflow-hidden border-0 shadow-2xl bg-white dark:bg-slate-950 max-w-lg">
+             {/* Header with gradient */}
+            <div className="relative bg-slate-50 dark:bg-slate-900/50 px-8 py-8 border-b border-slate-100 dark:border-slate-800/50">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none translate-x-1/3 -translate-y-1/3" />
+                <DialogHeader>
+                    <DialogTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('newMessage')}</DialogTitle>
+                    <DialogDescription className="text-base font-medium mt-1">{t('newMessageDesc')}</DialogDescription>
+                </DialogHeader>
+            </div>
+            <div className="p-8 pt-6">
+                <form action={actions.createOrOpenDmThread} className="grid gap-6">
+                <div className="grid gap-3">
+                    <Label className="text-base font-bold ml-2 text-slate-700 dark:text-slate-300">{t('recipient')}</Label>
+                    <Select name="recipientId" required>
+                    <SelectTrigger className="h-16 rounded-[2rem] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all px-6 font-medium text-lg">
+                        <SelectValue placeholder={t('selectTeamMember')} />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-[2rem] p-3 shadow-2xl">
+                        {employees.map((e) => (
+                        <SelectItem key={e._id} value={e._id} className="rounded-2xl py-4 px-4 cursor-pointer text-base font-medium mb-1">
+                            {e.name || e.email}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                </div>
+                <Button type="submit" className="h-16 rounded-[2rem] w-full text-lg font-bold shadow-xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    Start Chat
+                </Button>
+                </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {threads.map((thread) => (
-          <Card key={thread._id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => {
+          <Card key={thread._id} className="rounded-[2.5rem] border-slate-200 dark:border-slate-800 shadow-md hover:shadow-xl hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-300 cursor-pointer group bg-white dark:bg-slate-900" onClick={() => {
             // Navigate to thread
             router.push(`${basePath}/threads/${thread._id}`);
           }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-8 pt-8">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground group-hover:text-blue-600 transition-colors">
                 {thread.type === 'dm' ? 'Direct Message' : 'Task Discussion'}
               </CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <div className="h-10 w-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 group-hover:text-blue-600 transition-all">
+                  <MessageSquare className="h-5 w-5" />
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="font-bold truncate mb-1">{thread.title}</div>
-              <div className="text-xs text-muted-foreground truncate mb-4">
+            <CardContent className="px-8 pb-8">
+              <div className="font-bold text-xl truncate mb-2 text-slate-900 dark:text-slate-100">{thread.title}</div>
+              <div className="text-base text-muted-foreground truncate mb-6 font-medium bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3">
                  {thread.lastMessage?.message || "No messages yet"}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pl-2">
                 {thread.participants?.slice(0, 3).map((p: any) => (
                    <Avatar key={p._id} className="h-6 w-6">
                       <AvatarFallback 

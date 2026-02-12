@@ -44,6 +44,44 @@ export const ACCOUNT_BY_ID_QUERY = groq`
     type,
     status,
     passwordHash,
+    accessPassword,
+    skills,
+    portfolioTags,
+    capabilities,
+    revokedCapabilities,
+    avatar,
+    timezone,
+    locale,
+    notificationPreferences,
+    sessionVersion,
+    lastLoginAt,
+    loginHistory,
+    brandAssets[]{
+      _key,
+      title,
+      type,
+      "fileUrl": file.asset->url,
+      url,
+      tags,
+      aiTags
+    },
+    businessName,
+    onboardingStatus,
+    serviceScope,
+    stripeCustomerId,
+    stripeSubscriptionId
+  }
+`;
+
+export const ACCOUNT_BY_ACCESS_PASSWORD_QUERY = groq`
+  *[_type == "account" && accessPassword == $accessPassword][0]{
+    _id,
+    email,
+    name,
+    type,
+    status,
+    passwordHash,
+    accessPassword,
     skills,
     portfolioTags,
     capabilities,

@@ -7,6 +7,7 @@ interface TikTokPreviewProps {
   username?: string;
   userImage?: string;
   image?: string; // Placeholder for video thumb if no video
+  mediaType?: 'image' | 'video';
   caption?: string;
   likes?: string;
   comments?: string;
@@ -18,6 +19,7 @@ export function TikTokPreview({
   username = "optimise_agency",
   userImage,
   image,
+  mediaType = 'image',
   caption = "Wait for the end... 👀 #agency #marketing",
   likes = "12.4K",
   comments = "102",
@@ -29,12 +31,24 @@ export function TikTokPreview({
       {/* Background Media */}
       <div className="absolute inset-0 bg-gray-900">
         {image ? (
-          <Image
-            src={image}
-            alt="TikTok Content"
-            fill
-            className="object-cover opacity-90"
-          />
+          mediaType === 'video' ? (
+            <video 
+              src={image} 
+              className="w-full h-full object-cover opacity-90"
+              controls={false}
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <Image
+              src={image}
+              alt="TikTok Content"
+              fill
+              className="object-cover opacity-90"
+            />
+          )
         ) : (
           <div className="flex items-center justify-center h-full text-gray-600">
             No Video Source

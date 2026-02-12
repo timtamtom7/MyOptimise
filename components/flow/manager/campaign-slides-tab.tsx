@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -16,39 +17,146 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Plus, Trash2, Layout, Image as ImageIcon, Sparkles, ArrowRight, Loader2, Presentation, ArrowUp, ArrowDown, Upload, ImagePlus, Eye, MessageSquare, Check, Bold, Italic, List, Heading1, Heading2, ListOrdered, Grid2X2, Columns2, AlignLeft, BookOpen, Target, Search, Users, Palette, Printer, FolderOpen, Smartphone, User, Type, GalleryHorizontal, Globe, Briefcase, Info, Activity, Newspaper, Layers, Minimize2, Maximize2, RefreshCcw, AlertTriangle, CheckCircle, ShieldCheck, MousePointer2, XCircle, X, Download } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Save, Plus, Trash2, Layout, Image as ImageIcon, Sparkles, ArrowRight, Loader2, Presentation, ArrowUp, ArrowDown, Upload, ImagePlus, Eye, MessageSquare, Check, Bold, Italic, List, Heading1, Heading2, Heading3, ListOrdered, Grid2X2, Columns2, AlignLeft, BookOpen, Target, Search, Users, Palette, Printer, FolderOpen, Smartphone, User, Type, GalleryHorizontal, Globe, Briefcase, Info, Activity, Newspaper, Layers, Minimize2, Maximize2, RefreshCcw, AlertTriangle, CheckCircle, ShieldCheck, MousePointer2, XCircle, X, Download, Quote, Link as LinkIcon, CheckSquare, Code, Lightbulb, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { uploadMoodboardImage, resolveStrategySlideComment } from "@/app/actions/campaigns";
 import { generateSlideContent } from "@/app/actions/research-tools";
 import { StrategyPresentation } from "@/components/flow/client/strategy-presentation";
 import ReactMarkdown from "react-markdown";
+import { Reorder } from "framer-motion";
 import { PersonaSlide, MockupSlide, StatementSlide, GallerySlide } from "@/components/flow/manager/luxury-slide-templates";
 import { useCampaignContext } from "./campaign-provider";
-import { SLIDE_TEMPLATES } from "./slide-templates";
+import { SLIDE_TEMPLATES, SlideTemplate } from "./slide-templates";
 
 const MarkdownToolbar = ({ onInsert }: { onInsert: (text: string, wrap?: string) => void }) => {
     return (
-        <div className="flex items-center gap-1 mb-2 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-md border border-slate-200 dark:border-slate-800 w-fit">
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onInsert("**", "**")} title="Bold">
-                <Bold className="w-3 h-3" />
+        <div className="flex items-center gap-0.5 p-1 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 w-full overflow-x-auto">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("**", "**")} title="Bold">
+                <Bold className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onInsert("_", "_")} title="Italic">
-                <Italic className="w-3 h-3" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("_", "_")} title="Italic">
+                <Italic className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             </Button>
-            <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1" />
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onInsert("# ")} title="Heading 1">
-                <Heading1 className="w-3 h-3" />
+            <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-2" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("# ")} title="Heading 1">
+                <Heading1 className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onInsert("## ")} title="Heading 2">
-                <Heading2 className="w-3 h-3" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("## ")} title="Heading 2">
+                <Heading2 className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             </Button>
-            <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1" />
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onInsert("- ")} title="Bullet List">
-                <List className="w-3 h-3" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("### ")} title="Heading 3">
+                <Heading3 className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onInsert("1. ")} title="Numbered List">
-                <ListOrdered className="w-3 h-3" />
+            <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-2" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("- ")} title="Bullet List">
+                <List className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("1. ")} title="Numbered List">
+                <ListOrdered className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("- [ ] ")} title="Checklist">
+                <CheckSquare className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            </Button>
+            <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-2" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("> ")} title="Quote">
+                <Quote className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("[", "](url)")} title="Link">
+                <LinkIcon className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => onInsert("```\n", "\n```")} title="Code Block">
+                <Code className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            </Button>
+        </div>
+    );
+};
+
+const RichTextEditor = ({ 
+    value, 
+    onChange, 
+    placeholder, 
+    className, 
+    minHeight = "400px",
+    previewExtra 
+}: { 
+    value: string; 
+    onChange: (val: string) => void; 
+    placeholder?: string; 
+    className?: string;
+    minHeight?: string;
+    previewExtra?: React.ReactNode;
+}) => {
+    const [mode, setMode] = useState<"edit" | "preview">("edit");
+    const editorRef = useRef<HTMLTextAreaElement>(null);
+
+    const handleInsert = (text: string, wrap?: string) => {
+        if (!editorRef.current) return;
+        const textarea = editorRef.current;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const v = textarea.value;
+        
+        let newText = "";
+        let newCursorPos = 0;
+
+        if (wrap) {
+            const selection = v.substring(start, end);
+            newText = v.substring(0, start) + wrap + selection + wrap + v.substring(end);
+            newCursorPos = end + wrap.length * 2;
+        } else {
+            newText = v.substring(0, start) + text + v.substring(end);
+            newCursorPos = start + text.length;
+        }
+
+        onChange(newText);
+        
+        setTimeout(() => {
+            if (editorRef.current) {
+                editorRef.current.focus();
+                editorRef.current.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }, 0);
+    };
+
+    return (
+        <div className={cn("flex flex-col border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-950 shadow-sm transition-all hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900/50", className)}>
+            <div className="flex flex-col border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between px-3 py-2">
+                    <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="w-auto">
+                        <TabsList className="h-8 p-0.5 bg-slate-200/50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                            <TabsTrigger value="edit" className="text-xs px-3 h-7 rounded-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">Write</TabsTrigger>
+                            <TabsTrigger value="preview" className="text-xs px-3 h-7 rounded-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm">Preview</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    <div className="text-xs text-slate-400 font-medium px-2">
+                        Markdown Supported
+                    </div>
+                </div>
+                {mode === 'edit' && (
+                    <div className="px-2 pb-2">
+                        <MarkdownToolbar onInsert={handleInsert} />
+                    </div>
+                )}
+            </div>
+
+            <div className="relative group">
+                {mode === 'edit' ? (
+                    <Textarea
+                        ref={editorRef}
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="w-full p-6 resize-none border-none focus:ring-0 font-mono text-sm leading-relaxed bg-transparent text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600 focus-visible:ring-0"
+                        placeholder={placeholder}
+                        style={{ minHeight }}
+                    />
+                ) : (
+                    <div className="p-6 prose prose-slate dark:prose-invert max-w-none overflow-y-auto" style={{ minHeight }}>
+                        {previewExtra}
+                        <ReactMarkdown>{value || "*No content*"}</ReactMarkdown>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
@@ -68,17 +176,33 @@ export function CampaignSlidesTab() {
     moveSlide, 
     handleSave, 
     handleSubmit, 
-    handlePublish 
+    handlePublish,
+    setHasUnsavedChanges
   } = useCampaignContext();
 
   const [showPreview, setShowPreview] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const slideFileInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const activeSlide = slides[activeSlideIndex];
+  const activeTemplate = activeSlide ? SLIDE_TEMPLATES.find(t => t.slide.layout === activeSlide.layout) : null;
+
+  const handleReorder = (newSlides: any[]) => {
+      const currentActiveId = activeSlide?._key;
+      setSlides(newSlides);
+      setHasUnsavedChanges(true);
+      
+      if (currentActiveId) {
+          const newIndex = newSlides.findIndex((s: any) => s._key === currentActiveId);
+          if (newIndex !== -1 && newIndex !== activeSlideIndex) {
+              setActiveSlideIndex(newIndex);
+          }
+      }
+  };
 
   const handleMarkdownInsert = (text: string, wrap?: string) => {
       if (!editorRef.current) return;
@@ -271,16 +395,18 @@ export function CampaignSlidesTab() {
             </DropdownMenu>
         </div>
         
-        <div className="space-y-3 overflow-y-auto flex-1 p-4 pl-6 pb-8 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+        <Reorder.Group axis="y" values={slides} onReorder={handleReorder} className="space-y-3 overflow-y-auto flex-1 p-4 pl-6 pb-8 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
             {slides.map((slide, idx) => (
-                <div 
+                <Reorder.Item 
                     key={slide._key}
+                    value={slide}
                     onClick={() => setActiveSlideIndex(idx)}
                     className={`group p-4 rounded-xl border cursor-pointer transition-all duration-200 relative ${
                         idx === activeSlideIndex 
                         ? "border-blue-600 bg-blue-50/50 dark:bg-blue-900/10 shadow-md ring-1 ring-blue-600 z-10" 
                         : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-sm"
                     }`}
+                    whileDrag={{ scale: 1.02, boxShadow: "0 10px 30px rgba(0,0,0,0.15)", zIndex: 50 }}
                 >
                     {idx === activeSlideIndex && (
                         <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-blue-600 rounded-r-full shadow-lg shadow-blue-500/30 z-10" />
@@ -321,9 +447,9 @@ export function CampaignSlidesTab() {
                             </Badge>
                         )}
                     </div>
-                </div>
+                </Reorder.Item>
             ))}
-        </div>
+        </Reorder.Group>
         
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3 rounded-b-2xl">
             <div className="grid grid-cols-2 gap-3">
@@ -402,174 +528,193 @@ export function CampaignSlidesTab() {
 
       {/* CENTER: Editor */}
       <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden relative">
-         <div className="border-b border-slate-100 dark:border-slate-800 p-6 flex items-center gap-6 bg-white dark:bg-slate-950 z-10">
-            <div className="flex-1">
-                <Label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Slide Title</Label>
-                <Input 
-                    value={activeSlide.title} 
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSlide(activeSlide._key, { title: e.target.value })}
-                    className="font-display text-2xl font-bold bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 hover:border-slate-300 focus:border-blue-600 dark:focus:border-blue-500 focus-visible:ring-0 px-0 h-auto py-2 text-slate-900 dark:text-slate-100 placeholder:text-slate-300 rounded-none transition-colors"
-                    placeholder="Enter slide title..."
-                />
-            </div>
-            <div className="w-48">
-                <Label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Layout</Label>
-                <Select 
-                    value={activeSlide.layout} 
-                    onValueChange={(val: any) => updateSlide(activeSlide._key, { layout: val })}
-                >
-                    <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl focus:ring-blue-500/20">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {SLIDE_TEMPLATES.map(t => (
-                             <SelectItem key={t.id} value={t.slide.layout}>{t.label}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-         </div>
-         
-         <div className="flex-1 overflow-y-auto p-6 lg:p-10 bg-slate-50/50 dark:bg-slate-900/20">
-            <div className="max-w-4xl mx-auto space-y-8">
-                {/* Editor Logic from previous file... Simplified for brevity but functionality preserved */}
-                {activeSlide.layout === 'text' && (
-                     <div className="space-y-2">
-                        <div className="flex justify-between items-center mb-1">
-                            <Label className="text-sm font-medium text-slate-500">Content</Label>
-                            <MarkdownToolbar onInsert={handleMarkdownInsert} />
-                        </div>
-                        <Textarea 
-                            ref={editorRef}
-                            value={activeSlide.content} 
-                            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateSlide(activeSlide._key, { content: e.target.value })}
-                            className="min-h-[400px] font-mono text-sm leading-relaxed p-6 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-blue-500 shadow-sm rounded-xl resize-none"
-                            placeholder="# Heading&#10;Body text..."
-                        />
-                        <div className="flex justify-end">
-                            <Button variant="ghost" size="sm" onClick={handleGenerateContent} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                                <Sparkles className="w-4 h-4 mr-2" />
-                                AI Generate
-                            </Button>
-                        </div>
-                     </div>
-                )}
-                
-                {/* Add other layout editors here... I'll include 'split' and 'gallery' as examples, others follow pattern */}
-                {(activeSlide.layout === 'split' || activeSlide.layout === 'image') && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                         <div className="space-y-4">
-                            <Label className="text-sm font-medium text-slate-500">Image</Label>
-                            <div 
-                                onClick={() => slideFileInputRef.current?.click()}
-                                className="aspect-video rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all bg-white dark:bg-slate-950 overflow-hidden relative group"
-                            >
-                                {activeSlide.imageUrl ? (
-                                    <>
-                                        <img src={activeSlide.imageUrl} alt="Slide" className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-medium">
-                                            Change Image
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-center p-6">
-                                        <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3">
-                                            <Upload className="w-6 h-6" />
-                                        </div>
-                                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Click to upload</p>
-                                        <p className="text-xs text-slate-500 mt-1">SVG, PNG, JPG or GIF</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        {activeSlide.layout === 'split' && (
-                             <div className="space-y-2">
-                                <div className="flex justify-between items-center mb-1">
-                                    <Label className="text-sm font-medium text-slate-500">Content</Label>
-                                    <MarkdownToolbar onInsert={handleMarkdownInsert} />
-                                </div>
-                                <Textarea 
-                                    ref={editorRef}
-                                    value={activeSlide.content} 
-                                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateSlide(activeSlide._key, { content: e.target.value })}
-                                    className="min-h-[300px] font-mono text-sm leading-relaxed p-4 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-blue-500 shadow-sm rounded-xl resize-none"
-                                />
-                             </div>
-                        )}
-                    </div>
-                )}
-                
-                {activeSlide.layout === 'gallery' && (
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium text-slate-500">Gallery Images</Label>
-                            <Button variant="outline" size="sm" onClick={() => galleryInputRef.current?.click()}>
-                                <ImagePlus className="w-4 h-4 mr-2" />
-                                Add Images
-                            </Button>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {activeSlide.galleryImages?.map((img, i) => (
-                                <div key={img._key} className="aspect-square relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-                                    <img src={img.url} alt="" className="w-full h-full object-cover" />
-                                    <Button 
-                                        variant="destructive" 
-                                        size="icon" 
-                                        className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => {
-                                            const newImages = [...(activeSlide.galleryImages || [])];
-                                            newImages.splice(i, 1);
-                                            updateSlide(activeSlide._key, { galleryImages: newImages });
-                                        }}
-                                    >
-                                        <X className="w-3 h-3" />
-                                    </Button>
-                                </div>
+         {!activeSlide ? (
+             <div className="flex-1 flex flex-col items-center justify-center p-8 text-slate-400">
+                 <Layout className="w-12 h-12 mb-4 opacity-20" />
+                 <p className="text-sm font-medium">Select a slide to edit</p>
+             </div>
+         ) : (
+             <>
+             <div className="border-b border-slate-100 dark:border-slate-800 p-6 flex items-center gap-6 bg-white dark:bg-slate-950 z-10">
+                <div className="flex-1">
+                    <Label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Slide Title</Label>
+                    <Input 
+                        value={activeSlide.title} 
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSlide(activeSlide._key, { title: e.target.value })}
+                        className="font-display text-2xl font-bold bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 hover:border-slate-300 focus:border-blue-600 dark:focus:border-blue-500 focus-visible:ring-0 px-0 h-auto py-2 text-slate-900 dark:text-slate-100 placeholder:text-slate-300 rounded-none transition-colors"
+                        placeholder="Enter slide title..."
+                    />
+                </div>
+                <div className="w-48">
+                    <Label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">Layout</Label>
+                    <Select 
+                        value={activeSlide.layout} 
+                        onValueChange={(val: any) => updateSlide(activeSlide._key, { layout: val })}
+                    >
+                        <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl focus:ring-blue-500/20">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {SLIDE_TEMPLATES.map(t => (
+                                 <SelectItem key={t.id} value={t.slide.layout || "text"}>{t.label}</SelectItem>
                             ))}
-                            <div 
-                                onClick={() => galleryInputRef.current?.click()}
-                                className="aspect-square rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all bg-white dark:bg-slate-950"
-                            >
-                                <Plus className="w-6 h-6 text-slate-400" />
+                        </SelectContent>
+                    </Select>
+                </div>
+             </div>
+             
+             <div className="flex-1 overflow-y-auto p-6 lg:p-10 bg-slate-50/50 dark:bg-slate-900/20">
+                <div className="max-w-4xl mx-auto space-y-8">
+                    {/* Strategy Tips Contextual Help */}
+                    {activeTemplate && activeTemplate.tips && (
+                        <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3">
+                            <Lightbulb className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                                    Tips for {activeTemplate.label}
+                                </h4>
+                                <ul className="text-sm text-blue-800/80 dark:text-blue-200/70 space-y-1 list-disc list-inside">
+                                    {activeTemplate.tips.map((tip, i) => (
+                                        <li key={i}>{tip}</li>
+                                    ))}
+                                </ul>
                             </div>
                         </div>
+                    )}
 
-                        <div className="space-y-2">
-                            <Label className="text-sm font-medium text-slate-500">Caption / Description</Label>
-                            <Textarea 
-                                value={activeSlide.content} 
-                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateSlide(activeSlide._key, { content: e.target.value })}
-                                className="min-h-[100px]"
+                    {/* Text-based & Video Layouts */}
+                    {(['text', 'title', 'grid', 'statement', 'timeline', 'data-grid', 'persona', 'mockup', 'video'].includes(activeSlide.layout)) && (
+                         <div className="space-y-4">
+                            <Label className="text-sm font-medium text-slate-500">
+                                {activeSlide.layout === 'video' ? "Video URL & Description" : "Content"}
+                            </Label>
+                            
+                            <RichTextEditor 
+                                value={activeSlide.content}
+                                onChange={(val) => updateSlide(activeSlide._key, { content: val })}
+                                placeholder={
+                                    activeSlide.layout === 'data-grid' ? "- Label: Value\n- Label: Value" : 
+                                    activeSlide.layout === 'video' ? "https://www.youtube.com/watch?v=...\n\n## Description\nAdd your video description here." :
+                                    "# Heading\nBody text..."
+                                }
+                                previewExtra={
+                                    activeSlide.layout === 'video' ? (
+                                        <div className="aspect-video bg-black rounded-lg mb-4 flex items-center justify-center text-slate-500">
+                                            <PlayCircle className="w-12 h-12 opacity-50" />
+                                            <span className="ml-2">Video Preview in Full Mode</span>
+                                        </div>
+                                    ) : undefined
+                                }
                             />
-                        </div>
-                    </div>
-                )}
 
-                 {/* Fallback for other layouts to just show text editor for now to ensure functionality */}
-                 {['grid', 'quote', 'stats', 'comparison', 'roadmap', 'persona', 'mockup', 'statement'].includes(activeSlide.layout) && (
-                     <div className="space-y-2">
-                        <div className="flex justify-between items-center mb-1">
-                            <Label className="text-sm font-medium text-slate-500">Content (Markdown)</Label>
-                            <MarkdownToolbar onInsert={handleMarkdownInsert} />
+                            <div className="flex justify-between items-center">
+                                <p className="text-xs text-slate-400">
+                                    {activeSlide.layout === 'timeline' && "Use bullet points for timeline events."}
+                                    {activeSlide.layout === 'data-grid' && "Use bullet points for data cards."}
+                                    {activeSlide.layout === 'grid' && "Use '## Heading' for quadrants and bullets for items."}
+                                    {activeSlide.layout === 'video' && "Paste the video URL on the first line."}
+                                </p>
+                                <Button variant="ghost" size="sm" onClick={handleGenerateContent} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                                    <Sparkles className="w-4 h-4 mr-2" />
+                                    AI Generate
+                                </Button>
+                            </div>
+                         </div>
+                    )}
+                    
+                    {/* Image-based & Split Layouts */}
+                    {(activeSlide.layout === 'split' || activeSlide.layout === 'image') && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div className="space-y-4">
+                                <Label className="text-sm font-medium text-slate-500">Visual Asset</Label>
+                                <div 
+                                    onClick={() => slideFileInputRef.current?.click()}
+                                    className="aspect-video rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all bg-white dark:bg-slate-950 overflow-hidden relative group"
+                                >
+                                    {activeSlide.imageUrl ? (
+                                        <>
+                                            <img src={activeSlide.imageUrl} alt="Slide" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-medium">
+                                                Change Image
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-center p-6">
+                                            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-3">
+                                                <Upload className="w-6 h-6" />
+                                            </div>
+                                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Click to upload</p>
+                                            <p className="text-xs text-slate-500 mt-1">SVG, PNG, JPG or GIF</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            {activeSlide.layout === 'split' && (
+                                 <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-slate-500">Content</Label>
+                                    <RichTextEditor 
+                                        value={activeSlide.content} 
+                                        onChange={(val) => updateSlide(activeSlide._key, { content: val })}
+                                        minHeight="300px"
+                                    />
+                                 </div>
+                            )}
                         </div>
-                        <Textarea 
-                            ref={editorRef}
-                            value={activeSlide.content} 
-                            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => updateSlide(activeSlide._key, { content: e.target.value })}
-                            className="min-h-[400px] font-mono text-sm leading-relaxed p-6 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-blue-500 shadow-sm rounded-xl resize-none"
-                        />
-                     </div>
-                 )}
+                    )}
 
-            </div>
-         </div>
+                    {/* Gallery Layout */}
+                    {activeSlide.layout === 'gallery' && (
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-sm font-medium text-slate-500">Gallery Images</Label>
+                                <Button variant="outline" size="sm" onClick={() => galleryInputRef.current?.click()}>
+                                    <ImagePlus className="w-4 h-4 mr-2" />
+                                    Add Images
+                                </Button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {activeSlide.galleryImages?.map((img, i) => (
+                                    <div key={img._key} className="aspect-square relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
+                                        <img src={img.url} alt="" className="w-full h-full object-cover" />
+                                        <Button 
+                                            variant="destructive" 
+                                            size="icon" 
+                                            className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => {
+                                                const newImages = [...(activeSlide.galleryImages || [])];
+                                                newImages.splice(i, 1);
+                                                updateSlide(activeSlide._key, { galleryImages: newImages });
+                                            }}
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                <div 
+                                    onClick={() => galleryInputRef.current?.click()}
+                                    className="aspect-square rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all bg-white dark:bg-slate-950"
+                                >
+                                    <Plus className="w-6 h-6 text-slate-400" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium text-slate-500">Caption / Description</Label>
+                                <RichTextEditor 
+                                    value={activeSlide.content} 
+                                    onChange={(val) => updateSlide(activeSlide._key, { content: val })}
+                                    minHeight="150px"
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+             </div>
+             </>
+         )}
       </div>
     </div>
   );
 }
 
-// Helper component for Textarea
-function TextareaWithRef({ value, onChange, className, placeholder }: any) {
-    return <Textarea value={value} onChange={onChange} className={className} placeholder={placeholder} />
-}

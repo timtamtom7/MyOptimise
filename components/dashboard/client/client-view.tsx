@@ -1,49 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ClientHero } from "./hero";
-import { RequestsList } from "./requests-list";
-import { ServicesGrid } from "./services-grid";
-import { ClientWorkItemsList } from "./work-items-list";
-import { ApprovalsTab } from "./approvals-tab";
-import { DeliverablesLibrary } from "./deliverables-library";
-import { ContentGrid } from "./content-grid";
 import { CreatePostDialog } from "./create-post-dialog";
 import { PostPreviewDialog } from "./post-preview-dialog";
-import { ClientCalendar, CalendarEvent } from "./client-calendar";
-import { SocialConnections } from "./social-connections";
-import { BrandTab } from "./brand-tab";
-import { BillingTab } from "./billing-tab";
-import { ResultsTab } from "./results-tab";
 import { StrategyReviewSection } from "@/components/flow/client/strategy-review-section";
 import Link from "next/link";
 import {
   FileText,
   CheckSquare,
-  Layers,
-  MessageSquare,
   Activity,
-  Flag,
-  Calendar,
   AlertCircle,
   Plus,
-  ArrowLeft,
+  Zap,
+  Sparkles,
   ArrowRight,
-  ChevronDown,
-  LayoutDashboard,
-  CreditCard,
-  Briefcase,
-  TrendingUp,
+  Target,
+  BarChart3,
+  Calendar
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 
 interface ClientViewProps {
   data: {
@@ -64,13 +41,6 @@ interface ClientViewProps {
   };
   actions: {
     submitClientRequest: (formData: FormData) => Promise<void>;
-    addClientRequestMessage: (formData: FormData) => Promise<void>;
-    createOrOpenSupportThread: (formData: FormData) => Promise<void>;
-    setClientServiceEnabled: (formData: FormData) => Promise<void>;
-    submitServiceRequest: (formData: FormData) => Promise<void>;
-    approveDeliverable: (formData: FormData) => Promise<void>;
-    rejectDeliverable: (formData: FormData) => Promise<void>;
-    suggestBrandAssetTags: (formData: FormData) => Promise<void>;
   };
   capabilities: {
     canWrite: boolean;
@@ -80,434 +50,159 @@ interface ClientViewProps {
 }
 
 export function ClientView({ data, actions, capabilities }: ClientViewProps) {
+  const router = useRouter();
   const [createPostOpen, setCreatePostOpen] = useState(false);
   const [createPostDate, setCreatePostDate] = useState<Date | undefined>(undefined);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewPost, setPreviewPost] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
-
-  const handleDateClick = (date: Date) => {
-    if (capabilities.canWrite) {
-      setCreatePostDate(date);
-      setCreatePostOpen(true);
-    }
-  };
 
   const handleCreatePost = () => {
     setCreatePostDate(undefined);
     setCreatePostOpen(true);
   };
 
-  const handlePostClick = (postOrId: any) => {
-      const post = typeof postOrId === 'string' 
-        ? data.contentItems?.find(c => c._id === postOrId)
-        : postOrId;
-      
-      if (post) {
-          setPreviewPost(post);
-          setPreviewOpen(true);
-      }
+  const handlePostClick = (post: any) => {
+    setPreviewPost(post);
+    setPreviewOpen(true);
   };
 
   // Calculate stats
   const activeRequests = data.myRequests.filter(r => r.status !== 'completed' && r.status !== 'closed').length;
-  const pendingTasks = data.clientWorkItems.filter(i => i.status !== 'completed' && i.status !== 'done').length;
-  const activeServices = data.clientServices.filter(s => s.status === 'active').length;
-  const activeThreads = data.myThreads.length;
-  
-  // Trust OS Metrics
   const pendingReviews = data.myDeliverables.filter(d => d.status === 'client_review').length;
   const activeCampaignTitle = data.activeCampaign?.title || "No Active Campaign";
   const activeCampaignFocus = data.activeCampaign?.description || "We are currently setting up your next campaign strategy.";
   const nextMilestone = data.activeCampaign?.endDate ? new Date(data.activeCampaign.endDate).toLocaleDateString() : "TBD";
-
-  const analytics = data.analytics || [];
-  const hasAnalytics = analytics.length > 0;
-  const totalAnalyticsValue = hasAnalytics
-    ? analytics.reduce((sum: number, record: any) => sum + (record.value || 0), 0)
-    : 0;
-  const latestAnalyticsRecord = hasAnalytics ? analytics[0] : null;
-  const latestAnalyticsDate = latestAnalyticsRecord?.metricDate
-    ? new Date(latestAnalyticsRecord.metricDate).toLocaleDateString()
-    : "N/A";
+  const packageName = data.account?.serviceScope?.split("-")[0] || "Growth Tier";
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-700">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Client Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {data.user.name}. Here&apos;s what&apos;s happening with your account.
+          <h1 className="text-2xl md:text-4xl font-thin tracking-tighter text-foreground">
+            Portal<span className="text-blue-500">.</span>
+          </h1>
+          <p className="text-lg text-muted-foreground mt-2 font-light">
+            Welcome back, {data.user.name}.
           </p>
+        </div>
+        
+        <div className="flex gap-3">
+             <Button onClick={handleCreatePost} className="rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105 active:scale-95">
+                <Plus className="mr-2 h-4 w-4" />
+                New Request
+            </Button>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="flex items-center gap-2 overflow-x-auto border-b pb-2">
-          <Button
-            variant={activeTab === "overview" ? "secondary" : "ghost"}
-            onClick={() => setActiveTab("overview")}
-            className="gap-2"
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            Overview
-          </Button>
+      {/* Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        
+        {/* Primary Focus: Active Campaign (Hero Card) */}
+        <div className="col-span-1 md:col-span-8 relative overflow-hidden rounded-[2rem] p-8 md:p-12 min-h-[350px] bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] duration-500 group">
+             {/* Abstract Background Decoration */}
+             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-500/20 to-sky-500/20 blur-[100px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/3" />
+             
+             <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 rounded-full bg-blue-500/20 text-blue-500 backdrop-blur-md">
+                            <Target className="h-6 w-6" />
+                        </div>
+                        <span className="text-sm font-medium tracking-widest uppercase text-blue-500/80">Current Focus</span>
+                        <Badge variant="outline" className="ml-auto border-blue-500/20 text-blue-500 bg-blue-500/10">{packageName}</Badge>
+                    </div>
+                    
+                    <h2 className="text-3xl md:text-5xl font-light tracking-tight mb-4 leading-tight">
+                        {activeCampaignTitle}
+                    </h2>
+                    <p className="text-muted-foreground max-w-2xl text-lg font-light leading-relaxed">
+                        {activeCampaignFocus}
+                    </p>
+                </div>
 
-          <Button
-            variant={activeTab === "results" ? "secondary" : "ghost"}
-            onClick={() => setActiveTab("results")}
-            className="gap-2"
-          >
-            <TrendingUp className="h-4 w-4" />
-            Results
-          </Button>
-
-          <Button
-            variant={activeTab === "approvals" ? "secondary" : "ghost"}
-            onClick={() => setActiveTab("approvals")}
-            className="gap-2"
-          >
-            <CheckSquare className="h-4 w-4" />
-            Approvals
-            {pendingReviews > 0 && (
-              <span className="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                {pendingReviews}
-              </span>
-            )}
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant={["calendar", "content", "brand"].includes(activeTab) ? "secondary" : "ghost"}
-                className="gap-2"
-              >
-                <Layers className="h-4 w-4" />
-                Campaign
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setActiveTab("calendar")}>
-                <Calendar className="mr-2 h-4 w-4" />
-                Calendar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("content")}>
-                <FileText className="mr-2 h-4 w-4" />
-                Content
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("brand")}>
-                <Flag className="mr-2 h-4 w-4" />
-                Brand Assets
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant={["services", "requests"].includes(activeTab) ? "secondary" : "ghost"}
-                className="gap-2"
-              >
-                <Briefcase className="h-4 w-4" />
-                Services
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setActiveTab("services")}>
-                <Activity className="mr-2 h-4 w-4" />
-                Active Services
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("requests")}>
-                <AlertCircle className="mr-2 h-4 w-4" />
-                Support Requests
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Button
-            variant={activeTab === "billing" ? "secondary" : "ghost"}
-            onClick={() => setActiveTab("billing")}
-            className="gap-2"
-          >
-            <CreditCard className="h-4 w-4" />
-            Billing
-          </Button>
-
-          <Button
-            variant={activeTab === "messages" ? "secondary" : "ghost"}
-            onClick={() => setActiveTab("messages")}
-            className="gap-2"
-          >
-            <MessageSquare className="h-4 w-4" />
-            Inbox
-          </Button>
+                <div className="mt-8 flex items-center gap-6">
+                    <div className="flex flex-col">
+                        <span className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Next Milestone</span>
+                        <span className="text-xl font-light">{nextMilestone}</span>
+                    </div>
+                    <div className="h-10 w-px bg-white/10" />
+                    <Button variant="ghost" className="group/btn pl-0 hover:bg-transparent hover:text-blue-500 text-lg font-light">
+                        View Strategy <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover/btn:translate-x-1" />
+                    </Button>
+                </div>
+             </div>
         </div>
 
-        <TabsContent value="overview" className="space-y-6">
-          {(() => {
-            const reviewableStrategies = data.activeCampaign ? [data.activeCampaign] : [];
-            return reviewableStrategies.length > 0 ? (
-              <StrategyReviewSection strategies={reviewableStrategies} />
-            ) : null;
-          })()}
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
-                <CheckSquare className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{pendingTasks}</div>
-                <p className="text-xs text-muted-foreground">Action items for you</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Services</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{activeServices}</div>
-                <p className="text-xs text-muted-foreground">Currently running</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Open Requests</CardTitle>
-                <AlertCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{activeRequests}</div>
-                <p className="text-xs text-muted-foreground">Support tickets</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-                <CheckSquare className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{pendingReviews}</div>
-                <p className="text-xs text-muted-foreground">
-                  {pendingReviews > 0 ? "Content waiting for your review" : "You’re all caught up"}
-                </p>
-                {pendingReviews > 0 && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-3"
-                    onClick={() => setActiveTab("approvals")}
-                  >
-                    Review now
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Results snapshot</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {hasAnalytics ? (
-                <div className="space-y-3">
-                  <div className="text-2xl font-bold">
-                    {latestAnalyticsRecord?.value?.toLocaleString?.() ?? latestAnalyticsRecord?.value ?? totalAnalyticsValue.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Latest metric: {latestAnalyticsRecord?.metric || "Activity"} on {latestAnalyticsDate}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Based on {analytics.length} data points across your connected channels.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-1"
-                    onClick={() => setActiveTab("results")}
-                  >
-                    View full results
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Once your accounts are connected and data flows in, a simple summary of followers, reach, or other agreed metrics will appear here.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <div className="col-span-4">
-              <ClientHero 
-                userName={data.user.name}
-                activeCampaignTitle={activeCampaignTitle}
-                activeCampaignFocus={activeCampaignFocus}
-                nextMilestone={nextMilestone}
-                pendingReviews={pendingReviews}
-                onReviewClick={() => setActiveTab("approvals")}
-                canWrite={capabilities.canWrite}
-                submitAction={actions.submitClientRequest}
-                account={data.account}
-              />
+        {/* Secondary: Actions & Status (Vertical Stack) */}
+        <div className="col-span-1 md:col-span-4 flex flex-col gap-6">
+            
+            {/* Pending Approvals Card */}
+            <div className="flex-1 rounded-[2rem] p-8 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/80 dark:hover:bg-white/10 transition-colors relative overflow-hidden group cursor-pointer" onClick={() => router.push('/dashboard/approvals')}>
+                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-500 to-sky-300 opacity-50" />
+                 <div className="flex justify-between items-start mb-4">
+                    <FileText className="h-6 w-6 text-sky-500" />
+                    {pendingReviews > 0 && <Badge variant="destructive" className="animate-pulse">Action Required</Badge>}
+                 </div>
+                 <div className="text-4xl font-light tracking-tighter mb-1">{pendingReviews}</div>
+                 <div className="text-sm text-muted-foreground">Pending Approvals</div>
+                 <div className="mt-4 flex items-center text-xs text-sky-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                    Review Now <ArrowRight className="ml-1 h-3 w-3" />
+                 </div>
             </div>
-            <div className="col-span-3">
-              <Card className="h-full">
-                <CardHeader>
-                  <CardTitle>Upcoming & Recent Content</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {data.contentItems && data.contentItems.length > 0 ? (
-                      data.contentItems
-                        .slice()
-                        .sort((a, b) => {
-                          const aDate = a.scheduledAt || a.createdAt;
-                          const bDate = b.scheduledAt || b.createdAt;
-                          return new Date(aDate).getTime() - new Date(bDate).getTime();
-                        })
-                        .slice(0, 3)
-                        .map((item, i) => (
-                          <div key={i} className="flex items-center gap-4">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                              <FileText className="h-4 w-4 text-primary" />
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-sm font-medium leading-none">{item.title}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {item.scheduledAt
-                                  ? `Scheduled for ${new Date(item.scheduledAt).toLocaleString()}`
-                                  : "Draft – not yet scheduled"}
-                              </p>
-                            </div>
-                          </div>
-                        ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        No content yet. Once posts are drafted or scheduled, they will appear here.
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+
+            {/* Active Requests Card */}
+            <div className="flex-1 rounded-[2rem] p-8 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/80 dark:hover:bg-white/10 transition-colors relative overflow-hidden">
+                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-300 opacity-50" />
+                 <div className="flex justify-between items-start mb-4">
+                    <Zap className="h-6 w-6 text-blue-500" />
+                 </div>
+                 <div className="text-4xl font-light tracking-tighter mb-1">{activeRequests}</div>
+                 <div className="text-sm text-muted-foreground">Active Requests</div>
             </div>
-          </div>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="results" className="space-y-6">
-          <ResultsTab analytics={analytics} />
-        </TabsContent>
-
-        <TabsContent value="calendar" className="space-y-6">
-          <ClientCalendar 
-            events={data.calendarEvents || []} 
-            onDateClick={handleDateClick}
-            canWrite={capabilities.canWrite}
-          />
-        </TabsContent>
-
-        <TabsContent value="content" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight">Content Library</h2>
-            {capabilities.canWrite && (
-              <Button onClick={handleCreatePost} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create Post
-              </Button>
-            )}
-          </div>
-          <ContentGrid 
-            items={data.contentItems || []} 
-            onPostClick={handlePostClick}
-            capabilities={capabilities}
-          />
-        </TabsContent>
-
-        <TabsContent value="approvals" className="space-y-6">
-          <ApprovalsTab 
-            deliverables={data.myDeliverables}
-            onApprove={actions.approveDeliverable}
-            onReject={actions.rejectDeliverable}
-          />
-        </TabsContent>
-
-        <TabsContent value="brand" className="space-y-6">
-          <BrandTab
-            account={data.account}
-            actions={{ suggestBrandAssetTags: actions.suggestBrandAssetTags }}
-            canWrite={capabilities.canWrite}
-          />
-        </TabsContent>
-
-        <TabsContent value="services" className="space-y-6">
-          <ServicesGrid 
-            services={data.clientServices}
-            toggleAction={actions.setClientServiceEnabled}
-          />
-        </TabsContent>
-
-        <TabsContent value="requests" className="space-y-6">
-          <RequestsList 
-            requests={data.myRequests}
-            canWrite={capabilities.canWrite}
-            addMessageAction={actions.addClientRequestMessage}
-            submitRequestAction={actions.submitClientRequest}
-          />
-        </TabsContent>
-
-        <TabsContent value="billing" className="space-y-6">
-          <BillingTab />
-        </TabsContent>
-
-        <TabsContent value="messages" className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight">Inbox</h2>
-                <p className="text-muted-foreground">
-                  Conversations with your Optimise team.
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {data.myThreads.map((thread) => (
-                <Link
-                  key={thread._id}
-                  href={`/dashboard/client/threads/${thread._id}`}
-                  className="block rounded-lg border bg-card p-4 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium truncate">
-                      {thread.title || "Conversation"}
+        {/* Row 2: Strategy Review & Stats */}
+        <div className="col-span-1 md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Strategy Review Module */}
+            <div className="rounded-[2rem] p-8 bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/10">
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-xl font-light flex items-center gap-2">
+                        <CheckSquare className="h-5 w-5 text-blue-500" />
+                        Strategy Review
                     </h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {thread.lastMessage?.message || "No messages yet"}
-                  </p>
-                </Link>
-              ))}
-              {data.myThreads.length === 0 && (
-                <div className="col-span-full text-center py-10 text-muted-foreground border rounded-lg bg-muted/20">
-                  No conversations yet. Use support requests to get in touch.
                 </div>
-              )}
+                <StrategyReviewSection 
+                    campaigns={data.activeCampaign ? [data.activeCampaign] : []}
+                    deliverables={data.myDeliverables}
+                />
             </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+
+            {/* Performance Stats */}
+            <div className="rounded-[2rem] p-8 bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/10 flex flex-col">
+                <h3 className="text-xl font-light mb-8 flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-blue-500" />
+                    Performance Overview
+                </h3>
+                
+                <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
+                    <Sparkles className="h-8 w-8 mb-4 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Performance metrics will appear here once campaign data is available.</p>
+                </div>
+            </div>
+
+        </div>
+      </div>
 
       <CreatePostDialog 
-        clientId={String(data.user.id || "")}
         open={createPostOpen} 
-        onOpenChange={setCreatePostOpen}
+        onOpenChange={setCreatePostOpen} 
         defaultDate={createPostDate}
+        clientId={data.account?._id}
       />
-
+      
       <PostPreviewDialog
         open={previewOpen}
         onOpenChange={setPreviewOpen}

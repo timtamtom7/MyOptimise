@@ -5,6 +5,8 @@ import { client } from "@/sanity/lib/client";
 import { TeamTab } from "@/components/dashboard/manager/team-tab";
 import { hasAccountCapability } from "@/lib/capabilities";
 import { revalidatePath } from "next/cache";
+import { updateEmployee, deleteEmployee } from "@/app/actions/team";
+import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
@@ -31,14 +33,15 @@ export default async function TeamDashboardPage() {
   }
 
   // --- DATA FETCHING ---
-  const employees = await client.fetch(
-    `*[_type == "account" && type == "employee" && status == "active"] | order(name asc){
-      _id, name, email, avatar, role, tags, status
-    }`
-  );
+  // Admins see everyone. Managers see employees.
+  const query = type === 'admin' 
+    ? `*[_type == "account"] | order(name asc){ _id, name, email, avatar, role, tags, status, type }`
+    : `*[_type == "account" && type == "employee"] | order(name asc){ _id, name, email, avatar, role, tags, status, type }`;
+    
+  const employees = await client.fetch(query);
 
   // --- CAPABILITIES ---
-  const canInviteEmployees = hasAccountCapability(account, "team.invite");
+  const canInviteEmployees = type === 'admin' || hasAccountCapability(account, "users.invite");
 
   // --- ACTIONS ---
   async function inviteEmployee(formData: FormData) {
@@ -50,6 +53,8 @@ export default async function TeamDashboardPage() {
     // For now, we'll just create a pending account if it doesn't exist.
     const name = String(formData.get("name") || "");
     const email = String(formData.get("email") || "").toLowerCase();
+    const role = String(formData.get("role") || "employee");
+    const password = String(formData.get("password") || "").trim();
     
     if (!name || !email) return;
 
@@ -60,11 +65,29 @@ export default async function TeamDashboardPage() {
     const existing = await writeClient.fetch(`*[_type == "account" && email == $email][0]`, { email });
     if (existing) return;
 
+    // Determine account type based on role selection
+    // Only admins can create non-employees
+    const adminSession = await safeGetServerSession();
+    const adminEmail = String(adminSession?.user?.email || "");
+    const adminAcct = await fetchSanityAccountByEmail({ email: adminEmail });
+    
+    let accountType = "employee";
+    if (adminAcct?.type === "admin" && (role === "manager" || role === "admin")) {
+        accountType = role;
+    }
+
+    let hashedPassword = undefined;
+    if (password) {
+        hashedPassword = await bcrypt.hash(password, 10);
+    }
+
     await writeClient.create({
         _type: "account",
         name,
         email,
-        type: "employee",
+        type: accountType,
+        role: role, // Store role string as well
+        password: hashedPassword,
         status: "active", // Auto activate for demo
         createdAt: new Date().toISOString()
     });
@@ -86,6 +109,8 @@ export default async function TeamDashboardPage() {
         }}
         actions={{
           inviteEmployee,
+          updateEmployee,
+          deleteEmployee,
         }}
       />
     </div>

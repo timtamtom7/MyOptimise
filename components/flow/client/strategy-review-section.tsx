@@ -8,49 +8,46 @@ import { StrategyPresentation } from "./strategy-presentation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface StrategyReviewSectionProps {
-  strategies: any[];
+  campaigns: any[];
+  deliverables?: any[];
 }
 
-export function StrategyReviewSection({ strategies }: StrategyReviewSectionProps) {
+export function StrategyReviewSection({ campaigns, deliverables }: StrategyReviewSectionProps) {
   const [selectedStrategy, setSelectedStrategy] = useState<any>(null);
 
-  if (!strategies || strategies.length === 0) return null;
+  if (!campaigns || campaigns.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground opacity-50">
+            <p>No active strategies to review.</p>
+        </div>
+      );
+  }
 
   return (
-    <div className="mb-12">
-      <h2 className="text-2xl font-display font-medium text-slate-900 mb-6">Strategy Review</h2>
-      <div className="grid gap-6">
-        {strategies.map((campaign) => (
-          <Card key={campaign._id} className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-0 flex flex-col md:flex-row">
-              <div className="bg-slate-900 w-full md:w-1/3 min-h-[200px] flex items-center justify-center p-6 text-center">
-                <div>
-                    <p className="text-slate-400 text-sm mb-4">Strategy Presentation</p>
-                    <Button 
-                        variant="secondary" 
-                        className="bg-white/10 text-white hover:bg-white/20 border-white/20"
-                        onClick={() => setSelectedStrategy(campaign)}
-                    >
-                        <Play className="w-4 h-4 mr-2" /> Review Strategy
-                    </Button>
+    <div className="space-y-4">
+      {campaigns.map((campaign) => (
+        <div key={campaign._id} className="group relative overflow-hidden rounded-xl border border-white/5 bg-white/5 p-6 hover:bg-white/10 transition-colors">
+            <div className="flex flex-col md:flex-row gap-6 items-center">
+                <div className="h-16 w-16 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 shrink-0">
+                    <Play className="h-6 w-6 ml-1" />
                 </div>
-              </div>
-              <div className="p-6 flex-1 flex flex-col justify-center">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{campaign.title}</h3>
-                <p className="text-slate-600 mb-4">
-                    Your account manager has prepared a new social media strategy for your review. 
-                    Please review the deck, competitor analysis, and moodboard.
-                </p>
-                <div className="flex gap-2">
-                     <Button onClick={() => setSelectedStrategy(campaign)}>
-                        Open Presentation
-                     </Button>
+                
+                <div className="flex-1 text-center md:text-left">
+                    <h3 className="text-lg font-medium text-foreground mb-1">{campaign.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-4 md:mb-0">
+                        Strategic direction for {new Date(campaign.startDate).getFullYear()}.
+                    </p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+
+                <Button 
+                    onClick={() => setSelectedStrategy(campaign)}
+                    className="rounded-full bg-white/10 hover:bg-white/20 text-foreground border-white/10"
+                >
+                    Open Deck
+                </Button>
+            </div>
+        </div>
+      ))}
 
       <Dialog open={!!selectedStrategy} onOpenChange={(open) => !open && setSelectedStrategy(null)}>
         <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 border-0 bg-transparent shadow-none">

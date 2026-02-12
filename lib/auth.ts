@@ -1,7 +1,7 @@
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { NextAuthOptions } from "next-auth";
-import { fetchSanityAccountByEmail, fetchSanityAccountById } from "@/sanity/lib/fetch";
+import { fetchSanityAccountByEmail, fetchSanityAccountById, fetchSanityAccountByAccessPassword } from "@/sanity/lib/fetch";
 import bcrypt from "bcryptjs";
 import { client } from "@/sanity/lib/client";
 import crypto from "crypto";
@@ -69,15 +69,27 @@ export function getAuthOptions(): NextAuthOptions {
           password: { label: "Password", type: "password" },
         },
         async authorize(credentials) {
-          const email = String(credentials?.email || "");
-          const password = String(credentials?.password || "");
-          if (!email || !password) return null;
-          const account = await fetchSanityAccountByEmail({ email });
-          if (!account) return null;
-          if (account.status === "disabled") return null;
-          const hash = account.passwordHash || "";
-          const match = hash ? await bcrypt.compare(password, hash) : false;
-          if (!match) return null;
+          const email = String(credentials?.email || "").trim();
+          const password = String(credentials?.password || "").trim();
+          
+          if (!password) return null;
+
+          let account;
+
+          if (email) {
+            account = await fetchSanityAccountByEmail({ email });
+            if (!account) return null;
+            if (account.status === "disabled") return null;
+            const hash = account.passwordHash || "";
+            const match = hash ? await bcrypt.compare(password, hash) : false;
+            if (!match) return null;
+          } else {
+            // Password-only login (Unique Access Password)
+            account = await fetchSanityAccountByAccessPassword({ accessPassword: password });
+            if (!account) return null;
+            if (account.status === "disabled") return null;
+          }
+
           return {
             id: account._id,
             email: account.email,
@@ -319,6 +331,8 @@ export async function safeGetServerSession() {
     let result = await getServerSession(getAuthOptions());
 
     if (!result) {
+      // DEV BYPASS LOGIC DISABLED to prevent "zombie" sessions that can't be logged out
+      /*
       const isPreview = Boolean(process.env.VERCEL_PREVIEW_URL);
       const isDev = process.env.NODE_ENV !== "production";
       if (isDev || isPreview) {
@@ -350,6 +364,7 @@ export async function safeGetServerSession() {
           }
         } catch {}
       }
+      */
     }
 
     return result;

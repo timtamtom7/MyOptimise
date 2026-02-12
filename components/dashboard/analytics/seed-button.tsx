@@ -8,7 +8,7 @@ export function SeedButton() {
     <Button 
       variant="ghost" 
       size="sm" 
-      className="text-xs text-muted-foreground hover:text-primary"
+      className="h-9 px-4 rounded-full text-xs font-bold text-muted-foreground hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
       onClick={async () => {
         toast.promise(seedAnalyticsData(), {
           loading: "Seeding data...",

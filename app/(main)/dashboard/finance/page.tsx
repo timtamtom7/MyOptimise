@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { CreateInvoiceDialog } from "@/components/dashboard/finance/create-invoice-dialog";
 import { InvoiceActions } from "@/components/dashboard/finance/invoice-actions";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -108,11 +108,7 @@ export default async function FinancePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/admin">
-              Open admin financials
-            </Link>
-          </Button>
+          <Link href="/dashboard/admin" className={buttonVariants({ variant: "outline", size: "sm" })}>Open admin financials</Link>
           {canCreate && <CreateInvoiceDialog clients={safeClients} />}
         </div>
       </div>
